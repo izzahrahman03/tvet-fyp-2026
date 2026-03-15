@@ -1,0 +1,287 @@
+/* ApplicantDashboard.css */
+
+/* ── Global Reset ── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.db-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f1f5f9;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── Sidebar ── */
+.db-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 16px;
+  border-right: 1px solid #e2e8f0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 200;
+  transition: transform 0.25s ease;
+}
+
+.db-sidebar.open {
+  transform: translateX(0);
+}
+
+/* ── Main ── */
+.db-main {
+  margin-left: 220px;
+  flex: 1;
+  padding: 28px 32px;
+}
+
+/* ── Mobile Hamburger ── */
+.db-hamburger {
+  display: none;
+}
+
+.db-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 199;
+}
+
+.db-overlay.visible {
+  display: block;
+}
+
+/* ── Illustration ── */
+.db-illustration {
+  display: flex;
+}
+
+.db-username {
+  font-size: 14px;
+  color: #475569;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .db-sidebar {
+    transform: translateX(-100%);
+  }
+  .db-main {
+    margin-left: 0;
+    padding: 20px 16px;
+  }
+  .db-hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .db-illustration {
+    display: none;
+  }
+  .db-username {
+    display: none;
+  }
+  .db-welcome-title {
+    font-size: 18px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .db-status-card {
+    max-width: 100% !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   NEW — Logo, Nav, Topbar, Search, User chip
+   (added to support ApplicantSidebar + ApplicantTopbar)
+════════════════════════════════════════════════════════ */
+
+/* ── Logo ── */
+.db-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 40px;
+  flex-shrink: 0;
+}
+
+.db-logo-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #1a56db, #3b82f6);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.db-logo-text {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1e293b;
+  line-height: 1.1;
+}
+
+/* ── Nav ── */
+.db-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.db-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  background: transparent;
+  color: #64748b;
+}
+
+.db-nav-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.db-nav-btn.active {
+  background: #1a56db;
+  color: white;
+}
+
+.db-nav-btn.active .db-nav-icon svg {
+  stroke: white;
+}
+
+.db-nav-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── Sign out button ── */
+.db-signout-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 8px 4px;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.db-signout-btn:hover { opacity: 0.75; }
+
+/* ── Topbar row ── */
+.db-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* ── Page title (mobile) ── */
+.db-topbar-title {
+  display: none;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+}
+
+/* ── Search bar ── */
+.db-search-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border-radius: 10px;
+  padding: 10px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  border: 1px solid #e2e8f0;
+}
+
+.db-search-input {
+  border: none;
+  outline: none;
+  background: none;
+  font-size: 14px;
+  color: #475569;
+  font-family: inherit;
+  width: 100%;
+}
+
+.db-search-input::placeholder { color: #94a3b8; }
+
+/* ── User chip ── */
+.db-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 4px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.db-user-chip:hover { background: #f1f5f9; }
+
+.db-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f97316, #ec4899);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* ── Mobile topbar adjustments ── */
+@media (max-width: 768px) {
+  .db-topbar-title { display: block; }
+  .db-search-wrap  { display: none; }
+  .db-username     { display: none; } /* already set above, kept for clarity */
+}

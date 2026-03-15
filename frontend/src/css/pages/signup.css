@@ -1,0 +1,123 @@
+/* ============================================================
+   SignupPage.css — EduLearn
+   Auth layout (re-uses LoginPage.css base) + Signup-specific
+   ============================================================ */
+
+/*
+  NOTE: This file imports LoginPage.css for the shared auth
+  layout (.auth-page, .auth-side, .auth-form-side, form
+  elements, .btn-google, .btn-auth, etc.).
+
+  Only signup-specific overrides and additions are defined here.
+*/
+
+/* ── Benefits Checklist (Signup sidebar) ── */
+.signup-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: .85rem;
+  margin-top: 1.5rem;
+}
+
+.signup-benefit-item {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+}
+
+.signup-benefit-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(96, 165, 250, .2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: .7rem;
+  color: #fff;
+}
+
+.signup-benefit-text {
+  font-size: .88rem;
+  color: #CBD5E1;
+}
+
+/* ── Social Proof Avatar Row (Signup sidebar) ── */
+.signup-social-proof {
+  margin-top: 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.signup-avatar-stack {
+  display: flex;
+}
+
+.signup-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .3);
+  margin-left: -10px;
+  flex-shrink: 0;
+}
+.signup-avatar:first-child { margin-left: 0; }
+
+.signup-joined-text {
+  font-size: .82rem;
+  color: #93C5FD;
+  margin-left: .4rem;
+}
+
+/* ── Two-column name row ── */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* ── Password Strength Meter ── */
+.strength-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: .5rem;
+}
+
+.strength-seg {
+  height: 3px;
+  flex: 1;
+  border-radius: 3px;
+  background: #DBEAFE;
+  transition: background .3s;
+}
+
+.strength-label {
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+/* ── Select dropdown ── */
+.form-input[type=""] ,
+select.form-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+  cursor: pointer;
+}
+
+/* ── No-credit-card footnote ── */
+.signup-footnote {
+  text-align: center;
+  font-size: .78rem;
+  color: #94A3B8;
+  margin-top: 1.2rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .form-row { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,190 @@
+/* myApplication.css
+   Applicant — My Application view page
+   Extends applicationForm.css (af-*) with view-specific (ma-*) styles
+   ──────────────────────────────────────────────────────────────────── */
+
+/* ══════════════════════════════════════════════════════════
+   PAGE HEADER
+══════════════════════════════════════════════════════════ */
+.ma-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ma-page-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.ma-page-sub {
+  font-size: 12.5px;
+  color: #94a3b8;
+  margin-top: 3px;
+}
+
+.ma-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ma-edit-btn {
+  /* inherits af-btn-next styles, just override padding slightly */
+  padding: 9px 20px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   STATUS BADGE
+══════════════════════════════════════════════════════════ */
+.ma-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.ma-badge-pending  { background: #fef9c3; color: #a16207;  border: 1px solid #fde68a; }
+.ma-badge-approved { background: #f0fdf4; color: #15803d;  border: 1px solid #bbf7d0; }
+.ma-badge-rejected { background: #fef2f2; color: #b91c1c;  border: 1px solid #fecaca; }
+
+/* ══════════════════════════════════════════════════════════
+   NOTICE BANNERS
+══════════════════════════════════════════════════════════ */
+.ma-notice {
+  margin-bottom: 20px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SECTION CARDS
+══════════════════════════════════════════════════════════ */
+.ma-section-card {
+  margin-bottom: 20px;
+}
+
+.ma-section-card:last-child {
+  margin-bottom: 0;
+}
+
+.ma-section-card-header {
+  padding: 16px 24px;
+}
+
+.ma-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ma-section-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════
+   READ-ONLY FIELD VALUE
+══════════════════════════════════════════════════════════ */
+.ma-read-value {
+  font-size: 13.5px;
+  color: #1e293b;
+  padding: 8px 0;
+  border-bottom: 1.5px solid #f1f5f9;
+  min-height: 38px;
+  line-height: 1.5;
+}
+
+.ma-empty-val {
+  color: #cbd5e1;
+  font-style: italic;
+}
+
+/* ══════════════════════════════════════════════════════════
+   TABLE CELLS (read-only)
+══════════════════════════════════════════════════════════ */
+.ma-td {
+  font-size: 13px;
+  color: #1e293b;
+  padding: 12px 16px !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   PROFICIENCY PILL
+══════════════════════════════════════════════════════════ */
+.ma-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.ma-pill-beginner     { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+.ma-pill-intermediate { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.ma-pill-advanced     { background: #fdf4ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+.ma-pill-expert       { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+
+/* ══════════════════════════════════════════════════════════
+   AVATAR (view mode — no hover/edit overlay)
+══════════════════════════════════════════════════════════ */
+.ma-avatar-view {
+  margin-bottom: 24px;
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════════════════
+   EMPTY STATE (no application yet)
+══════════════════════════════════════════════════════════ */
+.ma-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  text-align: center;
+}
+
+.ma-empty-icon  { font-size: 52px; margin-bottom: 16px; }
+
+.ma-empty-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.ma-empty-text {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.7;
+  max-width: 340px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .ma-page-header { flex-direction: column; align-items: flex-start; }
+  .ma-header-right { width: 100%; justify-content: flex-start; }
+}
+
+@media (max-width: 560px) {
+  .ma-edit-btn { width: 100%; justify-content: center; }
+}

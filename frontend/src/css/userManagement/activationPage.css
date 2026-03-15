@@ -1,0 +1,322 @@
+/* ActivationPage.css — shared by ActivationPage & SetPasswordPage */
+
+/* ─── Page wrapper ───────────────────────────────────────── */
+.act-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  font-family: 'Segoe UI', 'DM Sans', system-ui, sans-serif;
+}
+
+/* ─── Card ───────────────────────────────────────────────── */
+.act-card {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  animation: card-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─── Logo ───────────────────────────────────────────────── */
+.act-logo {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 28px;
+}
+
+.act-logo-icon {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #0f172a, #1a56db);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(26, 86, 219, 0.4);
+}
+
+.act-logo-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  letter-spacing: -0.3px;
+}
+
+.act-logo-sub {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.2;
+}
+
+/* ─── Step indicator ─────────────────────────────────────── */
+.act-steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 24px;
+}
+
+.act-step {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.act-step-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 2px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.act-step.active .act-step-dot {
+  background: #1a56db;
+  color: white;
+  border-color: #1a56db;
+  box-shadow: 0 0 0 4px rgba(26, 86, 219, 0.15);
+}
+
+.act-step.done .act-step-dot {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.act-step-label {
+  font-size: 12.5px;
+  color: #94a3b8;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.act-step.active .act-step-label { color: #1a56db; font-weight: 700; }
+.act-step.done  .act-step-label  { color: #10b981; font-weight: 600; }
+
+.act-step-line {
+  flex: 1;
+  height: 2px;
+  background: #e2e8f0;
+  margin: 0 10px;
+  min-width: 24px;
+}
+
+.act-step-line.active { background: #1a56db; }
+
+/* ─── Headings ───────────────────────────────────────────── */
+.act-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 6px;
+  letter-spacing: -0.4px;
+}
+
+.act-subtitle {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.65;
+  margin-bottom: 24px;
+}
+
+/* ─── Error banner ───────────────────────────────────────── */
+.act-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #b91c1c;
+  font-weight: 500;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* ─── Form ───────────────────────────────────────────────── */
+.act-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.act-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.act-field label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 7px;
+}
+
+/* ─── Input wrap ─────────────────────────────────────────── */
+.act-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #f8fafc;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.act-input-wrap:focus-within {
+  border-color: #1a56db;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+}
+
+.act-input-icon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.act-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: none;
+  padding: 11px 0;
+  font-size: 14px;
+  color: #1e293b;
+  font-family: inherit;
+}
+
+.act-input::placeholder {
+  color: #b0bec5;
+}
+
+.act-eye-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+
+.act-eye-btn:hover { color: #475569; }
+
+/* ─── Requirements list ──────────────────────────────────── */
+.act-requirements {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: -6px;
+}
+
+.act-req-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: #94a3b8;
+  transition: color 0.2s;
+}
+
+.act-req-item.met { color: #10b981; font-weight: 600; }
+
+.act-req-dot {
+  width: 16px;
+  text-align: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* ─── Submit button ──────────────────────────────────────── */
+.act-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #1a56db, #3b82f6);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+  box-shadow: 0 4px 14px rgba(26, 86, 219, 0.3);
+  margin-top: 4px;
+}
+
+.act-submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(26, 86, 219, 0.4);
+}
+
+.act-submit-btn:active:not(:disabled) { transform: translateY(0); }
+
+.act-submit-btn:disabled { cursor: not-allowed; }
+
+/* ─── Spinner ────────────────────────────────────────────── */
+.act-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Help text ──────────────────────────────────────────── */
+.act-help {
+  text-align: center;
+  font-size: 12.5px;
+  color: #94a3b8;
+  margin-top: 20px;
+}
+
+/* ─── Success icon ───────────────────────────────────────── */
+.act-success-icon {
+  font-size: 48px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* ─── Responsive ─────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .act-card {
+    padding: 28px 22px;
+    border-radius: 16px;
+  }
+
+  .act-title { font-size: 18px; }
+  .act-step-label { display: none; }
+}
