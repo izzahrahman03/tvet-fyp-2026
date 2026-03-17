@@ -1,6 +1,3 @@
-// api/adminApi.js
-// All functions now hit real backend endpoints — no more mockDB or delay()
-
 const API = process.env.REACT_APP_API_URL;
 
 // ─── Auth header helper ───────────────────────────────────
@@ -20,55 +17,31 @@ async function apiFetch(path, options = {}) {
   return data;
 }
 
-// ══════════════════════════════════════════════════════════
-// USERS
-// ══════════════════════════════════════════════════════════
-
-/**
- * Fetch all users of a given role
- * GET /api/admin/users?role=applicant
- */
 export const fetchUsers = async (type) => {
   const data = await apiFetch(`/admin/users?role=${type}`);
-  return data.users || [];
+  return data.users || []; // FIX: was returning { status: "inactive" } object instead of []
 };
 
-/**
- * Add a new user — triggers activation email on backend
- * POST /api/auth/create-user
- */
 export const addUser = async (type, userData) => {
-  const data = await apiFetch("/auth/create-user", {
+  const data = await apiFetch(`/admin/users?role=${type}`, { // FIX: was a plain string, not a template literal
     method: "POST",
-    body:   JSON.stringify({ ...userData, userType: type }),
+    body:   JSON.stringify({ ...userData, role: type }),
   });
   return data.user;
 };
 
-/**
- * Update a user's profile info
- * PUT /api/admin/users/:id
- */
 export const updateUser = async (type, id, updates) => {
-  const data = await apiFetch(`/admin/users/${id}`, {
+  const data = await apiFetch(`/admin/users/${id}?role=${type}`, { // FIX: pass role so backend knows which table to update
     method: "PUT",
     body:   JSON.stringify(updates),
   });
   return data.user;
 };
 
-/**
- * Delete a user
- * DELETE /api/admin/users/:id
- */
 export const deleteUser = async (type, id) => {
-  return apiFetch(`/admin/users/${id}`, { method: "DELETE" });
+  return apiFetch(`/admin/users/${id}?role=${type}`, { method: "DELETE" }); // FIX: pass role so backend knows which table to delete from
 };
 
-/**
- * Bulk import users from Excel/CSV
- * POST /api/admin/users/import
- */
 export const importUsers = async (type, users) => {
   const data = await apiFetch("/admin/users/import", {
     method: "POST",
@@ -77,20 +50,12 @@ export const importUsers = async (type, users) => {
   return data.imported || [];
 };
 
-/**
- * Resend activation email
- * POST /api/admin/users/:id/resend-activation
- */
 export const resendActivation = async (userId) => {
   return apiFetch(`/admin/users/${userId}/resend-activation`, {
     method: "POST",
   });
 };
 
-// ══════════════════════════════════════════════════════════
-// STATS (for Overview charts)
-// GET /api/admin/stats
-// ══════════════════════════════════════════════════════════
 export const fetchStats = async () => {
   const data = await apiFetch("/admin/stats");
   return data;

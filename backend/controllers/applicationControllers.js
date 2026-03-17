@@ -1,16 +1,9 @@
-// controllers/applicationController.js
-// Handles applicant form submission + admin fetch
-// Matches your existing: db callback style, user_id column
-//
-// Install: npm install multer
-// Run migration SQL below before using.
-
 const db     = require('../database/db');
 const multer = require('multer');
 const path   = require('path');
 const fs     = require('fs');
 
-// ── Multer config (profile photo) ─────────────────────────
+// ─── Multer config ────────────────────────────────────────
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '../uploads/applications');
@@ -27,7 +20,9 @@ const upload = multer({
   storage,
   limits: { fileSize: 3 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    file.mimetype.startsWith('image/') ? cb(null, true) : cb(new Error('Images only.'));
+    file.mimetype.startsWith('image/')
+      ? cb(null, true)
+      : cb(new Error('Images only.'));
   },
 });
 
@@ -35,211 +30,343 @@ exports.uploadMiddleware = upload.single('avatar');
 
 
 // ══════════════════════════════════════════════════════════
-// POST /api/application
-// Applicant submits the full form (personal + education + skills + avatar)
+// SUBMIT APPLICATION
 // ══════════════════════════════════════════════════════════
-exports.submitApplication = (req, res) => {
-  const userId = req.user.id;
+exports.submitApplication = async (req, res) => {
+  try {
+    const userId = req.user.id;
 
-  const {
-    fullName, icNumber, dob, gender, race, maritalStatus,
-    email, phone, streetAddress, city, postalCode, state, country,
-  } = req.body;
+    const {
+      fullName, icNumber, dob, gender, race, maritalStatus,
+      email, phone, streetAddress, city, postalCode, state, country,
+    } = req.body;
 
-  // Parse JSON arrays sent as form fields
-  let education = [], skills = [];
-  try { education = JSON.parse(req.body.education || '[]'); } catch {}
-  try { skills    = JSON.parse(req.body.skills    || '[]'); } catch {}
+    let education = [], skills = [];
+    try { education = JSON.parse(req.body.education || '[]'); } catch {}
+    try { skills    = JSON.parse(req.body.skills    || '[]'); } catch {}
 
-  // Validate required fields
-  const required = { fullName, icNumber, dob, gender, race, maritalStatus, email, phone, streetAddress, city, postalCode, state, country };
-  const missing  = Object.entries(required).filter(([, v]) => !v?.trim()).map(([k]) => k);
-  if (missing.length > 0)
-    return res.status(400).json({ message: `Missing required fields: ${missing.join(', ')}.` });
+    const required = { fullName, icNumber, dob, gender, race, maritalStatus, email, phone, streetAddress, city, postalCode, state, country };
+    const missing  = Object.entries(required).filter(([, v]) => !v?.trim()).map(([k]) => k);
 
-  const avatarUrl = req.file ? `/uploads/applications/${req.file.filename}` : null;
-
-  // ── Check if applicant already has a submission ───────────
-  db.query('SELECT application_id FROM applications WHERE user_id = ?', [userId], (err, rows) => {
-    if (err) {
-      console.error('submitApplication check:', err);
-      return res.status(500).json({ message: err.message });
+    if (missing.length > 0) {
+      return res.status(400).json({ message: `Missing fields: ${missing.join(', ')}` });
     }
+
+    const avatarUrl = req.file ? `/uploads/applications/${req.file.filename}` : null;
+
+    const [rows] = await db.query(
+      'SELECT application_id FROM applications WHERE user_id = ?',
+      [userId]
+    );
+
+    let appId;
 
     if (rows.length > 0) {
-      // UPDATE existing application
-      const appId = rows[0].application_id;
+      appId = rows[0].application_id;
 
-      db.query(
+      await db.query(
         `UPDATE applications SET
-           full_name=?, ic_number=?, date_of_birth=?, gender=?, race=?,
-           marital_status=?, email=?, phone=?, street_address=?, city=?,
-           postal_code=?, state=?, country=?, avatar_url=COALESCE(?,avatar_url),
-           status='pending', updated_at=NOW()
-         WHERE application_id=?`,
+          name=?, ic_number=?, date_of_birth=?, gender=?, race=?,
+          marital_status=?, email=?, phone=?, street_address=?, city=?,
+          postal_code=?, state=?, country=?, avatar_url=COALESCE(?,avatar_url),
+          status='pending', updated_at=NOW()
+        WHERE application_id=?`,
         [fullName, icNumber, dob, gender, race, maritalStatus, email, phone,
-         streetAddress, city, postalCode, state, country, avatarUrl, appId],
-        (err) => {
-          if (err) { console.error('update application:', err); return res.status(500).json({ message: err.message }); }
-
-          // Replace education rows
-          db.query('DELETE FROM application_education WHERE application_id = ?', [appId], (err) => {
-            if (err) console.error('delete edu:', err);
-            insertEducation(appId, education, () => {
-              // Replace skill rows
-              db.query('DELETE FROM application_skills WHERE application_id = ?', [appId], (err) => {
-                if (err) console.error('delete skills:', err);
-                insertSkills(appId, skills, () => {
-                  res.json({ message: 'Application updated successfully.', application_id: appId });
-                });
-              });
-            });
-          });
-        }
+         streetAddress, city, postalCode, state, country, avatarUrl, appId]
       );
+
+      await db.query('DELETE FROM application_education WHERE application_id=?', [appId]);
+      await insertEducation(appId, education);
+      await db.query('DELETE FROM application_skills WHERE application_id=?', [appId]);
+      await insertSkills(appId, skills);
+
+      return res.json({ message: 'Application updated', application_id: appId });
+
     } else {
-      // INSERT new application
-      db.query(
+      const [result] = await db.query(
         `INSERT INTO applications
-           (user_id, full_name, ic_number, date_of_birth, gender, race, marital_status,
-            email, phone, street_address, city, postal_code, state, country, avatar_url, status, created_at, updated_at)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',NOW(),NOW())`,
+        (user_id, name, ic_number, date_of_birth, gender, race, marital_status,
+         email, phone, street_address, city, postal_code, state, country, avatar_url, status, created_at, updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',NOW(),NOW())`,
         [userId, fullName, icNumber, dob, gender, race, maritalStatus,
-         email, phone, streetAddress, city, postalCode, state, country, avatarUrl],
-        (err, result) => {
-          if (err) { console.error('insert application:', err); return res.status(500).json({ message: err.message }); }
-
-          const appId = result.insertId;
-
-          insertEducation(appId, education, () => {
-            insertSkills(appId, skills, () => {
-              res.status(201).json({ message: 'Application submitted successfully.', application_id: appId });
-            });
-          });
-        }
+         email, phone, streetAddress, city, postalCode, state, country, avatarUrl]
       );
+
+      appId = result.insertId;
+      await insertEducation(appId, education);
+      await insertSkills(appId, skills);
+
+      return res.status(201).json({ message: 'Application submitted', application_id: appId });
     }
-  });
+
+  } catch (err) {
+    console.error('submitApplication:', err);
+    return res.status(500).json({ message: err.message });
+  }
 };
 
 
-// ── Helpers: bulk insert education / skills ────────────────
-function insertEducation(appId, rows, done) {
-  if (!rows || rows.length === 0) return done();
+// ─── Helpers ──────────────────────────────────────────────
+async function insertEducation(appId, rows) {
+  if (!rows?.length) return;
   const values = rows
-    .filter((r) => r.institute?.trim())
-    .map((r) => [appId, r.institute, r.qualification, r.major, r.startDate || null, r.endDate || null]);
-  if (values.length === 0) return done();
-  db.query(
+    .filter(r => r.institute?.trim())
+    .map(r => [appId, r.institute, r.qualification, r.major, r.startDate || null, r.endDate || null]);
+  if (!values.length) return;
+  await db.query(
     'INSERT INTO application_education (application_id, institute_name, qualification, major, start_date, end_date) VALUES ?',
-    [values],
-    (err) => { if (err) console.error('insertEducation:', err); done(); }
+    [values]
   );
 }
 
-function insertSkills(appId, rows, done) {
-  if (!rows || rows.length === 0) return done();
+async function insertSkills(appId, rows) {
+  if (!rows?.length) return;
   const values = rows
-    .filter((r) => r.skillName?.trim())
-    .map((r) => [appId, r.skillName, r.proficiency]);
-  if (values.length === 0) return done();
-  db.query(
+    .filter(r => r.skillName?.trim())
+    .map(r => [appId, r.skillName, r.proficiency]);
+  if (!values.length) return;
+  await db.query(
     'INSERT INTO application_skills (application_id, skill_name, proficiency) VALUES ?',
-    [values],
-    (err) => { if (err) console.error('insertSkills:', err); done(); }
+    [values]
   );
 }
 
 
 // ══════════════════════════════════════════════════════════
-// GET /api/application/mine
-// Applicant views their own submitted application
+// GET MY APPLICATION
 // ══════════════════════════════════════════════════════════
-exports.getMyApplication = (req, res) => {
-  const userId = req.user.id;
+exports.getMyApplication = async (req, res) => {
+  try {
+    const userId = req.user.id;
 
-  db.query('SELECT * FROM applications WHERE user_id = ?', [userId], (err, rows) => {
-    if (err) return res.status(500).json({ message: err.message });
+    const [rows] = await db.query(
+      `SELECT
+        a.*,
+        ai.interview_datetime,
+        ai.venue,
+        ai.interviewer_name,
+        ai.remarks
+       FROM applications a
+       LEFT JOIN application_interviews ai ON ai.application_id = a.application_id
+       WHERE a.user_id = ?`,
+      [userId]
+    );
+
     if (rows.length === 0) return res.json({ application: null });
 
-    const app = rows[0];
+    const app   = rows[0];
     const appId = app.application_id;
 
-    db.query('SELECT * FROM application_education WHERE application_id = ?', [appId], (err, edu) => {
-      if (err) return res.status(500).json({ message: err.message });
+    const [education] = await db.query(
+      'SELECT * FROM application_education WHERE application_id = ?', [appId]
+    );
+    const [skills] = await db.query(
+      'SELECT * FROM application_skills WHERE application_id = ?', [appId]
+    );
 
-      db.query('SELECT * FROM application_skills WHERE application_id = ?', [appId], (err, skills) => {
-        if (err) return res.status(500).json({ message: err.message });
+    return res.json({ application: { ...app, education, skills } });
 
-        res.json({ application: { ...app, education: edu, skills } });
-      });
-    });
-  });
-};
-
-
-// ══════════════════════════════════════════════════════════
-// GET /api/admin/applications          ← admin: list all
-// GET /api/admin/applications/:id      ← admin: view one
-// PUT /api/admin/applications/:id/status ← admin: approve/reject
-// ══════════════════════════════════════════════════════════
-exports.adminListApplications = (req, res) => {
-  const { status, search } = req.query;
-  let sql    = `SELECT a.application_id, a.full_name, a.email, a.phone,
-                       a.status, a.created_at, u.user_id
-                FROM   applications a
-                JOIN   users u ON u.user_id = a.user_id
-                WHERE  1=1`;
-  const params = [];
-
-  if (status && status !== 'all') { sql += ' AND a.status = ?'; params.push(status); }
-  if (search) {
-    sql += ' AND (a.full_name LIKE ? OR a.email LIKE ?)';
-    params.push(`%${search}%`, `%${search}%`);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
   }
-  sql += ' ORDER BY a.created_at DESC';
-
-  db.query(sql, params, (err, rows) => {
-    if (err) return res.status(500).json({ message: err.message });
-    res.json({ applications: rows });
-  });
 };
 
-exports.adminGetApplication = (req, res) => {
-  const { id } = req.params;
 
-  db.query('SELECT * FROM applications WHERE application_id = ?', [id], (err, rows) => {
-    if (err) return res.status(500).json({ message: err.message });
-    if (rows.length === 0) return res.status(404).json({ message: 'Application not found.' });
+// ══════════════════════════════════════════════════════════
+// ACCEPT OFFER  POST /api/my-application/accept
+// ─────────────────────────────────────────────────────────
+// When the applicant accepts:
+//   1. application.status  → 'accepted'
+//   2. users.role          → 'student'
+//   3. users.active_status → 'active'
+// The applicant must re-login to get a fresh JWT with role=student.
+// ══════════════════════════════════════════════════════════
+exports.acceptOffer = async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const userId = req.user.id;
+
+    // Verify application exists and is in 'approved' state
+    const [apps] = await conn.query(
+      'SELECT application_id, status FROM applications WHERE user_id = ?',
+      [userId]
+    );
+
+    if (apps.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ message: 'No application found.' });
+    }
+
+    if (apps[0].status !== 'approved') {
+      await conn.rollback();
+      return res.status(400).json({ message: 'Your application is not in an approved state.' });
+    }
+
+    const appId = apps[0].application_id;
+
+    // 1. Update application status → accepted
+    await conn.query(
+      'UPDATE applications SET status = ?, updated_at = NOW() WHERE application_id = ?',
+      ['accepted', appId]
+    );
+
+    // 2. Update user role → student and activate account
+    await conn.query(
+      "UPDATE users SET role = 'student', active_status = 'active' WHERE user_id = ?",
+      [userId]
+    );
+
+    await conn.commit();
+
+    return res.json({
+      message: 'Offer accepted! Your account has been upgraded to Student. Please log in again to access the student portal.',
+    });
+
+  } catch (err) {
+    await conn.rollback();
+    console.error('acceptOffer:', err);
+    return res.status(500).json({ message: err.message });
+  } finally {
+    conn.release();
+  }
+};
+
+
+// ══════════════════════════════════════════════════════════
+// WITHDRAW OFFER  POST /api/my-application/withdraw
+// ─────────────────────────────────────────────────────────
+// Applicant declines the approved offer → status = 'withdraw'
+// ══════════════════════════════════════════════════════════
+exports.withdrawOffer = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [apps] = await db.query(
+      'SELECT application_id, status FROM applications WHERE user_id = ?',
+      [userId]
+    );
+
+    if (apps.length === 0) {
+      return res.status(404).json({ message: 'No application found.' });
+    }
+
+    // Allow withdraw from approved OR interview stage
+    const allowedStatuses = ['approved', 'interview', 'under_review', 'pending'];
+    if (!allowedStatuses.includes(apps[0].status)) {
+      return res.status(400).json({
+        message: `Cannot withdraw from current status: ${apps[0].status}`
+      });
+    }
+
+    await db.query(
+      'UPDATE applications SET status = ?, updated_at = NOW() WHERE application_id = ?',
+      ['withdraw', apps[0].application_id]
+    );
+
+    return res.json({ message: 'Application withdrawn successfully.' });
+
+  } catch (err) {
+    console.error('withdrawOffer:', err);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+
+// ══════════════════════════════════════════════════════════
+// ADMIN LIST
+// ══════════════════════════════════════════════════════════
+exports.adminListApplications = async (req, res) => {
+  try {
+    const { status, search } = req.query;
+
+    let sql = `
+      SELECT a.application_id, a.name, a.email, a.phone,
+             a.status, a.created_at, u.user_id
+      FROM applications a
+      JOIN users u ON u.user_id = a.user_id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (status && status !== 'all') {
+      sql += ' AND a.status = ?';
+      params.push(status);
+    }
+    if (search) {
+      sql += ' AND (a.name LIKE ? OR a.email LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`);
+    }
+    sql += ' ORDER BY a.created_at DESC';
+
+    const [rows] = await db.query(sql, params);
+    return res.json({ applications: rows });
+
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+
+// ══════════════════════════════════════════════════════════
+// ADMIN VIEW ONE
+// ══════════════════════════════════════════════════════════
+exports.adminGetApplication = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [rows] = await db.query(
+      `SELECT a.*, ai.interview_datetime, ai.venue, ai.interviewer_name, ai.remarks
+       FROM applications a
+       LEFT JOIN application_interviews ai ON ai.application_id = a.application_id
+       WHERE a.application_id = ?`,
+      [id]
+    );
+
+    if (rows.length === 0) return res.status(404).json({ message: 'Not found' });
 
     const app = rows[0];
+    const [education] = await db.query('SELECT * FROM application_education WHERE application_id = ?', [id]);
+    const [skills]    = await db.query('SELECT * FROM application_skills WHERE application_id = ?', [id]);
 
-    db.query('SELECT * FROM application_education WHERE application_id = ?', [id], (err, edu) => {
-      if (err) return res.status(500).json({ message: err.message });
+    return res.json({ application: { ...app, education, skills } });
 
-      db.query('SELECT * FROM application_skills WHERE application_id = ?', [id], (err, skills) => {
-        if (err) return res.status(500).json({ message: err.message });
-        res.json({ application: { ...app, education: edu, skills } });
-      });
-    });
-  });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
 };
 
-exports.adminUpdateStatus = (req, res) => {
-  const { id } = req.params;
-  const { status, remarks } = req.body;
 
-  const VALID = ['pending', 'approved', 'rejected', 'under_review'];
-  if (!VALID.includes(status))
-    return res.status(400).json({ message: `status must be one of: ${VALID.join(', ')}.` });
+// ══════════════════════════════════════════════════════════
+// ADMIN UPDATE STATUS
+// ══════════════════════════════════════════════════════════
+exports.adminUpdateStatus = async (req, res) => {
+  try {
+    const { id }     = req.params;
+    const { status } = req.body;
 
-  db.query(
-    'UPDATE applications SET status = ?, remarks = ?, updated_at = NOW() WHERE application_id = ?',
-    [status, remarks || null, id],
-    (err, result) => {
-      if (err) return res.status(500).json({ message: err.message });
-      if (result.affectedRows === 0) return res.status(404).json({ message: 'Application not found.' });
-      res.json({ message: `Application ${status}.` });
+    const VALID = [
+      'pending', 'under_review', 'interview',
+      'approved', 'accepted',
+      'rejected_review', 'rejected_interview',
+      'withdraw',
+    ];
+
+    if (!VALID.includes(status)) {
+      return res.status(400).json({ message: `Status must be one of: ${VALID.join(', ')}` });
     }
-  );
+
+    const [result] = await db.query(
+      'UPDATE applications SET status = ?, updated_at = NOW() WHERE application_id = ?',
+      [status, id]
+    );
+
+    if (result.affectedRows === 0) return res.status(404).json({ message: 'Application not found' });
+
+    return res.json({ message: `Application status updated to ${status}` });
+
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
 };

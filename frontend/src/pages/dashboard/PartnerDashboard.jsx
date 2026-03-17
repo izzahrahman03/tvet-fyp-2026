@@ -44,11 +44,10 @@ const ScientistIllustration = () => (
 
 const navItems = [
   { label: "Dashboard", id: "dashboard" },
-  { label: "Application Form", id: "form" },
-  { label: "My Application", id: "application" },
+  { label: "Vacancy Form", id: "form" },
 ];
 
-export default function ApplicantDashboard({ user }) {
+export default function PartnerDashboard({ user }) {
   const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState("dashboard");
   const [searchValue, setSearchValue] = useState("");

@@ -27,7 +27,7 @@ const ActivationPage = () => {
     setLoading(true);
 
     try {
-      const res  = await fetch(`${API}/auth/verify-activation`, {
+      const res  = await fetch(`${API}/verify-activation`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ token, email, tempPassword: tempPass }),

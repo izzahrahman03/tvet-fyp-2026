@@ -60,7 +60,7 @@ const SetPasswordPage = () => {
     setLoading(true);
 
     try {
-      const res  = await fetch(`${API}/auth/set-password`, {
+      const res  = await fetch(`${API}/set-password`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ resetToken, newPassword: newPass, confirmPassword: confirm }),

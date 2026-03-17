@@ -20,16 +20,20 @@ exports.verifyToken = (req, res, next) => {
 };
 
 // ── Require admin role ─────────────────────────────────────
-exports.requireAdmin = (req, res, next) => {
-  const userId = req.user.id;
+exports.requireAdmin = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
 
-  db.query('SELECT role FROM users WHERE user_id = ?', [userId], (err, rows) => {
-    if (err)   return res.status(500).json({ message: err.message });
+    const [rows] = await db.query('SELECT role FROM users WHERE user_id = ?', [userId]);
+
     if (!rows.length) return res.status(404).json({ message: 'User not found.' });
 
     if (rows[0].role !== 'admin')
       return res.status(403).json({ message: 'Access denied. Admins only.' });
 
     next();
-  });
+  } catch (err) {
+    console.error('requireAdmin error:', err);
+    res.status(500).json({ message: err.message });
+  }
 };

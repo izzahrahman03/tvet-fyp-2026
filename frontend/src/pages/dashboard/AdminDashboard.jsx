@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../components/dashboard/Layout";
 import "../../css/dashboard/adminDashboard.css";
-import Overview  from "../dashboard/Overview";
+import Overview  from "./Overview";
 import UserTable from "../userManagement/UserTable";
 
 // ─── Nav Config ───────────────────────────────────────────

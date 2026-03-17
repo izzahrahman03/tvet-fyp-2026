@@ -9,6 +9,7 @@ import Login from './pages/Login';
 
 import ApplicantDashboard from './pages/dashboard/ApplicantDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
+import PartnerDashboard from './pages/dashboard/PartnerDashboard';
 
 import UserTable from './pages/userManagement/UserTable';
 import DashboardLayout from './components/dashboard/Layout'; // ✅ renamed import
@@ -47,7 +48,7 @@ function App() {
         <Route path="/set-password"    element={<SetPasswordPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password"  element={<ResetPassword />} />
-        <Route path="/update-profile"  element={<UpdateProfile />} />
+        <Route path="/profile"  element={<UpdateProfile />} />
 
         {/* ── Applicant dashboard ─────────────────────── */}
         <Route path="/applicant-dashboard" element={<ApplicantDashboard />} />
@@ -78,6 +79,11 @@ function App() {
             <UserTable type="industry_supervisor" />
           </DashboardLayout>
         } />
+
+        {/* ── Industry Partner dashboard ─────────────────────── */}
+        <Route path="/industry-partner-dashboard" element={<PartnerDashboard />} />
+        <Route path="/application-form"    element={<ApplicationForm />} />
+        <Route path="/my-application"      element={<MyApplication />} />
 
       </Routes>
     </Router>

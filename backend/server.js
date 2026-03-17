@@ -6,15 +6,18 @@ const cron    = require('node-cron');
 const path    = require('path');
 
 const authRoutes            = require('./routes/authRoutes');
+const adminRoutes     = require('./routes/adminRoutes');
 const applicationRoutes     = require('./routes/applicationRoutes');
 const { deactivateInactiveUsers } = require('./controllers/authControllers');
+const profileRoutes     = require('./routes/profileRoutes');
+const { profile } = require('console');
 
 const app  = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT;
 
 // ── CORS ───────────────────────────────────────────────────
 app.use(cors({
-  origin:         process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin:         process.env.FRONTEND_URL,
   methods:        ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials:    true,
@@ -32,6 +35,8 @@ cron.schedule('0 0 * * *', () => {
 
 // ── Routes ─────────────────────────────────────────────────
 app.use('/api', authRoutes);
+app.use('/api', adminRoutes);
 app.use('/api', applicationRoutes);
+app.use('/api', profileRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

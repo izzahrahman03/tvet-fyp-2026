@@ -1,6 +1,6 @@
 // components/UserTable.jsx
 import { useState, useEffect } from "react";
-import { fetchUsers, addUser, deleteUser, importUsers } from "../api/adminApi";
+import { fetchUsers, addUser, updateUser, deleteUser, importUsers } from "../api/adminApi";
 import ImportModal from "./ImportModal";
 
 // ─── Status Badge ─────────────────────────────────────────
@@ -28,13 +28,11 @@ function StatusBadge({ status }) {
 function AddUserModal({ type, onClose, onSave }) {
   const isPartner    = type === "industry_partner";
   const isSupervisor = type === "industry_supervisor";
-  const isStudent    = type === "student";
 
   const [form, setForm] = useState({
     name: "", email: "", phone: "",
-    industry: "", location: "",
+    industry_sector: "", location: "",
     company: "", position: "",
-    program: "", year: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -54,20 +52,16 @@ function AddUserModal({ type, onClose, onSave }) {
   };
 
   const fields = [
-    { label: "Full Name",     key: "name",  placeholder: isPartner ? "Tech Solutions Sdn Bhd" : "e.g. Ahmad Faris" },
+    { label: "Name",     key: "name",  placeholder: isPartner ? "Tech Solutions Sdn Bhd" : "e.g. Ahmad Faris" },
     { label: "Email Address", key: "email", placeholder: "email@example.com" },
     { label: "Phone Number",  key: "phone", placeholder: "e.g. 012-3456789" },
     ...(isPartner    ? [
-      { label: "Industry Sector", key: "industry", placeholder: "e.g. IT & Software" },
+      { label: "Industry Sector", key: "industry_sector", placeholder: "e.g. IT & Software" },
       { label: "Location",        key: "location",  placeholder: "e.g. Kuala Lumpur" },
     ] : []),
     ...(isSupervisor ? [
       { label: "Company",          key: "company",  placeholder: "e.g. Tech Solutions Sdn Bhd" },
       { label: "Role / Position",  key: "position", placeholder: "e.g. Senior Engineer" },
-    ] : []),
-    ...(isStudent ? [
-      { label: "Program", key: "program", placeholder: "e.g. Software Engineering" },
-      { label: "Year",    key: "year",    placeholder: "e.g. Year 3" },
     ] : []),
   ];
 
@@ -89,7 +83,6 @@ function AddUserModal({ type, onClose, onSave }) {
             </svg>
           </button>
         </div>
-
         <div className="modal-form">
           {fields.map(({ label, key, placeholder }) => (
             <div key={key} className="form-field">
@@ -98,11 +91,220 @@ function AddUserModal({ type, onClose, onSave }) {
             </div>
           ))}
         </div>
-
         <div className="modal-footer">
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
           <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ opacity: saving ? 0.7 : 1 }}>
             {saving ? "Saving…" : "Add User"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── View Modal ───────────────────────────────────────────
+// Define your column groupings
+const SECTIONS = [
+  {
+    title: "Personal Information",
+    icon: "👤",
+    cols: ["name", "ic_number", "date_of_birth", "gender", "race",
+    "marital_status", "email", "phone",
+    "street_address", "city", "postal_code", "state", "country",],
+  },
+  {
+    title: "Education",
+    icon: "🎓",
+    cols: ["institute_name", "qualification", "major", "start_date", "end_date",],
+  },
+  {
+    title: "Skills",
+    icon: "💼",
+    cols: ["skill_name", "proficiency"],
+  },
+];
+
+function ViewModal({ row, columns, onClose }) {
+  // Only show sections that have at least one matching column in this row
+  const activeSections = SECTIONS.map((section) => ({
+    ...section,
+    activeCols: section.cols.filter((col) => columns.includes(col)),
+  })).filter((s) => s.activeCols.length > 0);
+
+  // Catch-all: any columns not assigned to a section
+  const assignedCols = SECTIONS.flatMap((s) => s.cols);
+  const otherCols = columns.filter((col) => !assignedCols.includes(col));
+
+  const renderValue = (col) => {
+    if (col === "status") return <StatusBadge status={row[col]} />;
+    if (["date", "updated_at", "created_at", "dob"].includes(col))
+      return row[col] ? new Date(row[col]).toLocaleDateString("en-MY") : "—";
+    return row[col] ?? "—";
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box" style={{ maxWidth: "960px", width: "95%" }}>
+
+        {/* Header */}
+        <div className="modal-header">
+          <p className="modal-title">View Details</p>
+          <button className="modal-close-btn" onClick={onClose}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18 M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Scrollable Body */}
+        <div style={{ padding: "24px", overflowY: "auto", maxHeight: "70vh", display: "flex", flexDirection: "column", gap: "28px" }}>
+
+          {activeSections.map((section) => (
+            <div key={section.title}>
+              {/* Section Header */}
+              <div style={{
+                display: "flex", alignItems: "center", gap: "8px",
+                marginBottom: "14px", paddingBottom: "8px",
+                borderBottom: "2px solid #e2e8f0",
+              }}>
+                <span style={{ fontSize: "16px" }}>{section.icon}</span>
+                <span style={{ fontWeight: "600", fontSize: "14px", color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  {section.title}
+                </span>
+              </div>
+
+              {/* 2-column grid inside each section */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 24px" }}>
+                {section.activeCols.map((col) => (
+                  <div key={col} className="form-field" style={{ margin: 0 }}>
+                    <label style={{ fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                      {COL_LABEL[col] || col}
+                    </label>
+                    <div style={{
+                      padding: "9px 12px", background: "#f8fafc",
+                      borderRadius: "8px", border: "1px solid #e2e8f0",
+                      fontSize: "14px", color: "#1e293b", marginTop: "4px",
+                    }}>
+                      {renderValue(col)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Other / uncategorized columns */}
+          {otherCols.length > 0 && (
+            <div>
+              <div style={{
+                display: "flex", alignItems: "center", gap: "8px",
+                marginBottom: "14px", paddingBottom: "8px",
+                borderBottom: "2px solid #e2e8f0",
+              }}>
+                <span style={{ fontSize: "16px" }}>📋</span>
+                <span style={{ fontWeight: "600", fontSize: "14px", color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Other Details
+                </span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 24px" }}>
+                {otherCols.map((col) => (
+                  <div key={col} className="form-field" style={{ margin: 0 }}>
+                    <label style={{ fontSize: "12px", fontWeight: "600", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                      {COL_LABEL[col] || col}
+                    </label>
+                    <div style={{
+                      padding: "9px 12px", background: "#f8fafc",
+                      borderRadius: "8px", border: "1px solid #e2e8f0",
+                      fontSize: "14px", color: "#1e293b", marginTop: "4px",
+                    }}>
+                      {renderValue(col)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Edit Modal ───────────────────────────────────────────
+function EditModal({ row, type, onClose, onSave }) {
+  const [form,   setForm]   = useState({ ...row });
+  const [saving, setSaving] = useState(false);
+  const [error,  setError]  = useState("");
+
+  const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
+
+  const editableFields = {
+    applicant:           ["status"],
+    student:             ["name", "email", "phone", "status"],
+    industry_partner:    ["name", "email", "phone", "status"],
+    industry_supervisor: ["name", "email", "phone", "status"],
+  }[type] || ["name", "email", "status"];
+
+  const statusOptions = type === "applicant"
+    ? ["pending", "under_review", "approved", "rejected"]
+    : ["active", "inactive"];
+
+  const handleSave = async () => {
+    const nameField = type === "applicant" ? "name" : "name";
+    if (!form[nameField]?.trim()) return setError("Name is required.");
+    if (!form.email?.trim())      return setError("Email is required.");
+
+    setSaving(true);
+    setError("");
+    try {
+      const updated = await updateUser(type, row.id, form);
+      onSave(updated ?? { ...row, ...form });
+    } catch (err) {
+      setError(err.message || "Failed to save.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box">
+        <div className="modal-header">
+          <p className="modal-title">Edit User</p>
+          <button className="modal-close-btn" onClick={onClose}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18 M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="modal-form">
+          {editableFields.map((col) => (
+            <div key={col} className="form-field">
+              <label>{COL_LABEL[col] || col}</label>
+              {col === "status" ? (
+                <select className="form-input" value={form[col] || ""} onChange={set(col)}>
+                  {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              ) : (
+                <input
+                  className="form-input"
+                  value={form[col] || ""}
+                  onChange={set(col)}
+                  placeholder={COL_LABEL[col] || col}
+                />
+              )}
+            </div>
+          ))}
+          {error && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "10px 14px", fontSize: "13px", color: "#b91c1c" }}>
+              {error}
+            </div>
+          )}
+        </div>
+        <div className="modal-footer">
+          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ opacity: saving ? 0.7 : 1 }}>
+            {saving ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </div>
@@ -120,29 +322,23 @@ function useToast() {
   return { toast, show };
 }
 
-// ─── Column config — matched to actual DB columns ─────────
-//
-// applicant    → applications JOIN application_education JOIN application_skills
-// student      → users (name, email, phone, active_status, created_at)
-// partner      → users (name, email, phone, active_status, created_at)
-// supervisor   → users (name, email, phone, active_status, created_at)
-// ──────────────────────────────────────────────────────────
+// ─── Column config ────────────────────────────────────────
 const COLUMNS = {
   applicant: [
-    "full_name", "ic_number", "date_of_birth", "gender", "race",
+    "name", "ic_number", "date_of_birth", "gender", "race",
     "marital_status", "email", "phone",
     "street_address", "city", "postal_code", "state", "country",
-    "status", "updated_at",
     "institute_name", "qualification", "major", "start_date", "end_date",
     "skill_name", "proficiency",
+    "status", "updated_at",
   ],
-  student:             ["name", "email", "phone", "status", "date"],
-  industry_partner:    ["name", "email", "phone", "status", "date"],
-  industry_supervisor: ["name", "email", "phone", "status", "date"],
+  student:             ["name", "email", "phone", "date"],
+  industry_partner:    ["name", "email", "phone", "industry_sector", "location", "status", "date"],
+  industry_supervisor: ["name", "email", "phone", "company", "position", "status", "date"],
 };
 
 const COL_LABEL = {
-  full_name:      "Full Name",
+  name:           "Name",
   ic_number:      "IC Number",
   date_of_birth:  "Date of Birth",
   gender:         "Gender",
@@ -162,10 +358,17 @@ const COL_LABEL = {
   major:          "Major",
   start_date:     "Start Date",
   end_date:       "End Date",
-  skill_name:     "Skill",
-  proficiency:    "Proficiency",
-  name:           "Name",
-  date:           "Joined",
+  skill_name:      "Skill",
+  proficiency:     "Proficiency",
+  industry_sector: "Industry Sector",
+  location:        "Location",
+  company:         "Company",
+  position:        "Role / Position",
+  date:            "Joined",
+  interview_datetime: "Interview Date & Time",
+  venue:           "Venue",
+  interviewer_name: "Interviewer",
+  remarks:         "Remarks",
 };
 
 // ─── Main UserTable ───────────────────────────────────────
@@ -178,9 +381,12 @@ export default function UserTable({ type }) {
   const [statusFilter, setStatus] = useState("All");
   const [showAdd, setShowAdd]     = useState(false);
   const [showImport, setImport]   = useState(false);
+  const [viewRow, setViewRow]     = useState(null); // ✅ here, not in AddUserModal
+  const [editRow, setEditRow]     = useState(null); // ✅ here, not in AddUserModal
   const { toast, show }           = useToast();
 
   const columns = COLUMNS[type] || ["name", "email", "status"];
+  const nameKey = type === "applicant" ? "full_name" : "name";
 
   // ── Fetch ─────────────────────────────────────────────────
   useEffect(() => {
@@ -202,14 +408,14 @@ export default function UserTable({ type }) {
   };
 
   // ── Filter + sort ─────────────────────────────────────────
-  const allStatuses = ["All", ...new Set(rows.map((r) => r.status).filter(Boolean))];
+  const allStatuses = ["All", ...new Set(rows.filter(Boolean).map((r) => r.status).filter(Boolean))];
 
   const filtered = rows
     .filter((r) => {
       const q = search.toLowerCase();
       return (
         (statusFilter === "All" || r.status === statusFilter) &&
-        Object.values(r).some((v) => String(v ?? "").toLowerCase().includes(q))
+        Object.values(r || {}).some((v) => String(v ?? "").toLowerCase().includes(q))
       );
     })
     .sort((a, b) => {
@@ -221,7 +427,7 @@ export default function UserTable({ type }) {
   // ── CRUD ──────────────────────────────────────────────────
   const handleAdd = (user) => {
     setRows((p) => [...p, user]);
-    show(`User "${user.name || user.full_name}" added!`);
+    show(`User "${user.name || user.name}" added!`);
   };
 
   const handleImported = async (data) => {
@@ -251,13 +457,24 @@ export default function UserTable({ type }) {
     );
   };
 
-  // ── Name key differs per role ──────────────────────────────
-  const nameKey = type === "applicant" ? "full_name" : "name";
-
   return (
     <div>
+      {/* ✅ All modals live here in UserTable, not inside AddUserModal */}
       {showAdd    && <AddUserModal type={type} onClose={() => setShowAdd(false)} onSave={handleAdd} />}
       {showImport && <ImportModal  type={type} onClose={() => setImport(false)}  onImport={handleImported} />}
+      {viewRow    && <ViewModal    row={viewRow} columns={columns} onClose={() => setViewRow(null)} />}
+      {editRow    && (
+        <EditModal
+          row={editRow}
+          type={type}
+          onClose={() => setEditRow(null)}
+          onSave={(updated) => {
+            setRows((p) => p.map((r) => r.id === updated.id ? updated : r));
+            setEditRow(null);
+            show(`"${updated[nameKey]}" updated!`);
+          }}
+        />
+      )}
 
       {toast && <div className={`toast ${toast.kind}`}>{toast.msg}</div>}
 
@@ -293,12 +510,14 @@ export default function UserTable({ type }) {
             Import Excel
           </button>
 
-          <button className="btn-primary" onClick={() => setShowAdd(true)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-              <path d="M12 5v14 M5 12h14" />
-            </svg>
-            Add New
-          </button>
+          {(type === "industry_partner" || type === "industry_supervisor") && (
+            <button className="btn-primary" onClick={() => setShowAdd(true)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                <path d="M12 5v14 M5 12h14" />
+              </svg>
+              Add New
+            </button>
+          )}
         </div>
 
         {/* Record count */}
@@ -345,7 +564,7 @@ export default function UserTable({ type }) {
                       <td key={col}>
                         {col === "status" ? (
                           <StatusBadge status={row[col]} />
-                        ) : col === "full_name" || col === "name" ? (
+                        ) : col === "name" || col === "name" ? (
                           <span className="cell-name">{row[col] ?? "—"}</span>
                         ) : col === "date" || col === "updated_at" || col === "created_at" ? (
                           <span className="cell-muted">
@@ -363,19 +582,19 @@ export default function UserTable({ type }) {
                             icon:   "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 12m-3 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0",
                             bg:     "#eff6ff", stroke: "#3b82f6",
                             label:  "View",
-                            action: () => alert(`View: ${row[nameKey]}`),
+                            action: () => setViewRow(row),   // ✅ correct
                           },
                           {
                             icon:   "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z",
                             bg:     "#fffbeb", stroke: "#f59e0b",
                             label:  "Edit",
-                            action: () => alert(`Edit: ${row[nameKey]}`),
+                            action: () => setEditRow(row),   // ✅ correct
                           },
                           {
                             icon:   "M3 6h18 M8 6V4h8v2 M19 6l-1 14H6L5 6",
                             bg:     "#fef2f2", stroke: "#ef4444",
                             label:  "Delete",
-                            action: () => handleDelete(row.id, row[nameKey]),
+                            action: () => handleDelete(row.id, row[nameKey]), // ✅ correct
                           },
                         ].map(({ icon, bg, stroke, label, action }) => (
                           <button key={label} title={label} className="action-btn" style={{ background: bg }} onClick={action}>

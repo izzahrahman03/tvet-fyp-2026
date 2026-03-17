@@ -21,7 +21,7 @@ const Login = () => {
       const res = await axios.post('http://localhost:5001/api/login', { email, password: pass });
       setMessage(res.data.message);
       localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify({ name: res.data.name, role: res.data.role }));
+      localStorage.setItem('user', JSON.stringify({ name: res.data.name, email: res.data.email, role: res.data.role }));
       switch (res.data.role) {
         case "admin":
           navigate("/admin-dashboard");
