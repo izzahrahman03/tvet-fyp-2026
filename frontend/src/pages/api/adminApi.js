@@ -60,3 +60,9 @@ export const fetchStats = async () => {
   const data = await apiFetch("/admin/stats");
   return data;
 };
+
+export const fetchPartners = async (search = "") => {
+  const query = search ? `?search=${encodeURIComponent(search)}` : "";
+  const data  = await apiFetch(`/admin/partners${query}`);
+  return data.partners || [];
+};

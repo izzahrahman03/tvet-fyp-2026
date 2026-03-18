@@ -1,49 +1,23 @@
-const db = require('../database/db');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const transporter = require('../config/email');
+const db     = require('../database/db');
+const bcrypt  = require('bcryptjs');
+const jwt     = require('jsonwebtoken');
+const crypto  = require('crypto');
+
+const { sendActivationEmail, sendPasswordResetEmail } = require('../emails/authEmail');
 
 // ─── Helpers ──────────────────────────────────────────────
 
 const generateTempPassword = () => {
-  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  const lower = 'abcdefghjkmnpqrstuvwxyz';
+  const upper  = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower  = 'abcdefghjkmnpqrstuvwxyz';
   const digits = '23456789';
-  const pick = (str, n) => Array.from({ length: n }, () => str[Math.floor(Math.random() * str.length)]).join('');
-  const raw = pick(upper, 3) + pick(digits, 3) + pick(lower, 3);
+  const pick   = (str, n) => Array.from({ length: n }, () => str[Math.floor(Math.random() * str.length)]).join('');
+  const raw    = pick(upper, 3) + pick(digits, 3) + pick(lower, 3);
   return raw.split('').sort(() => Math.random() - 0.5).join('');
 };
 
 const generateToken = () => crypto.randomBytes(32).toString('hex');
 
-// ─── Send Activation Email ────────────────────────────────
-const sendActivationEmail = (toEmail, toName, tempPassword, activationToken, role) => {
-  const activationUrl = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
-
-  const roleLabels = {
-    applicant: 'Applicant',
-    student: 'Student',
-    industry_partner: 'Industry Partner',
-    industry_supervisor: 'Industry Supervisor',
-    admin: 'Admin',
-  };
-  const roleLabel = roleLabels[role] || 'User';
-
-  const html = `
-<p>Hello ${toName},</p>
-<p>Your <strong>${roleLabel}</strong> account has been created. Temporary password: <strong>${tempPassword}</strong></p>
-<p>Activate your account here: <a href="${activationUrl}">${activationUrl}</a></p>
-<p>This link expires in 24 hours.</p>
-`;
-
-  transporter.sendMail({
-    from: `"${process.env.FROM_NAME || 'Vitrox Academy'}" <${process.env.FROM_EMAIL}>`,
-    to: toEmail,
-    subject: 'Activate Your Account',
-    html,
-  }).catch(err => console.error('Email send error:', err.message));
-};
 
 // ─── Signup (self-registration) ──────────────────────────
 exports.signup = async (req, res) => {
@@ -53,12 +27,10 @@ exports.signup = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
 
     const hashedPassword = bcrypt.hashSync(password, 8);
-    const role = 'applicant';
-    const active_status = 'active';
 
     await db.query(
       'INSERT INTO users (name, email, password, role, active_status, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
-      [name, email, hashedPassword, role, active_status]
+      [name, email, hashedPassword, 'applicant', 'active']
     );
 
     res.json({ message: 'User registered successfully!' });
@@ -67,6 +39,7 @@ exports.signup = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 // ─── Verify Activation ────────────────────────────────────
 exports.verifyActivation = async (req, res) => {
@@ -91,7 +64,11 @@ exports.verifyActivation = async (req, res) => {
     if (!bcrypt.compareSync(tempPassword, user.password))
       return res.status(401).json({ message: 'Incorrect temporary password.' });
 
-    const resetToken = jwt.sign({ id: user.user_id, scope: 'set-password' }, process.env.JWT_SECRET, { expiresIn: '15m' });
+    const resetToken = jwt.sign(
+      { id: user.user_id, scope: 'set-password' },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
 
     res.json({ message: 'Verified. Please set new password.', resetToken, name: user.name });
   } catch (err) {
@@ -99,6 +76,7 @@ exports.verifyActivation = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 // ─── Set Password ────────────────────────────────────────
 exports.setPassword = async (req, res) => {
@@ -114,7 +92,9 @@ exports.setPassword = async (req, res) => {
     let payload;
     try { payload = jwt.verify(resetToken, process.env.JWT_SECRET); }
     catch { return res.status(401).json({ message: 'Session expired. Please restart activation.' }); }
-    if (payload.scope !== 'set-password') return res.status(403).json({ message: 'Invalid token scope.' });
+
+    if (payload.scope !== 'set-password')
+      return res.status(403).json({ message: 'Invalid token scope.' });
 
     const hashedPassword = bcrypt.hashSync(newPassword, 8);
 
@@ -133,6 +113,7 @@ exports.setPassword = async (req, res) => {
   }
 };
 
+
 // ─── Login ───────────────────────────────────────────────
 exports.login = async (req, res) => {
   try {
@@ -143,7 +124,6 @@ exports.login = async (req, res) => {
     const user = rows[0];
     if (user.active_status === 'inactive')
       return res.status(403).json({ message: 'Account not activated. Check email for activation link.' });
-
     if (!bcrypt.compareSync(password, user.password))
       return res.status(401).json({ message: 'Invalid password' });
 
@@ -157,6 +137,7 @@ exports.login = async (req, res) => {
   }
 };
 
+
 // ─── Forgot Password ─────────────────────────────────────
 exports.forgotPassword = async (req, res) => {
   try {
@@ -165,7 +146,7 @@ exports.forgotPassword = async (req, res) => {
     if (rows.length === 0)
       return res.status(404).json({ message: 'No account found with that email.' });
 
-    const user = rows[0];
+    const user       = rows[0];
     const resetToken = generateToken();
     const expiresAt  = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
@@ -174,13 +155,8 @@ exports.forgotPassword = async (req, res) => {
       [resetToken, expiresAt, user.user_id]
     );
 
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-    transporter.sendMail({
-      from:    `"${process.env.FROM_NAME}" <${process.env.FROM_EMAIL}>`,
-      to:      email,
-      subject: 'Reset Your Password',
-      html:    `<p>Hello ${user.name},</p><p>Reset your password here: <a href="${resetUrl}">${resetUrl}</a></p><p>Expires in 1 hour.</p>`,
-    }).catch(err => console.error('Email error:', err.message));
+    // ── Replaced inline transporter.sendMail with email module ──
+    sendPasswordResetEmail(email, user.name, resetToken);
 
     res.json({ message: 'Password reset email sent.' });
   } catch (err) {
@@ -188,6 +164,7 @@ exports.forgotPassword = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 // ─── Validate Reset Token ────────────────────────────────
 exports.validateResetToken = async (req, res) => {
@@ -199,7 +176,6 @@ exports.validateResetToken = async (req, res) => {
     );
     if (rows.length === 0)
       return res.status(404).json({ message: 'Invalid or expired reset token.' });
-
     if (new Date() > new Date(rows[0].token_expires_at))
       return res.status(410).json({ message: 'Reset token has expired.' });
 
@@ -209,6 +185,7 @@ exports.validateResetToken = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 // ─── Reset Password ──────────────────────────────────────
 exports.resetPassword = async (req, res) => {

@@ -179,6 +179,9 @@ exports.getMyApplication = async (req, res) => {
 //   1. application.status  → 'accepted'
 //   2. users.role          → 'student'
 //   3. users.active_status → 'active'
+//   4. Find current active intake (today between start_date & end_date, not full)
+//   5. Auto-generate matric number: STU-<YEAR>-<5-digit sequence>
+//   6. Insert into students table
 // The applicant must re-login to get a fresh JWT with role=student.
 // ══════════════════════════════════════════════════════════
 exports.acceptOffer = async (req, res) => {
@@ -188,7 +191,7 @@ exports.acceptOffer = async (req, res) => {
 
     const userId = req.user.id;
 
-    // Verify application exists and is in 'approved' state
+    // ── Verify application exists and is approved ──
     const [apps] = await conn.query(
       'SELECT application_id, status FROM applications WHERE user_id = ?',
       [userId]
@@ -206,22 +209,67 @@ exports.acceptOffer = async (req, res) => {
 
     const appId = apps[0].application_id;
 
-    // 1. Update application status → accepted
+    // ── 1. Update application status → accepted ──
     await conn.query(
       'UPDATE applications SET status = ?, updated_at = NOW() WHERE application_id = ?',
       ['accepted', appId]
     );
 
-    // 2. Update user role → student and activate account
+    // ── 2. Update user role → student ──
     await conn.query(
       "UPDATE users SET role = 'student', active_status = 'active' WHERE user_id = ?",
       [userId]
     );
 
+    // ── 3. Find current active intake ──
+    // Active = today is between start_date and end_date, and not yet at max capacity
+    const [intakes] = await conn.query(
+      `SELECT
+        i.intake_id,
+        i.intake_name,
+        i.max_capacity,
+        COUNT(s.student_id) AS current_count
+       FROM intakes i
+       LEFT JOIN students s ON s.intake_id = i.intake_id
+       WHERE CURDATE() BETWEEN i.start_date AND i.end_date
+       GROUP BY i.intake_id
+       HAVING current_count < i.max_capacity
+       ORDER BY i.start_date DESC
+       LIMIT 1`,
+      []
+    );
+
+    const activeIntake = intakes.length > 0 ? intakes[0] : null;
+    const intakeId     = activeIntake ? activeIntake.intake_id : null;
+
+    // ── 4. Auto-generate matric number: STU-YYYY-NNNNN ──
+    const year = new Date().getFullYear();
+
+    // Count existing students this year to get the next sequence number
+    const [countRows] = await conn.query(
+      `SELECT COUNT(*) AS total FROM students WHERE YEAR(created_at) = ?`,
+      [year]
+    );
+    const sequence    = String(countRows[0].total + 1).padStart(5, '0');
+    const matricNumber = `STU-${year}-${sequence}`;
+
+    // ── 5. Insert into students table ──
+    await conn.query(
+      `INSERT INTO students (user_id, application_id, intake_id, matric_number, created_at)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [userId, appId, intakeId, matricNumber]
+    );
+
     await conn.commit();
 
+    const intakeMsg = activeIntake
+      ? `You have been assigned to ${activeIntake.intake_name}.`
+      : 'No active intake found — an admin will assign your intake shortly.';
+
     return res.json({
-      message: 'Offer accepted! Your account has been upgraded to Student. Please log in again to access the student portal.',
+      message: `Offer accepted! Your matric number is ${matricNumber}. ${intakeMsg} Please log in again to access the student portal.`,
+      matric_number: matricNumber,
+      intake_name:   activeIntake?.intake_name || null,
     });
 
   } catch (err) {

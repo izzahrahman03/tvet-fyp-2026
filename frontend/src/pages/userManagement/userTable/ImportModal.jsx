@@ -1,30 +1,28 @@
-// components/ImportModal.jsx
-// Uses SheetJS (xlsx) to parse Excel/CSV files before importing
-// Install: npm install xlsx
-
 import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 
 const COLUMN_MAPS = {
   applicant: {
     required: ["name", "email"],
-    optional: ["phone", "status", "date"],
-    example:  [{ name: "Siti Nur Izzah", email: "siti@email.com", phone: "012-3456789", status: "Pending", date: "2024-01-15" }],
+    optional: ["phone", "status"],
+    example:  [{ name: "Siti Nur Izzah", email: "siti@email.com", phone: "012-3456789", status: "Pending" }],
   },
   student: {
     required: ["name", "email"],
-    optional: ["phone", "program", "year", "status", "date"],
-    example:  [{ name: "Muhammad Haziq", email: "haziq@student.edu", phone: "014-1234567", program: "Software Engineering", year: "Year 3", status: "Active", date: "2023-09-01" }],
+    optional: ["phone", "status"],
+    example:  [{ name: "Muhammad Haziq", email: "haziq@student.edu", phone: "014-1234567", status: "Active" }],
   },
   industry_partner: {
     required: ["name", "email"],
-    optional: ["phone", "industry", "location", "status", "date"],
-    example:  [{ name: "Tech Solutions Sdn Bhd", email: "hr@techsolutions.com", phone: "03-12345678", industry: "IT & Software", location: "Kuala Lumpur", status: "Active", date: "2023-06-10" }],
+    optional: ["phone", "industry_sector", "location", "status"],
+    // ✅ field names match DB columns exactly
+    example:  [{ name: "Tech Solutions Sdn Bhd", email: "hr@techsolutions.com", phone: "03-12345678", industry_sector: "IT & Software", location: "Kuala Lumpur", status: "Active" }],
   },
   industry_supervisor: {
     required: ["name", "email"],
-    optional: ["phone", "company", "role", "status", "date"],
-    example:  [{ name: "Mr. David Loh", email: "david@techsolutions.com", phone: "012-8765432", company: "Tech Solutions Sdn Bhd", role: "Senior Engineer", status: "Active", date: "2023-06-15" }],
+    optional: ["phone", "company", "position", "status"],
+    // ✅ "position" not "role" — matches DB column
+    example:  [{ name: "Mr. David Loh", email: "david@techsolutions.com", phone: "012-8765432", company: "Tech Solutions Sdn Bhd", position: "Senior Engineer", status: "Active" }],
   },
 };
 
@@ -57,22 +55,24 @@ export default function ImportModal({ type, onClose, onImport }) {
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const json  = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-        // Normalise keys to lowercase
+        // Normalise keys to lowercase + trim
         const normalised = json.map((row) => {
           const out = {};
-          Object.keys(row).forEach((k) => { out[k.toLowerCase().trim()] = String(row[k]).trim(); });
+          Object.keys(row).forEach((k) => {
+            out[k.toLowerCase().trim().replace(/\s+/g, "_")] = String(row[k]).trim();
+          });
           return out;
         });
 
-        // Validate required columns
         if (normalised.length === 0) { setError("The file is empty."); return; }
+
         const missingCols = config.required.filter((c) => !(c in normalised[0]));
         if (missingCols.length > 0) {
           setError(`Missing required columns: ${missingCols.join(", ")}`);
           return;
         }
 
-        setRows(normalised.slice(0, 200)); // cap preview at 200
+        setRows(normalised.slice(0, 200));
       } catch {
         setError("Failed to parse file. Please check the format.");
       }
@@ -90,8 +90,8 @@ export default function ImportModal({ type, onClose, onImport }) {
 
   // ── Download template ─────────────────────────────────────
   const downloadTemplate = () => {
-    const wb    = XLSX.utils.book_new();
-    const ws    = XLSX.utils.json_to_sheet(config.example);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(config.example);
     XLSX.utils.book_append_sheet(wb, ws, "Template");
     XLSX.writeFile(wb, `template_${type}.xlsx`);
   };
@@ -101,6 +101,9 @@ export default function ImportModal({ type, onClose, onImport }) {
     onImport(rows);
     onClose();
   };
+
+  // Determine which columns are actually present in the file
+  const presentCols = allCols.filter((c) => c in (rows[0] || {}));
 
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -119,7 +122,10 @@ export default function ImportModal({ type, onClose, onImport }) {
         {/* Template download */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
           <p style={{ fontSize: "12.5px", color: "#64748b" }}>
-            Required columns: <strong style={{ color: "#1e293b" }}>{config.required.join(", ")}</strong>
+            Required: <strong style={{ color: "#1e293b" }}>{config.required.join(", ")}</strong>
+            {config.optional.length > 0 && (
+              <span style={{ color: "#94a3b8" }}> · Optional: {config.optional.join(", ")}</span>
+            )}
           </p>
           <button className="import-template-link" onClick={downloadTemplate}>
             ⬇ Download Template
@@ -159,17 +165,13 @@ export default function ImportModal({ type, onClose, onImport }) {
               <table>
                 <thead>
                   <tr>
-                    {allCols.filter((c) => c in (rows[0] || {})).map((c) => (
-                      <th key={c}>{c}</th>
-                    ))}
+                    {presentCols.map((c) => <th key={c}>{c}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {rows.slice(0, 5).map((row, i) => (
                     <tr key={i}>
-                      {allCols.filter((c) => c in (rows[0] || {})).map((c) => (
-                        <td key={c}>{row[c] || "—"}</td>
-                      ))}
+                      {presentCols.map((c) => <td key={c}>{row[c] || "—"}</td>)}
                     </tr>
                   ))}
                   {rows.length > 5 && (

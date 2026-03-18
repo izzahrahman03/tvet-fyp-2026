@@ -330,7 +330,7 @@ export default function ApplicationForm() {
         if (res.ok && data.application) {
           const a = data.application;
           setPersonal({
-            fullName:      a.full_name      || '',
+            fullName:      a.name      || '',
             icNumber:      a.ic_number      || '',
             dob:           a.date_of_birth  ? a.date_of_birth.split('T')[0] : '',
             gender:        a.gender         || '',
