@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 
 // ══════════════════════════════════════════════════════════
 // GET /api/profile
-// Returns the logged-in user's profile info
 // ══════════════════════════════════════════════════════════
 exports.getProfile = async (req, res) => {
   try {
@@ -20,14 +19,12 @@ exports.getProfile = async (req, res) => {
     res.json({ user: rows[0] });
   } catch (err) {
     console.error('getProfile error:', err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };
 
 // ══════════════════════════════════════════════════════════
 // PUT /api/profile
-// Update name and/or email
-// Body: { name, email }
 // ══════════════════════════════════════════════════════════
 exports.updateProfile = async (req, res) => {
   try {
@@ -61,14 +58,15 @@ exports.updateProfile = async (req, res) => {
     res.json({ message: 'Profile updated successfully.', user: { name, email } });
   } catch (err) {
     console.error('updateProfile error:', err);
-    res.status(500).json({ message: err.message });
+    // FIX: guard race-condition ER_DUP_ENTRY on UPDATE even though we pre-checked
+    if (err.code === 'ER_DUP_ENTRY')
+      return res.status(409).json({ message: 'This email is already in use by another account.' });
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };
 
 // ══════════════════════════════════════════════════════════
 // PUT /api/profile/password
-// Change password — requires current password verification
-// Body: { currentPassword, newPassword, confirmPassword }
 // ══════════════════════════════════════════════════════════
 exports.updatePassword = async (req, res) => {
   try {
@@ -90,11 +88,9 @@ exports.updatePassword = async (req, res) => {
 
     if (!rows.length) return res.status(404).json({ message: 'User not found.' });
 
-    // Verify current password
     if (!bcrypt.compareSync(currentPassword, rows[0].password))
       return res.status(401).json({ message: 'Current password is incorrect.' });
 
-    // Prevent reusing the same password
     if (bcrypt.compareSync(newPassword, rows[0].password))
       return res.status(400).json({ message: 'New password must be different from your current password.' });
 
@@ -105,6 +101,6 @@ exports.updatePassword = async (req, res) => {
     res.json({ message: 'Password updated successfully.' });
   } catch (err) {
     console.error('updatePassword error:', err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };

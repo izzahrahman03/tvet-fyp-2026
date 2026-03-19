@@ -26,6 +26,9 @@ exports.signup = async (req, res) => {
     if (!name || !email || !password)
       return res.status(400).json({ message: 'All fields are required' });
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      return res.status(400).json({ message: 'Please enter a valid email address.' });
+
     const hashedPassword = bcrypt.hashSync(password, 8);
 
     await db.query(
@@ -33,10 +36,13 @@ exports.signup = async (req, res) => {
       [name, email, hashedPassword, 'applicant', 'active']
     );
 
-    res.json({ message: 'User registered successfully!' });
+    res.json({ message: 'User registered successfully' });
   } catch (err) {
     console.error('Signup error:', err);
-    res.status(500).json({ message: err.message });
+    // FIX: was leaking raw MySQL error e.g. "Duplicate entry '...' for key 'users.email'"
+    if (err.code === 'ER_DUP_ENTRY')
+      return res.status(409).json({ message: 'An account with this email already exists.' });
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };
 
@@ -73,7 +79,7 @@ exports.verifyActivation = async (req, res) => {
     res.json({ message: 'Verified. Please set new password.', resetToken, name: user.name });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };
 
@@ -109,7 +115,7 @@ exports.setPassword = async (req, res) => {
     res.json({ message: 'Password set successfully. You can now log in.' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };
 
@@ -119,13 +125,22 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
+
+    // FIX: use same generic message for not-found and wrong password to prevent
+    // user enumeration (attacker cannot tell whether the email exists)
+    if (rows.length === 0)
+      return res.status(401).json({ message: 'Invalid email or password.' });
 
     const user = rows[0];
+
+    // FIX: added 'suspended' status check alongside 'inactive'
     if (user.active_status === 'inactive')
-      return res.status(403).json({ message: 'Account not activated. Check email for activation link.' });
+      return res.status(403).json({ message: 'Account not activated. Check your email for the activation link.' });
+    if (user.active_status === 'suspended')
+      return res.status(403).json({ message: 'Your account has been suspended. Please contact support.' });
+
     if (!bcrypt.compareSync(password, user.password))
-      return res.status(401).json({ message: 'Invalid password' });
+      return res.status(401).json({ message: 'Invalid email or password.' });
 
     const token = jwt.sign({ id: user.user_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     await db.query('UPDATE users SET last_login = NOW() WHERE user_id = ?', [user.user_id]);
@@ -133,7 +148,7 @@ exports.login = async (req, res) => {
     res.json({ message: 'Login successful', token, name: user.name, email: user.email, role: user.role });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };
 
@@ -143,8 +158,11 @@ exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     const [rows] = await db.query('SELECT user_id, name FROM users WHERE email = ?', [email]);
+
+    // FIX: was returning 404 when email not found, which leaks whether an email
+    // is registered (email enumeration). Always return 200 with a generic message.
     if (rows.length === 0)
-      return res.status(404).json({ message: 'No account found with that email.' });
+      return res.json({ message: 'If an account with that email exists, a reset link has been sent.' });
 
     const user       = rows[0];
     const resetToken = generateToken();
@@ -155,13 +173,12 @@ exports.forgotPassword = async (req, res) => {
       [resetToken, expiresAt, user.user_id]
     );
 
-    // ── Replaced inline transporter.sendMail with email module ──
     sendPasswordResetEmail(email, user.name, resetToken);
 
-    res.json({ message: 'Password reset email sent.' });
+    res.json({ message: 'If an account with that email exists, a reset link has been sent.' });
   } catch (err) {
     console.error('forgotPassword error:', err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };
 
@@ -182,7 +199,7 @@ exports.validateResetToken = async (req, res) => {
     res.json({ message: 'Token is valid.' });
   } catch (err) {
     console.error('validateResetToken error:', err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };
 
@@ -216,6 +233,6 @@ exports.resetPassword = async (req, res) => {
     res.json({ message: 'Password reset successfully. You can now log in.' });
   } catch (err) {
     console.error('resetPassword error:', err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };

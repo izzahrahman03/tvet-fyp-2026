@@ -1,80 +1,161 @@
 import "../css/pages/home.css";
 import { useNavigate } from 'react-router-dom';
 
+/* ── SVG Icon Components ── */
+const IconGear = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+);
+const IconBuilding = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="1"/>
+    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+    <line x1="6" y1="11" x2="6.01" y2="11"/>
+    <line x1="6" y1="15" x2="6.01" y2="15"/>
+    <line x1="18" y1="11" x2="18.01" y2="11"/>
+    <line x1="18" y1="15" x2="18.01" y2="15"/>
+  </svg>
+);
+const IconAward = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8" r="6"/>
+    <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+  </svg>
+);
+const IconTrend = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+    <polyline points="17 6 23 6 23 12"/>
+  </svg>
+);
+const IconUsers = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+);
+const IconUnlock = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+    <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+  </svg>
+);
+
 const FEATURES = [
-  { icon: "🎯", name: "Structured Learning Paths",  desc: "Curated curricula built by industry experts to take you from beginner to job-ready." },
-  { icon: "🤝", name: "Live Mentorship",             desc: "Weekly 1-on-1 sessions with senior professionals who guide your progress." },
-  { icon: "📊", name: "Progress Analytics",          desc: "Visual dashboards track your pace, streaks, and mastery across every subject." },
-  { icon: "🏆", name: "Verified Certificates",       desc: "Earn credentials recognized by 500+ hiring partners worldwide." },
-  { icon: "💬", name: "Peer Community",              desc: "Collaborate, study together, and get unstuck in our active learner forums." },
-  { icon: "♾️", name: "Lifetime Access",             desc: "Pay once, revisit any time. Your learning doesn't expire." },
+  { Icon: IconGear,     name: "Technical Skills Training",   desc: "Hands-on modules in Engineering Drawing, Control Programming, Fabrication, Sub-Assembly, and System Maintenance — taught by instructors with 5+ years of industry experience." },
+  { Icon: IconBuilding, name: "Work-Based Learning",         desc: "70% of learning happens on the factory floor. Apprentices are placed at selected industry companies, returning to ViTrox Academy every Friday for structured theory sessions." },
+  { Icon: IconAward,    name: "Recognised Certification",    desc: "Graduates receive the Sijil K-Youth Development Programme TVET BOLTS, a credential designed to strengthen your employability in the semiconductor and electronics industries." },
+  { Icon: IconTrend,    name: "Clear Career Pathway",        desc: "Progress from the 6-month BOLTS programme to SKM Level 2 & 3 certification, building toward a full 18-month learning journey and a career as an industry technologist." },
+  { Icon: IconUsers,    name: "Mentorship by Engineers",     desc: "ViTrox's manufacturing engineers personally coach apprentices through their practical learning, ensuring real-world relevance in every lesson." },
+  { Icon: IconUnlock,   name: "No SPM Barrier",              desc: "Strong SPM results are not required. If you have a genuine interest in electronics, electrical, and semiconductor fields, you are welcome to apply." },
 ];
 
-const COURSES = [
-  { emoji: "💻", bg: "#EFF6FF", cat: "Engineering", name: "Full-Stack Web Development Bootcamp",          rating: "★★★★★ 4.9", price: "Free" },
-  { emoji: "🤖", bg: "#F0FDF4", cat: "AI & ML",     name: "Machine Learning with Python & TensorFlow",   rating: "★★★★★ 4.8", price: "$49"  },
-  { emoji: "📐", bg: "#FFF7ED", cat: "Design",       name: "Product Design: Figma to Prototype",          rating: "★★★★☆ 4.7", price: "$29"  },
+const PROGRAMMES = [
+  {
+    img:    "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&q=80",
+    accent: "#1A3A6B",
+    cat:    "Track A — TVET",
+    code:   "TVET BOLTS",
+    name:   "Bridging Opportunities Learning Technical & Skills",
+    meta:   "6 months · Batu Kawan, Penang · RM 1,700 / month",
+    tag:    "Fully Sponsored",
+  },
+  {
+    img:    "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&q=80",
+    accent: "#8A5E10",
+    cat:    "Advancement Track",
+    code:   "SKM L2 & L3",
+    name:   "Sijil Kemahiran Malaysia — Industrial Automation",
+    meta:   "12 months · ViTrox Academy · Ministry-Recognised",
+    tag:    "Post-BOLTS Pathway",
+  },
+  {
+    img:    "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=600&q=80",
+    accent: "#1D5C2B",
+    cat:    "Higher Education",
+    code:   "Diploma",
+    name:   "Diploma in Electrical & Electronics Engineering",
+    meta:   "MQA Accredited · Work-Based Learning Model",
+    tag:    "MQA/PA15866",
+  },
+];
+
+const PHOTO_STRIP = [
+  { src: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=600&q=80", caption: "Workshop Training" },
+  { src: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=600&q=80", caption: "Electronics Lab" },
+  { src: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=600&q=80", caption: "Industry Attachment" },
+  { src: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80", caption: "Mentorship Sessions" },
 ];
 
 const FOOTER_LINKS = [
-  ["Platform", ["Courses", "Learning Paths", "Certifications", "Live Mentors"]],
-  ["Company",  ["About Us", "Careers", "Blog", "Press"]],
-  ["Support",  ["Help Center", "Community", "Contact", "Status"]],
+  ["Programme", ["K-Youth TVET BOLTS", "SKM Pathway", "Diploma Courses", "Corporate Training"]],
+  ["Academy",   ["About ViTrox Academy", "Our Instructors", "Facilities", "News & Updates"]],
+  ["Support",   ["How to Apply", "FAQ", "Contact Us", "Khazanah K-Youth"]],
 ];
 
 const STATS = [
-  ["200K+", "Active learners"],
-  ["1,400+", "Expert courses"],
-  ["96%",   "Job placement"],
+  ["500+",     "Programme places available"],
+  ["RM 1,700", "Monthly allowance"],
+  ["6 months", "Programme duration"],
 ];
 
-const AVATAR_COLORS = ["#1A56DB", "#10B981", "#F59E0B"];
-const AVATAR_INITIALS = ["JD", "AM", "SK"];
+const TIMELINE = [
+  { step: "01", title: "Submit Application",               desc: "Apply online or walk in for an interview at ViTrox Academy, Batu Kawan. No SPM results required." },
+  { step: "02", title: "Selection & Interview",            desc: "Attend a structured interview session. Candidates are assessed on interest and motivation, not prior grades." },
+  { step: "03", title: "Classroom & Workshop Training",    desc: "Begin your 6-month programme combining weekly theory classes with practical workshop modules at ViTrox Academy." },
+  { step: "04", title: "Industry Attachment (OJT)",        desc: "Gain real work experience at partner semiconductor and electronics companies in Penang and beyond." },
+  { step: "05", title: "Certification & Career Placement", desc: "Graduate with the TVET BOLTS Certificate and receive guidance for employment or progression to SKM Level 2 & 3." },
+];
+
+const INFO_ROWS = [
+  ["Programme",         "K-Youth TVET BOLTS",                        false],
+  ["Delivered by",      "ViTrox Academy, Batu Kawan",                 false],
+  ["Funded by",         "Khazanah Nasional Berhad",                   false],
+  ["Duration",          "6 months (extendable to 18 months via SKM)", false],
+  ["Monthly Allowance", "RM 1,700 (incl. EPF & SOCSO)",               true],
+  ["Eligibility",       "Form 5 graduates, age 17–23",                false],
+  ["SPM Required?",     "No — interest is sufficient",                true],
+  ["Availability",      "Limited — 25 trainees per cohort",           false],
+];
 
 const HomePage = () => {
-  
   const navigate = useNavigate();
 
   return (
     <>
       {/* ── Hero ── */}
       <section className="hero-section">
-        <div
-          className="hero-bg-blob anim-pulse"
-          style={{ width: 700, height: 700, top: -200, right: -200 }}
-        />
-        <div
-          className="hero-bg-blob"
-          style={{ width: 400, height: 400, bottom: 0, left: -100, opacity: 0.6 }}
-        />
-
         <div className="hero-container">
-          {/* Left copy */}
           <div>
-            <div className="hero-badge anim-fade-up">
-              <span className="hero-badge-dot" />
-              #1 Rated Ed-Tech Platform 2024
+            <div className="hero-badge">
+              <span>Khazanah Nasional Berhad Initiative</span>
+              <span className="badge-divider" />
+              <span>Delivered by ViTrox Academy</span>
             </div>
 
-            <h1 className="hero-title anim-fade-up delay-1">
-              Learn skills that <em>actually</em> get you hired.
+            <h1 className="hero-title">
+              K-Youth Development<br />
+              <em>Programme 2026</em>
             </h1>
 
-            <p className="hero-sub anim-fade-up delay-2">
-              Join 200,000+ learners mastering in-demand skills through hands-on
-              projects, live mentors, and industry-vetted courses.
+            <p className="hero-sub">
+              A government-sponsored TVET apprenticeship for Form 5 graduates aged 17–23.
+              Earn while you learn — receive <strong>RM 1,700 per month</strong> as you build
+              industry-ready technical skills in Malaysia's semiconductor sector.
             </p>
 
-            <div className="hero-actions anim-fade-up delay-3">
-              <button className="btn-primary" onClick={() => navigate("signup")}>
-                Start learning free →
-              </button>
-              <button className="btn-secondary">▶ Watch demo</button>
+            <div className="hero-actions">
+              <button className="btn-primary" onClick={() => navigate("signup")}>Apply Now</button>
+              <button className="btn-outline">Learn More ↓</button>
             </div>
 
-            <div className="hero-stats anim-fade-up delay-4">
+            <div className="hero-stats">
               {STATS.map(([num, label]) => (
-                <div key={label}>
+                <div className="stat-item" key={label}>
                   <div className="stat-num">{num}</div>
                   <div className="stat-label">{label}</div>
                 </div>
@@ -82,105 +163,146 @@ const HomePage = () => {
             </div>
           </div>
 
-          {/* Right visual card */}
-          <div className="hero-visual anim-fade-in delay-2">
-            <div className="anim-float">
-              <div className="hero-card-main">
-                <div className="hero-card-tag">Currently Enrolled</div>
-                <div className="hero-course-title">React & TypeScript Mastery</div>
-                <div className="hero-course-meta">Module 7 of 12 · UI Components</div>
-
-                <div className="progress-bar-bg">
-                  <div className="progress-bar-fill" style={{ width: "62%" }} />
+          <div className="hero-visual">
+            <div className="hero-info-card">
+              <div className="info-card-header">Programme at a Glance</div>
+              {INFO_ROWS.map(([k, v, hi]) => (
+                <div className="info-row" key={k}>
+                  <span className="info-key">{k}</span>
+                  <span className={`info-val${hi ? " highlight" : ""}`}>{v}</span>
                 </div>
-                <div className="progress-label">
-                  <span>62% complete</span>
-                  <span>3h left</span>
-                </div>
-
-                <div className="avatar-row">
-                  <div className="avatar-stack">
-                    {AVATAR_COLORS.map((color, i) => (
-                      <div
-                        key={i}
-                        className="avatar"
-                        style={{ background: color }}
-                      >
-                        {AVATAR_INITIALS[i]}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="avatar-text">+14 studying now</div>
-                </div>
-              </div>
-
-              {/* Floating stat cards */}
-              <div className="hero-card-float float-top-right">
-                <div className="float-label">This week</div>
-                <div className="float-value">8.4h</div>
-                <div className="float-sub">↑ 12% vs last week</div>
-              </div>
-
-              <div className="hero-card-float float-bottom-left">
-                <div className="float-label">Certificates earned</div>
-                <div className="float-value">3 🏆</div>
-                <div className="float-sub">Keep going!</div>
-              </div>
+              ))}
+              <button className="btn-primary btn-full" style={{ marginTop: "1.5rem" }} onClick={() => navigate("signup")}>
+                Register Your Interest
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Features ── */}
-      <div style={{ background: "#F8FAFF", borderTop: "1px solid #DBEAFE" }}>
-        <div className="section">
-          <div className="section-label anim-fade-up">Why K-Youth Development Programme?</div>
-          <h2 className="section-title anim-fade-up delay-1">
-            Everything you need to level up.
-          </h2>
-          <p className="section-sub anim-fade-up delay-2">
-            We combine world-class content with the tools, community, and support
-            that actually move the needle.
-          </p>
+      {/* ── Photo Strip ── */}
+      <div className="photo-strip">
+        {PHOTO_STRIP.map(({ src, caption }) => (
+          <div className="photo-strip-item" key={caption}>
+            <img src={src} alt={caption} />
+            <div className="photo-strip-caption">{caption}</div>
+          </div>
+        ))}
+      </div>
 
-          <div className="features-grid">
-            {FEATURES.map((f, i) => (
-              <div key={f.name} className={`feature-card anim-fade-up delay-${i + 1}`}>
-                <div className="feature-icon">{f.icon}</div>
-                <div className="feature-name">{f.name}</div>
-                <div className="feature-desc">{f.desc}</div>
-              </div>
-            ))}
+      {/* ── About ── */}
+      <div className="about-band">
+        <div className="section">
+          <div className="about-grid">
+            <div>
+              <div className="section-label">Background</div>
+              <h2 className="section-title">A National Initiative for Malaysia's Youth</h2>
+              <p className="body-text">
+                Launched in 2023, the K-Youth Development Programme is a flagship youth
+                employability initiative by <strong>Khazanah Nasional Berhad</strong>, Malaysia's
+                sovereign wealth fund. It is anchored within the <em>Advancing Malaysia</em> long-term
+                strategy and aligned with the aspirations of <em>Malaysia MADANI</em>.
+              </p>
+              <p className="body-text" style={{ marginTop: "1rem" }}>
+                At ViTrox Academy, the programme is delivered as <strong>TVET BOLTS</strong> —
+                Bridging Opportunities Learning Technical and Skills — a structured work-study
+                model specifically designed to develop skilled technologists for Malaysia's
+                semiconductor and electronics manufacturing industry.
+              </p>
+            </div>
+            <div className="about-image-col">
+              <img
+                src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80"
+                alt="ViTrox electronics manufacturing"
+                className="about-photo"
+              />
+              <blockquote className="pull-quote">
+                "The work-study model gives us hands-on experience and industry-relevant skills
+                in high demand at major semiconductor companies."
+              </blockquote>
+              <div className="pull-quote-attr">— Programme Participant, K-Youth 2026</div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Courses ── */}
+      {/* ── Features ── */}
+      <div className="section">
+        <div className="section-label">Programme Components</div>
+        <h2 className="section-title">What the Programme Covers</h2>
+        <p className="section-sub">
+          The TVET BOLTS curriculum is industry-designed and JPK-accredited, combining
+          structured classroom instruction with meaningful on-the-job training.
+        </p>
+        <div className="features-grid">
+          {FEATURES.map(({ Icon, name, desc }) => (
+            <div key={name} className="feature-card">
+              <div className="feature-icon"><Icon /></div>
+              <div className="feature-name">{name}</div>
+              <div className="feature-desc">{desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Timeline ── */}
+      <div className="timeline-band">
+        <div className="section">
+          <div className="timeline-layout">
+            <div className="timeline-left">
+              <div className="section-label">Application Process</div>
+              <h2 className="section-title">How to Join</h2>
+              <p className="section-sub">
+                The application process is straightforward. Walk-in interviews are welcomed at
+                ViTrox Academy, Batu Kawan, Penang.
+              </p>
+              <img
+                src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=700&q=80"
+                alt="Students at ViTrox Academy orientation"
+                className="timeline-photo"
+              />
+            </div>
+            <div className="timeline">
+              {TIMELINE.map((item) => (
+                <div key={item.step} className="timeline-item">
+                  <div className="timeline-step">{item.step}</div>
+                  <div className="timeline-content">
+                    <div className="timeline-title">{item.title}</div>
+                    <div className="timeline-desc">{item.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Programmes ── */}
       <div className="section">
         <div className="courses-header">
           <div>
-            <div className="section-label">Top courses</div>
-            <h2 className="section-title" style={{ marginBottom: 0 }}>
-              Start with the best.
-            </h2>
+            <div className="section-label">Available Pathways</div>
+            <h2 className="section-title" style={{ marginBottom: 0 }}>Choose Your Track</h2>
           </div>
-          <button className="btn-secondary" style={{ whiteSpace: "nowrap" }}>
-            Browse all courses →
+          <button className="btn-outline" style={{ whiteSpace: "nowrap" }}>
+            View Full Programme Guide →
           </button>
         </div>
-
         <div className="courses-grid">
-          {COURSES.map((c) => (
+          {PROGRAMMES.map((c) => (
             <div key={c.name} className="course-card">
-              <div className="course-thumb" style={{ background: c.bg }}>
-                {c.emoji}
+              <div className="course-thumb">
+                <img src={c.img} alt={c.name} className="course-thumb-img" />
+                <div className="course-thumb-overlay">
+                  <span className="course-code-badge">{c.code}</span>
+                </div>
               </div>
               <div className="course-body">
-                <div className="course-cat">{c.cat}</div>
+                <div className="course-cat" style={{ color: c.accent }}>{c.cat}</div>
                 <div className="course-name">{c.name}</div>
+                <div className="course-meta">{c.meta}</div>
                 <div className="course-footer">
-                  <div className="course-rating">{c.rating}</div>
-                  <div className="course-price">{c.price}</div>
+                  <span className="course-tag">{c.tag}</span>
                 </div>
               </div>
             </div>
@@ -190,26 +312,30 @@ const HomePage = () => {
 
       {/* ── CTA Banner ── */}
       <div className="cta-section">
-        <svg
-          className="cta-bg"
-          viewBox="0 0 800 300"
-          preserveAspectRatio="xMidYMid slice"
-        >
-          <circle cx="100" cy="150" r="200" fill="rgba(96,165,250,.15)" />
-          <circle cx="700" cy="50"  r="150" fill="rgba(96,165,250,.1)"  />
-        </svg>
-        <h2 className="cta-title">Ready to transform your career?</h2>
-        <p className="cta-sub">
-          Join thousands of learners who've already made the leap. Your first
-          course is free — no credit card needed.
-        </p>
-        <button
-          className="btn-primary"
-          style={{ fontSize: "1rem", padding: ".85rem 2.2rem", position: "relative" }}
-          onClick={() => navigate("signup")}
-        >
-          Create free account →
-        </button>
+        <div className="cta-bg-img">
+          <img
+            src="https://images.unsplash.com/photo-1565022536102-f7645c84354a?w=1400&q=80"
+            alt="Semiconductor manufacturing facility"
+            className="cta-photo"
+          />
+          <div className="cta-overlay" />
+        </div>
+        <div className="cta-inner">
+          <div className="cta-label">Limited Cohort Intake</div>
+          <h2 className="cta-title">Begin Your Career in Malaysia's Semiconductor Industry</h2>
+          <p className="cta-sub">
+            Places are limited to 25 trainees per cohort. Supported by Khazanah Nasional.
+            Delivered by ViTrox Academy. Free of charge.
+          </p>
+          <div className="cta-actions">
+            <button className="btn-primary-light" onClick={() => navigate("signup")}>
+              Apply for K-Youth 2026
+            </button>
+            <a className="cta-link" href="mailto:kyouth@vitrox.edu.my">
+              Enquire via email →
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* ── Footer ── */}
@@ -217,13 +343,17 @@ const HomePage = () => {
         <div className="footer-inner">
           <div className="footer-top">
             <div>
-              <div className="footer-brand">Vitrox Academy</div>
+              <div className="footer-brand">ViTrox Academy</div>
               <div className="footer-tagline">
-                Empowering curious minds with skills that shape the future.
-                Learning starts here.
+                An education arm of ViTrox Corporation Berhad. Delivering industry-driven
+                technical education and TVET programmes from Batu Kawan, Penang.
+              </div>
+              <div className="footer-address">
+                746, Persiaran Cassia Selatan 3,<br />
+                Batu Kawan Industrial Park,<br />
+                14110 Bandar Cassia, Penang, Malaysia.
               </div>
             </div>
-
             {FOOTER_LINKS.map(([heading, links]) => (
               <div key={heading}>
                 <div className="footer-heading">{heading}</div>
@@ -233,20 +363,13 @@ const HomePage = () => {
               </div>
             ))}
           </div>
-
           <div className="footer-bottom">
             <div className="footer-copy">
-              © 2025 Vitrox Academy Inc. All rights reserved.
+              © 2025 ViTrox Academy Sdn Bhd (202001005007). All rights reserved. A Khazanah K-Youth Partner.
             </div>
             <div style={{ display: "flex", gap: "1.2rem" }}>
-              {["Privacy", "Terms", "Cookies"].map((l) => (
-                <div
-                  key={l}
-                  className="footer-copy"
-                  style={{ cursor: "pointer", color: "#94A3B8" }}
-                >
-                  {l}
-                </div>
+              {["Privacy Policy", "Terms of Use", "Sitemap"].map((l) => (
+                <div key={l} className="footer-copy" style={{ cursor: "pointer", color: "#94A3B8" }}>{l}</div>
               ))}
             </div>
           </div>

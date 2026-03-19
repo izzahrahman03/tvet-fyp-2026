@@ -3,7 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import "../css/pages/login.css";
 import "../css/pages/signup.css";
-import { GoogleIcon, CheckIcon } from "../components/Icons";
+import { GoogleIcon } from "../components/Icons";
+import PasswordFields, { getStrength } from "../components/PasswordFields";
 
 const BENEFITS = [
   "Opportunity to upskill and reskill in high-demand areas",
@@ -13,53 +14,50 @@ const BENEFITS = [
   "Career support and job placement assistance",
 ];
 
-// Strength helpers
-const getStrength = (pwd) => {
-  if (!pwd) return 0;
-  if (pwd.length < 6) return 1;
-  if (pwd.length < 10) return 2;
-  if (/[A-Z]/.test(pwd) && /[0-9]/.test(pwd)) return 4;
-  return 3;
-};
-
-const STRENGTH_COLORS = ["#DBEAFE", "#EF4444", "#F59E0B", "#3B82F6", "#22C55E"];
-const STRENGTH_LABELS = ["", "Weak", "Fair", "Good", "Strong"];
-
 const Signup = () => {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    topic: "",
+    name:       "",
+    email:      "",
+    password:   "",
+    confirm:    "",
+    topic:      "",
     newsletter: true,
-    terms: false
+    terms:      false,
   });
 
-  const [showPass, setShowPass] = useState(false);
-  const [message, setMessage] = useState("");
-
-  const strength      = getStrength(form.password);
-  const strengthColor = STRENGTH_COLORS[strength];
-  const strengthLabel = STRENGTH_LABELS[strength];
+  const [alert, setAlert] = useState(null); // { type: "error" | "success", text: string }
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm(prev => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
+    // Clear error alert as user starts correcting the form
+    if (alert?.type === "error") setAlert(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (form.password !== form.confirm) {
+      setAlert({ type: "error", text: "Passwords do not match." });
+      return;
+    }
+    if (getStrength(form.password) < 2) {
+      setAlert({ type: "error", text: "Please choose a stronger password." });
+      return;
+    }
+
     try {
-      const res = await axios.post("http://localhost:5001/api/signup", form);
-      setMessage(res.data.message);
+      await axios.post("http://localhost:5001/api/signup", form);
+      setAlert({ type: "success", text: "Signup successful. Redirecting to login..." });
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
-      setMessage(err.response?.data?.message || "Signup failed");
+      const msg = err.response?.data?.message || "Signup failed. Please try again.";
+      setAlert({ type: "error", text: msg });
     }
   };
 
@@ -76,7 +74,6 @@ const Signup = () => {
         </div>
 
         <div className="auth-side-content">
-          {/* Logo */}
           <div className="auth-side-logo" onClick={() => navigate("home")}>
             <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#60A5FA" }} />
             K-Youth Development Programme
@@ -89,7 +86,6 @@ const Signup = () => {
             Create your free account and be part of us!
           </p>
 
-          {/* Benefits checklist */}
           <div className="signup-benefits anim-fade-up delay-2">
             {BENEFITS.map((item) => (
               <div key={item} className="signup-benefit-item">
@@ -111,7 +107,6 @@ const Signup = () => {
           </p>
         </div>
 
-        {/* Google */}
         <button className="btn-google anim-fade-up delay-1">
           <GoogleIcon /> Sign up with Google
         </button>
@@ -120,30 +115,48 @@ const Signup = () => {
           or sign up with email
         </div>
 
-        {/* Form */}
+        {/* ── Alert banner (error or success) ── */}
+        {alert && (
+          <div className={`auth-alert ${alert.type}`}>
+            <svg
+              width="15" height="15" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round"
+              style={{ flexShrink: 0 }}
+            >
+              {alert.type === "success"
+                ? <polyline points="20 6 9 17 4 12" />
+                : <>
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </>
+              }
+            </svg>
+            {alert.text}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
-          {/* Name row */}
+
+          {/* Full name */}
           <div className="form-group anim-fade-up delay-3" style={{ marginTop: "1.2rem" }}>
-              <label className="form-label" htmlFor="signup-first">
-                Full name
-              </label>
-              <input
-                id="signup-first"
-                className="form-input"
-                type="text"
-                placeholder="Jane"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
+            <label className="form-label" htmlFor="signup-name">Full name</label>
+            <input
+              id="signup-name"
+              className="form-input"
+              type="text"
+              placeholder="Jane"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
           {/* Email */}
           <div className="form-group anim-fade-up delay-3" style={{ marginTop: "1.2rem" }}>
-            <label className="form-label" htmlFor="signup-email">
-              Email address
-            </label>
+            <label className="form-label" htmlFor="signup-email">Email address</label>
             <input
               id="signup-email"
               className="form-input"
@@ -156,50 +169,17 @@ const Signup = () => {
             />
           </div>
 
-          {/* Password + strength meter */}
-          <div className="form-group anim-fade-up delay-3">
-            <div className="form-between">
-              <label className="form-label" htmlFor="signup-password" style={{ marginBottom: 0 }}>
-                Password
-              </label>
-              {strength > 0 && (
-                <span className="strength-label" style={{ color: strengthColor }}>
-                  {strengthLabel}
-                </span>
-              )}
-            </div>
-            <div className="password-wrapper" style={{ marginTop: ".45rem" }}>
-              <input
-                id="signup-password"
-                className="form-input"
-                type={showPass ? "text" : "password"}
-                placeholder="At least 8 characters"
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                style={{ paddingRight: "2.8rem" }}
-                required
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPass((v) => !v)}
-              >
-                {showPass ? "Hide" : "Show"}
-              </button>
-            </div>
-            <div className="strength-bar">
-              {[1, 2, 3, 4].map((n) => (
-                <div
-                  key={n}
-                  className="strength-seg"
-                  style={{ background: n <= strength ? strengthColor : "#DBEAFE" }}
-                />
-              ))}
-            </div>
+          {/* Password + confirm + requirements */}
+          <div className="anim-fade-up delay-3">
+            <PasswordFields
+              password={form.password}
+              onPasswordChange={(val) => setForm(prev => ({ ...prev, password: val }))}
+              confirm={form.confirm}
+              onConfirmChange={(val) => setForm(prev => ({ ...prev, confirm: val }))}
+            />
           </div>
 
-          {/* Consents */}
+          {/* Terms */}
           <div className="form-check anim-fade-up delay-4">
             <input
               type="checkbox"
@@ -215,13 +195,14 @@ const Signup = () => {
             </label>
           </div>
 
-          {/* Submit */}
-          <button type="submit" className="btn-auth anim-fade-up delay-5">
-            Create free account →
+          <button
+            type="submit"
+            className="btn-auth anim-fade-up delay-5"
+            disabled={form.password !== form.confirm || !form.confirm}
+          >
+            Create free account
           </button>
 
-          {/* Message */}
-          {message && <p className="form-message anim-fade-up delay-6">{message}</p>}
         </form>
       </div>
     </div>

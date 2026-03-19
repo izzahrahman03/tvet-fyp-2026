@@ -43,16 +43,12 @@ export const NAV_ITEMS = [
 // ── Vitrox logo ────────────────────────────────────────────
 function VitroxLogo() {
   return (
-    <div className="db-logo">
-      <div className="db-logo-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
-        </svg>
-      </div>
-      <div>
-        <div className="db-logo-text">Vitrox</div>
-        <div className="db-logo-text">Academy</div>
-      </div>
+    <div className="db-logo" style={{ display: "flex", alignItems: "center" }}>
+      <img 
+          src="https://learn.vitrox.academy/pluginfile.php/1/theme_edumy/headerlogo_mobile/1663920908/Vitrox%20Academy%20Logo%20FINAL-20%20MAY%202020-high%20res%20%281%29.png" 
+          alt="ViTrox Academy" 
+          className="nav-logo-img"></img>
+          ViTrox Academy
     </div>
   );
 }

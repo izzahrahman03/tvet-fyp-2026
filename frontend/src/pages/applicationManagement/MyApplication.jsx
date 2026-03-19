@@ -334,7 +334,6 @@ export default function MyApplication() {
     return (
       <Layout activePage="my-application">
         <div className="af-content"><div className="af-card"><div className="ma-empty-state">
-          <span className="ma-empty-icon">⚠️</span>
           <p className="ma-empty-title">Something went wrong</p>
           <p className="ma-empty-text">{error}</p>
         </div></div></div>
@@ -346,7 +345,6 @@ export default function MyApplication() {
     return (
       <Layout activePage="my-application">
         <div className="af-content"><div className="af-card"><div className="ma-empty-state">
-          <span className="ma-empty-icon">📋</span>
           <p className="ma-empty-title">No Application Found</p>
           <p className="ma-empty-text">You haven't submitted an application yet.</p>
         </div></div></div>

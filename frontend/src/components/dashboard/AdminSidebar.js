@@ -73,45 +73,77 @@ export const NAV_ITEMS = [
       },
     ],
   },
+  {
+    label: "Application Management",
+    id:    "application-management",
+    icon: (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="2" width="8" height="8" rx="1" />
+        <rect x="14" y="2" width="8" height="8" rx="1" />
+        <rect x="2" y="14" width="8" height="8" rx="1" />
+        <rect x="14" y="14" width="8" height="8" rx="1" />
+      </svg>
+    ),
+    // ✅ Fix 1: was "children1", now "children"
+    children: [
+      {
+        label: "Applications",
+        id:    "applications",
+        path:  "/admin/applications",
+        icon: (
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="8" y1="13" x2="16" y2="13" />
+            <line x1="8" y1="17" x2="16" y2="17" />
+            <line x1="8" y1="9" x2="10" y2="9" />
+          </svg>
+        ),
+      },
+    ],
+  },
 ];
 
 // ── Vitrox logo ────────────────────────────────────────────
 function VitroxLogo() {
   return (
-    <div className="db-logo">
-      <div className="db-logo-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
-        </svg>
-      </div>
-      <div>
-        <div className="db-logo-text">Vitrox</div>
-        <div className="db-logo-text">Academy</div>
-      </div>
+    <div className="db-logo" style={{ display: "flex", alignItems: "center" }}>
+      <img
+        src="https://learn.vitrox.academy/pluginfile.php/1/theme_edumy/headerlogo_mobile/1663920908/Vitrox%20Academy%20Logo%20FINAL-20%20MAY%202020-high%20res%20%281%29.png"
+        alt="ViTrox Academy"
+        className="nav-logo-img"
+      />
+      ViTrox Academy
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════
 // AdminSidebar
-// Props:
-//   isOpen  — boolean   (mobile drawer open state)
-//   onClose — function  (called when overlay is clicked)
 // ══════════════════════════════════════════════════════════
 export default function AdminSidebar({ isOpen, onClose }) {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate  = useNavigate();
+  const location  = useLocation();
 
-  // Check if any child path is active — if so, keep submenu open by default
-  const userMgmtPaths = NAV_ITEMS.find((i) => i.id === "user-management").children.map((c) => c.path);
-  const [userMgmtOpen, setUserMgmtOpen] = useState(
-    userMgmtPaths.includes(location.pathname)
-  );
+  // ✅ Fix 2: one shared state object keyed by item id
+  const initialOpen = NAV_ITEMS.reduce((acc, item) => {
+    if (item.children) {
+      acc[item.id] = item.children.some((c) => c.path === location.pathname);
+    }
+    return acc;
+  }, {});
 
-  const activeId = [
-    ...NAV_ITEMS.filter((i) => !i.children).map((i) => ({ id: i.id, path: i.path })),
-    ...NAV_ITEMS.flatMap((i) => i.children ?? []).map((c) => ({ id: c.id, path: c.path })),
-  ].find((item) => location.pathname === item.path)?.id ?? "dashboard";
+  const [openMenus, setOpenMenus] = useState(initialOpen);
+
+  const toggleMenu = (id) =>
+    setOpenMenus((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  // ✅ Fix 3: activeId now works across all children uniformly
+  const activeId =
+    [
+      ...NAV_ITEMS.filter((i) => !i.children).map((i) => ({ id: i.id, path: i.path })),
+      ...NAV_ITEMS.flatMap((i) => i.children ?? []).map((c) => ({ id: c.id, path: c.path })),
+    ].find((item) => location.pathname === item.path)?.id ?? "dashboard";
 
   const handleNav = (path) => {
     navigate(path);
@@ -132,13 +164,11 @@ export default function AdminSidebar({ isOpen, onClose }) {
       />
 
       <aside className={`db-sidebar ${isOpen ? "open" : ""}`}>
-        {/* Logo */}
         <VitroxLogo />
 
-        {/* Nav */}
         <nav className="db-nav">
           {NAV_ITEMS.map((item) => {
-            // ── Top-level item with no children ───────────
+            // ── No children ────────────────────────────────
             if (!item.children) {
               return (
                 <button
@@ -152,24 +182,24 @@ export default function AdminSidebar({ isOpen, onClose }) {
               );
             }
 
-            // ── Top-level item WITH children (submenu) ────
+            // ── Has children (submenu) ─────────────────────
             const isParentActive = item.children.some((c) => c.id === activeId);
+            // ✅ Fix 4: per-item open state
+            const isOpen = !!openMenus[item.id];
 
             return (
               <div key={item.id}>
-                {/* Parent toggle button */}
                 <button
                   className={`db-nav-btn ${isParentActive ? "active" : ""}`}
-                  onClick={() => setUserMgmtOpen((v) => !v)}
+                  onClick={() => toggleMenu(item.id)}
                 >
                   <span className="db-nav-icon">{item.icon}</span>
                   {item.label}
-                  {/* Chevron */}
                   <svg
                     style={{
                       marginLeft: "auto",
                       transition: "transform 0.2s",
-                      transform: userMgmtOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
                       flexShrink: 0,
                     }}
                     width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -179,8 +209,7 @@ export default function AdminSidebar({ isOpen, onClose }) {
                   </svg>
                 </button>
 
-                {/* Children */}
-                {userMgmtOpen && (
+                {isOpen && (
                   <div className="db-subnav">
                     {item.children.map((child) => (
                       <button
@@ -199,7 +228,6 @@ export default function AdminSidebar({ isOpen, onClose }) {
           })}
         </nav>
 
-        {/* Sign out */}
         <button className="db-signout-btn" onClick={handleSignOut}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

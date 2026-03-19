@@ -39,11 +39,12 @@ function App() {
         {/* ── Public pages (with Navbar) ──────────────── */}
         <Route element={<PublicLayout />}>
           <Route path="/"       element={<Home />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/login"  element={<Login />} />
         </Route>
 
         {/* ── Auth pages (no Navbar) ──────────────────── */}
+
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login"  element={<Login />} />
         <Route path="/activate"        element={<ActivationPage />} />
         <Route path="/set-password"    element={<SetPasswordPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -77,6 +78,11 @@ function App() {
         <Route path="/admin/users/industry-supervisors" element={
           <DashboardLayout title="Industry Supervisors">
             <UserTable type="industry_supervisor" />
+          </DashboardLayout>
+        } />
+        <Route path="/admin/applications" element={
+          <DashboardLayout title="Applications">
+            <UserTable type="application" />
           </DashboardLayout>
         } />
 

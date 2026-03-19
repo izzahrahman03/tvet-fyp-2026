@@ -90,6 +90,13 @@ body {
   background: #1A56DB;
 }
 
+.nav-logo-img {
+  height: 40px;  
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
 .nav-links {
   display: flex;
   align-items: center;
@@ -171,6 +178,17 @@ body {
   border-color: #1A56DB;
   color: #1A56DB;
   transform: translateY(-1px);
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity:   0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity:   1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 /* ── Responsive ── */

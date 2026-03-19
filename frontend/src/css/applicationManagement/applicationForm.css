@@ -192,40 +192,60 @@
 .af-required { color: #ef4444; margin-left: 2px; }
 
 .af-input {
-  border: none;
-  border-bottom: 1.5px solid #d1d5db;
-  border-radius: 0;
-  padding: 8px 0;
+  border: 1.5px solid #d1d5db;
+  border-radius: 7px;
+  padding: 8px 12px;
   font-size: 13.5px;
   color: #1e293b;
-  background: transparent;
+  background: white;
   outline: none;
   font-family: inherit;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
   width: 100%;
 }
 
-.af-input:focus { border-bottom-color: #1a56db; }
-.af-input.error { border-bottom-color: #ef4444; }
+.af-input:focus {
+  border-color: #1a56db;
+  box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.10);
+}
+.af-input.error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+}
 .af-input::placeholder { color: #c0cad5; }
 
 .af-select {
-  border: none;
-  border-bottom: 1.5px solid #d1d5db;
-  border-radius: 0;
-  padding: 8px 0;
+  border: 1.5px solid #d1d5db;
+  border-radius: 7px;
+  padding: 8px 12px;
   font-size: 13.5px;
   color: #1e293b;
-  background: transparent;
+  background: white;
   outline: none;
   font-family: inherit;
   cursor: pointer;
   appearance: none;
   width: 100%;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 34px;
 }
 
-.af-select:focus { border-bottom-color: #1a56db; }
+.af-select:focus {
+  border-color: #1a56db;
+  box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.10);
+}
+.af-select.error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+}
+
+/* Grey out the placeholder option */
+.af-select option[value=""] { color: #c0cad5; }
+.af-select:invalid,
+.af-select.placeholder { color: #c0cad5; }
 .af-field-error { font-size: 11.5px; color: #ef4444; margin-top: 4px; }
 
 /* ══════════════════════════════════════════════════════════
@@ -288,36 +308,45 @@
 .af-table tr:last-child td { border-bottom: none; }
 
 .af-table-input {
-  border: none;
-  border-bottom: 1.5px solid #e2e8f0;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
   outline: none;
-  background: transparent;
+  background: white;
   font-size: 13px;
   color: #1e293b;
-  padding: 4px 2px;
+  padding: 5px 8px;
   width: 100%;
   font-family: inherit;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.af-table-input:focus { border-bottom-color: #1a56db; }
+.af-table-input:focus {
+  border-color: #1a56db;
+  box-shadow: 0 0 0 2px rgba(26, 86, 219, 0.10);
+}
 
 .af-table-select {
-  border: none;
-  border-bottom: 1.5px solid #e2e8f0;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
   outline: none;
-  background: transparent;
+  background: white;
   font-size: 13px;
   color: #1e293b;
-  padding: 4px 2px;
+  padding: 5px 28px 5px 8px;
   width: 100%;
   font-family: inherit;
   cursor: pointer;
   appearance: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
 }
 
-.af-table-select:focus { border-bottom-color: #1a56db; }
+.af-table-select:focus {
+  border-color: #1a56db;
+  box-shadow: 0 0 0 2px rgba(26, 86, 219, 0.10);
+}
 
 /* Empty state */
 .af-empty {
@@ -501,6 +530,47 @@
 .af-alert.error   { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
 .af-alert.success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
 .af-alert.info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
+
+/* ══════════════════════════════════════════════════════════
+   DATE OF BIRTH – DD / MM / YYYY split input (box style)
+══════════════════════════════════════════════════════════ */
+.af-dob-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.af-dob-seg {
+  border: 1.5px solid #d1d5db;
+  border-radius: 7px;
+  outline: none;
+  background: white;
+  font-size: 13.5px;
+  color: #1e293b;
+  font-family: inherit;
+  padding: 7px 6px;
+  width: 7ch;
+  text-align: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.af-dob-seg.af-dob-year { width: 10ch; }
+
+.af-dob-seg::placeholder { color: #c0cad5; }
+
+.af-dob-seg:focus {
+  border-color: #1a56db;
+  box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.10);
+}
+
+.af-dob-seg.error { border-color: #ef4444; }
+
+.af-dob-sep {
+  color: #94a3b8;
+  font-size: 14px;
+  user-select: none;
+  line-height: 1;
+}
 
 /* ══════════════════════════════════════════════════════════
    RESPONSIVE

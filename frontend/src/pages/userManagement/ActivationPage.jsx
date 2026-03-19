@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import "../../css/pages/login.css";
 import "../../css/userManagement/activationPage.css";
 
 const API = process.env.REACT_APP_API_URL;
@@ -15,7 +16,6 @@ const ActivationPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
 
-  // If no token in URL, show an error immediately
   useEffect(() => {
     if (!token) setError("Invalid activation link. Please check your email.");
   }, [token]);
@@ -25,7 +25,6 @@ const ActivationPage = () => {
     if (!email || !tempPass) { setError("Please fill in both fields."); return; }
     setError("");
     setLoading(true);
-
     try {
       const res  = await fetch(`${API}/verify-activation`, {
         method:  "POST",
@@ -33,16 +32,8 @@ const ActivationPage = () => {
         body:    JSON.stringify({ token, email, tempPassword: tempPass }),
       });
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Verification failed. Please try again.");
-        return;
-      }
-
-      // Pass the short-lived resetToken to the next step via state
-      navigate("/set-password", {
-        state: { resetToken: data.resetToken, name: data.name },
-      });
+      if (!res.ok) { setError(data.error || "Verification failed. Please try again."); return; }
+      navigate("/set-password", { state: { resetToken: data.resetToken, name: data.name } });
     } catch {
       setError("Network error. Please check your connection and try again.");
     } finally {
@@ -51,57 +42,94 @@ const ActivationPage = () => {
   };
 
   return (
-    <div className="act-page">
-      <div className="act-card">
+    <div className="auth-page">
 
-        {/* Logo */}
-        <div className="act-logo">
-          <div className="act-logo-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
-            </svg>
+      {/* ── Left panel ── */}
+      <div className="auth-side">
+        <div className="auth-side-blob" style={{ width: 500, height: 500, top: -200, left: -150 }} />
+        <div className="auth-side-blob" style={{ width: 350, height: 350, bottom: -100, right: -100 }} />
+        <div className="dot-grid" style={{ bottom: 80, right: 60 }}>
+          {Array(25).fill(null).map((_, i) => <span key={i} />)}
+        </div>
+
+        <div className="auth-side-content">
+          <div className="auth-side-logo" onClick={() => navigate("/")}>
+            <img
+              src="https://learn.vitrox.academy/pluginfile.php/1/theme_edumy/headerlogo_mobile/1663920908/Vitrox%20Academy%20Logo%20FINAL-20%20MAY%202020-high%20res%20%281%29.png"
+              alt="ViTrox Academy"
+              style={{ height: 36, width: "auto" }}
+            />
           </div>
-          <div>
-            <p className="act-logo-name">Vitrox Academy</p>
-            <p className="act-logo-sub">Account Activation</p>
+
+          <h2 className="auth-side-title">Account Activation</h2>
+          <p className="auth-side-sub">
+            Complete your two-step verification to activate your ViTrox Academy account
+            and gain access to your learning dashboard.
+          </p>
+
+          <div className="act-side-steps">
+            <div className="act-side-step active">
+              <div className="act-side-step-num">1</div>
+              <div>
+                <div className="act-side-step-title">Verify Identity</div>
+                <div className="act-side-step-desc">Confirm your email and temporary password</div>
+              </div>
+            </div>
+            <div className="act-side-step-connector" />
+            <div className="act-side-step">
+              <div className="act-side-step-num">2</div>
+              <div>
+                <div className="act-side-step-title">Set Password</div>
+                <div className="act-side-step-desc">Create your permanent login password</div>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* ── Right form panel ── */}
+      <div className="auth-form-side">
 
         {/* Step indicator */}
-        <div className="act-steps">
-          <div className="act-step active">
-            <span className="act-step-dot">1</span>
-            <span className="act-step-label">Verify Identity</span>
+        <div className="act-steps-bar">
+          <div className="act-step-pill active">
+            <span className="act-step-num">1</span>
+            <span>Verify Identity</span>
           </div>
           <div className="act-step-line" />
-          <div className="act-step">
-            <span className="act-step-dot">2</span>
-            <span className="act-step-label">Set Password</span>
+          <div className="act-step-pill">
+            <span className="act-step-num">2</span>
+            <span>Set Password</span>
           </div>
         </div>
 
-        <h1 className="act-title">Verify your identity</h1>
-        <p className="act-subtitle">
-          Enter the email address your account was registered with, and the
-          temporary password from your activation email.
-        </p>
+        <div className="auth-form-header">
+          <h1 className="auth-form-title">Verify your identity</h1>
+          <p className="auth-form-sub" style={{ color: "#64748B", fontWeight: 400 }}>
+            Enter the email and temporary password from your activation email.
+          </p>
+        </div>
 
         {error && (
-          <div className="act-error">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01"/></svg>
+          <div className="act-alert error">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
             {error}
           </div>
         )}
 
-        <form className="act-form" onSubmit={handleSubmit} noValidate>
-          <div className="act-field">
-            <label htmlFor="email">Email Address</label>
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="form-group">
+            <label className="form-label" htmlFor="act-email">Email Address</label>
             <div className="act-input-wrap">
-              <svg className="act-input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6"/></svg>
+              <svg className="act-input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+              </svg>
               <input
-                id="email"
+                id="act-email"
                 type="email"
-                className="act-input"
+                className="act-inner-input"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
@@ -111,39 +139,38 @@ const ActivationPage = () => {
             </div>
           </div>
 
-          <div className="act-field">
-            <label htmlFor="tempPass">Temporary Password</label>
+          <div className="form-group">
+            <label className="form-label" htmlFor="act-temp">Temporary Password</label>
             <div className="act-input-wrap">
-              <svg className="act-input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+              <svg className="act-input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
               <input
-                id="tempPass"
+                id="act-temp"
                 type={showPass ? "text" : "password"}
-                className="act-input"
+                className="act-inner-input"
                 value={tempPass}
                 onChange={(e) => setTemp(e.target.value)}
                 placeholder="From your activation email"
                 autoComplete="off"
               />
               <button type="button" className="act-eye-btn" onClick={() => setShow((v) => !v)} tabIndex={-1}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   {showPass
-                    ? <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24 M1 1l22 22"/>
-                    : <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 12m-3 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0"/>
+                    ? <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></>
+                    : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
                   }
                 </svg>
               </button>
             </div>
           </div>
 
-          <button type="submit" className="act-submit-btn" disabled={loading || !token}>
-            {loading
-              ? <><span className="act-spinner" /> Verifying…</>
-              : "Continue →"
-            }
+          <button type="submit" className="btn-act" disabled={loading || !token}>
+            {loading ? <><span className="act-spinner" /> Verifying…</> : "Continue →"}
           </button>
         </form>
 
-        <p className="act-help">
+        <p style={{ textAlign: "center", fontSize: ".8rem", color: "#94A3B8", marginTop: "1.5rem" }}>
           Didn't receive an email? Contact your administrator.
         </p>
       </div>

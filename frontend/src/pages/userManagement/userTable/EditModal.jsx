@@ -1,6 +1,6 @@
 // components/userTable/EditModal.jsx
 import { useState } from "react";
-import { updateUser } from "../../api/adminApi";
+import { updateUser, updateApplicationStatus } from "../../api/adminApi";
 import { COL_LABEL } from "./tableConfig";
 
 export default function EditModal({ row, type, onClose, onSave }) {
@@ -23,9 +23,10 @@ export default function EditModal({ row, type, onClose, onSave }) {
     student:             ["name", "email", "phone", "status"],
     industry_partner:    ["name", "email", "phone", "status"],
     industry_supervisor: ["name", "email", "phone", "status"],
+    application:         ["status"],
   }[type] || ["name", "email", "status"];
 
-  const statusOptions = type === "applicant"
+  const statusOptions = type === "application"
     ? [
         { value: "pending",            label: "Pending" },
         { value: "under_review",       label: "Under Review" },
@@ -43,30 +44,68 @@ export default function EditModal({ row, type, onClose, onSave }) {
   const isInterview = form.status === "interview";
 
   const handleSave = async () => {
-    if (type !== "applicant" && !form.name?.trim())  return setError("Name is required.");
-    if (type !== "applicant" && !form.email?.trim()) return setError("Email is required.");
+    // ── Validation ────────────────────────────────────────────
+    if (type !== "applicant" && type !== "application" && !form.name?.trim())
+      return setError("Name is required.");
+    if (type !== "applicant" && type !== "application" && !form.email?.trim())
+      return setError("Email is required.");
 
     if (isInterview) {
-      if (!form.interview_datetime)        return setError("Interview date & time is required.");
-      if (!form.venue?.trim())             return setError("Venue is required.");
-      if (!form.interviewer_name?.trim())  return setError("Interviewer name is required.");
+      if (!form.interview_datetime)       return setError("Interview date & time is required.");
+      if (!form.venue?.trim())            return setError("Venue is required.");
+      if (!form.interviewer_name?.trim()) return setError("Interviewer name is required.");
     }
 
     setSaving(true);
     setError("");
-    try {
-      const payload = { ...form };
-      if (!isInterview) {
-        delete payload.interview_datetime;
-        delete payload.venue;
-        delete payload.interviewer_name;
-        delete payload.remarks;
-      }
-      delete payload.education;
-      delete payload.skills;
 
-      const updated = await updateUser(type, row.id, payload);
-      onSave(updated ?? { ...row, ...form });
+    try {
+      if (type === "application") {
+        // ── Call the correct applications endpoint ────────────
+        await updateApplicationStatus(row.id, {
+          status: form.status,
+          ...(isInterview && {
+            interview_datetime: form.interview_datetime,
+            venue:              form.venue,
+            interviewer_name:   form.interviewer_name,
+            remarks:            form.remarks,
+          }),
+        });
+
+        // ── FIX: controller only returns { message }, not a row.
+        //         Always build the updated row from the original row
+        //         merged with whatever changed in the form, so the
+        //         table updates correctly without showing "undefined".
+        onSave({
+          ...row,
+          status: form.status,
+          ...(isInterview && {
+            interview_datetime: form.interview_datetime,
+            venue:              form.venue,
+            interviewer_name:   form.interviewer_name,
+            remarks:            form.remarks,
+          }),
+        });
+
+      } else {
+        // ── All other user roles ──────────────────────────────
+        const payload = { ...form };
+        if (!isInterview) {
+          delete payload.interview_datetime;
+          delete payload.venue;
+          delete payload.interviewer_name;
+          delete payload.remarks;
+        }
+        delete payload.education;
+        delete payload.skills;
+
+        // updateUser returns { user: { ... } } — the controller sends
+        // back the updated row, so we can use it directly if present,
+        // otherwise fall back to the merged form data.
+        const result  = await updateUser(type, row.id, payload);
+        onSave(result ?? { ...row, ...form });
+      }
+
     } catch (err) {
       setError(err.message || "Failed to save.");
     } finally {
@@ -78,7 +117,7 @@ export default function EditModal({ row, type, onClose, onSave }) {
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-box">
         <div className="modal-header">
-          <p className="modal-title">Edit User</p>
+          <p className="modal-title">Edit {type === "application" ? "Application" : "User"}</p>
           <button className="modal-close-btn" onClick={onClose}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M18 6L6 18 M6 6l12 12" />

@@ -145,6 +145,39 @@
   color: #93C5FD;
 }
 
+/* ── Alert banner ── */
+.auth-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: .83rem;
+  font-weight: 500;
+  line-height: 1.55;
+  margin-bottom: 1.2rem;
+}
+.auth-alert.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+.auth-alert.success {
+  background: #F0FDF4;
+  color: #16A34A;
+  border: 1px solid #BBF7D0;
+}
+
+/* ── Field hints ── */
+.auth-hint {
+  display: block;
+  font-size: .78rem;
+  margin-top: .35rem;
+}
+.auth-hint.error   { color: #ef4444; }
+.auth-hint.success { color: #10b981; }
+
 /* ── Right Form Panel ── */
 .auth-form-side {
   width: 520px;
@@ -302,41 +335,31 @@
 
 /* ── Submit Button ── */
 .btn-auth {
-  width: 100%;
-  padding: .8rem;
-  border-radius: 10px;
-  background: #1A56DB;
-  color: #fff;
-  font-size: .95rem;
-  font-weight: 600;
-  font-family: inherit;
-  border: none;
-  cursor: pointer;
-  transition: all .22s;
-  box-shadow: 0 4px 16px rgba(26, 86, 219, .3);
-  margin-top: .5rem;
-}
-.btn-auth:hover {
-  background: #1648C0;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(26, 86, 219, .4);
-}
-
-/* ── Security Notice (Login-specific) ── */
-.login-security-notice {
-  margin-top: 1.8rem;
-  padding: 1.2rem;
-  background: #EFF6FF;
-  border-radius: 12px;
   display: flex;
-  gap: .6rem;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  width: 100%;
+  padding: .76rem 1rem;
+  background:  #1A56DB;
+  color: #fff;
+  border: 2px solid #1A56DB;
+  border-radius: 6px;
+  font-size: .9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .2s, border-color .2s;
+  margin-top: .25rem;
+  text-decoration: none;
 }
-
-.login-security-text {
-  font-size: .8rem;
-  color: #1E40AF;
-  line-height: 1.55;
+.btn-auth:hover:not(:disabled) {
+  background: #1648C0;
+  border-color: #1648C0;
+}
+.btn-auth:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ── Responsive ── */

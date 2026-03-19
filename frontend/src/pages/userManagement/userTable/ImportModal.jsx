@@ -4,8 +4,8 @@ import * as XLSX from "xlsx";
 const COLUMN_MAPS = {
   applicant: {
     required: ["name", "email"],
-    optional: ["phone", "status"],
-    example:  [{ name: "Siti Nur Izzah", email: "siti@email.com", phone: "012-3456789", status: "Pending" }],
+    optional: ["status"],
+    example:  [{ name: "Siti Nur Izzah", email: "siti@email.com", status: "Active" }],
   },
   student: {
     required: ["name", "email"],

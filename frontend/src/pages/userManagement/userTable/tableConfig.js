@@ -1,9 +1,7 @@
 // components/userTable/tableConfig.js
 
 export const COLUMNS = {
-  applicant: [
-    "name", "email", "phone", "status", "updated_at",
-  ],
+  applicant:           ["name", "email", "status", "date"],
   student:             ["name", "email", "matric_number", "intake_name", "status", "date"],
   industry_partner:    ["company_name", "email", "phone", "industry_sector", "location", "status", "date"],
   industry_supervisor: ["name", "email", "phone", "company", "position", "status", "date"],

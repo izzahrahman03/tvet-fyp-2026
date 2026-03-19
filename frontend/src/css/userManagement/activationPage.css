@@ -1,322 +1,263 @@
-/* ActivationPage.css — shared by ActivationPage & SetPasswordPage */
+/* ============================================================
+   activationPage.css — ActivationPage & SetPasswordPage
+   Shared layout comes from login.css (imported in JSX).
+   ============================================================ */
 
-/* ─── Page wrapper ───────────────────────────────────────── */
-.act-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%);
+/* ── Flat primary button (no gradient, no shadow) ── */
+.btn-act {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px;
-  font-family: 'Segoe UI', 'DM Sans', system-ui, sans-serif;
-}
-
-/* ─── Card ───────────────────────────────────────────────── */
-.act-card {
-  background: white;
-  border-radius: 20px;
-  padding: 40px;
+  gap: 8px;
   width: 100%;
-  max-width: 460px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
-  animation: card-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding: .8rem 1.5rem;
+  background: #1A56DB;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: .93rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .2s;
+  margin-top: .5rem;
+  text-decoration: none;
 }
+.btn-act:hover:not(:disabled) { background: #1648C0; }
+.btn-act:disabled { opacity: .55; cursor: not-allowed; }
 
-@keyframes card-in {
-  from { opacity: 0; transform: translateY(20px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* ─── Logo ───────────────────────────────────────────────── */
-.act-logo {
+/* ── Side panel steps ── */
+.act-side-steps {
+  margin-top: 2.5rem;
   display: flex;
-  align-items: center;
-  gap: 11px;
-  margin-bottom: 28px;
-}
-
-.act-logo-icon {
-  width: 42px;
-  height: 42px;
-  background: linear-gradient(135deg, #0f172a, #1a56db);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(26, 86, 219, 0.4);
-}
-
-.act-logo-name {
-  font-size: 16px;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1.1;
-  letter-spacing: -0.3px;
-}
-
-.act-logo-sub {
-  font-size: 12px;
-  color: #94a3b8;
-  line-height: 1.2;
-}
-
-/* ─── Step indicator ─────────────────────────────────────── */
-.act-steps {
-  display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 0;
-  margin-bottom: 24px;
 }
 
-.act-step {
+.act-side-step {
   display: flex;
-  align-items: center;
-  gap: 7px;
+  align-items: flex-start;
+  gap: .9rem;
 }
 
-.act-step-dot {
-  width: 26px;
-  height: 26px;
+.act-side-step-num {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: .78rem;
   font-weight: 700;
-  background: #f1f5f9;
-  color: #94a3b8;
-  border: 2px solid #e2e8f0;
+  color: rgba(255,255,255,.5);
   flex-shrink: 0;
 }
-
-.act-step.active .act-step-dot {
-  background: #1a56db;
-  color: white;
-  border-color: #1a56db;
-  box-shadow: 0 0 0 4px rgba(26, 86, 219, 0.15);
+.act-side-step-num.active {
+  background: #1A56DB;
+  border-color: #1A56DB;
+  color: #fff;
 }
-
-.act-step.done .act-step-dot {
+.act-side-step-num.done {
   background: #10b981;
-  color: white;
   border-color: #10b981;
+  color: #fff;
 }
 
-.act-step-label {
-  font-size: 12.5px;
-  color: #94a3b8;
-  font-weight: 500;
-  white-space: nowrap;
+.act-side-step-title {
+  font-size: .88rem;
+  font-weight: 700;
+  color: rgba(255,255,255,.9);
+  margin-bottom: .15rem;
 }
 
-.act-step.active .act-step-label { color: #1a56db; font-weight: 700; }
-.act-step.done  .act-step-label  { color: #10b981; font-weight: 600; }
+.act-side-step-desc {
+  font-size: .78rem;
+  color: rgba(255,255,255,.45);
+  line-height: 1.4;
+}
+
+.act-side-step-connector {
+  width: 2px;
+  height: 28px;
+  background: rgba(255,255,255,.15);
+  margin-left: 15px;
+  margin-block: 5px;
+}
+
+/* ── Top step bar (right panel) ── */
+.act-steps-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.act-step-pill {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .78rem;
+  font-weight: 600;
+  color: #94A3B8;
+}
+
+.act-step-pill.active { color: #1A56DB; }
+.act-step-pill.done   { color: #10b981; }
+
+.act-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #CBD5E1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .7rem;
+  font-weight: 700;
+  color: #94A3B8;
+  flex-shrink: 0;
+}
+.act-step-pill.active .act-step-num {
+  background: #1A56DB;
+  border-color: #1A56DB;
+  color: #fff;
+}
+.act-step-pill.done .act-step-num {
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+}
 
 .act-step-line {
   flex: 1;
-  height: 2px;
-  background: #e2e8f0;
-  margin: 0 10px;
-  min-width: 24px;
+  height: 1px;
+  background: #E2E8F0;
+  margin: 0 .75rem;
 }
+.act-step-line.active { background: #1A56DB; }
 
-.act-step-line.active { background: #1a56db; }
-
-/* ─── Headings ───────────────────────────────────────────── */
-.act-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: #0f172a;
-  margin-bottom: 6px;
-  letter-spacing: -0.4px;
-}
-
-.act-subtitle {
-  font-size: 13.5px;
-  color: #64748b;
-  line-height: 1.65;
-  margin-bottom: 24px;
-}
-
-/* ─── Error banner ───────────────────────────────────────── */
-.act-error {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 10px;
-  padding: 12px 14px;
-  font-size: 13px;
-  color: #b91c1c;
-  font-weight: 500;
-  margin-bottom: 20px;
-  line-height: 1.5;
-}
-
-/* ─── Form ───────────────────────────────────────────────── */
-.act-form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.act-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.act-field label {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #374151;
-  margin-bottom: 7px;
-}
-
-/* ─── Input wrap ─────────────────────────────────────────── */
+/* ── Input wrapper (reused by fp pages via shared classes) ── */
 .act-input-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid #DBEAFE;
   border-radius: 10px;
   padding: 0 12px;
-  background: #f8fafc;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  background: #fff;
+  transition: border-color .15s, box-shadow .15s;
 }
-
 .act-input-wrap:focus-within {
-  border-color: #1a56db;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+  border-color: #1A56DB;
+  box-shadow: 0 0 0 3px rgba(26,86,219,.1);
 }
+.act-input-wrap.valid   { border-color: #10b981; }
+.act-input-wrap.invalid { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.08); }
 
-.act-input-icon {
-  color: #94a3b8;
-  flex-shrink: 0;
-}
+.act-input-icon { color: #94A3B8; flex-shrink: 0; }
 
-.act-input {
+.act-inner-input {
   flex: 1;
   border: none;
   outline: none;
   background: none;
-  padding: 11px 0;
-  font-size: 14px;
-  color: #1e293b;
+  padding: .7rem 0;
+  font-size: .93rem;
+  color: #0A1628;
   font-family: inherit;
 }
-
-.act-input::placeholder {
-  color: #b0bec5;
-}
+.act-inner-input::placeholder { color: #94A3B8; }
 
 .act-eye-btn {
   background: none;
   border: none;
   cursor: pointer;
-  color: #94a3b8;
+  color: #94A3B8;
   padding: 0;
   display: flex;
   align-items: center;
-  transition: color 0.15s;
+  transition: color .15s;
 }
-
 .act-eye-btn:hover { color: #475569; }
 
-/* ─── Requirements list ──────────────────────────────────── */
+/* ── Alert banner ── */
+.act-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: .83rem;
+  font-weight: 500;
+  line-height: 1.55;
+  margin-bottom: 1.2rem;
+}
+.act-alert.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+/* ── Field hints ── */
+.act-hint {
+  display: block;
+  font-size: .78rem;
+  margin-top: .35rem;
+}
+.act-hint.error   { color: #ef4444; }
+.act-hint.success { color: #10b981; }
+
+/* ── Password strength ── */
+.act-strength-wrap { margin-top: 8px; }
+
+.act-strength-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: .75rem;
+  color: #94A3B8;
+}
+
+.act-strength-bg {
+  height: 4px;
+  background: #F1F5F9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.act-strength-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width .3s ease, background .3s ease;
+}
+
+/* ── Requirements checklist ── */
 .act-requirements {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  margin-top: -6px;
+  margin-bottom: .8rem;
 }
 
 .act-req-item {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 12.5px;
-  color: #94a3b8;
-  transition: color 0.2s;
+  font-size: .8rem;
+  color: #94A3B8;
+  transition: color .2s;
 }
-
 .act-req-item.met { color: #10b981; font-weight: 600; }
 
-.act-req-dot {
-  width: 16px;
-  text-align: center;
-  font-size: 13px;
-  flex-shrink: 0;
-}
-
-/* ─── Submit button ──────────────────────────────────────── */
-.act-submit-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 13px;
-  background: linear-gradient(135deg, #1a56db, #3b82f6);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: inherit;
-  transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
-  box-shadow: 0 4px 14px rgba(26, 86, 219, 0.3);
-  margin-top: 4px;
-}
-
-.act-submit-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(26, 86, 219, 0.4);
-}
-
-.act-submit-btn:active:not(:disabled) { transform: translateY(0); }
-
-.act-submit-btn:disabled { cursor: not-allowed; }
-
-/* ─── Spinner ────────────────────────────────────────────── */
+/* ── Spinner ── */
 .act-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-top-color: white;
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: #fff;
   border-radius: 50%;
-  animation: spin 0.65s linear infinite;
+  animation: act-spin .65s linear infinite;
   flex-shrink: 0;
+  display: inline-block;
 }
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ─── Help text ──────────────────────────────────────────── */
-.act-help {
-  text-align: center;
-  font-size: 12.5px;
-  color: #94a3b8;
-  margin-top: 20px;
-}
-
-/* ─── Success icon ───────────────────────────────────────── */
-.act-success-icon {
-  font-size: 48px;
-  text-align: center;
-  margin-top: 8px;
-}
-
-/* ─── Responsive ─────────────────────────────────────────── */
-@media (max-width: 480px) {
-  .act-card {
-    padding: 28px 22px;
-    border-radius: 16px;
-  }
-
-  .act-title { font-size: 18px; }
-  .act-step-label { display: none; }
-}
+@keyframes act-spin { to { transform: rotate(360deg); } }

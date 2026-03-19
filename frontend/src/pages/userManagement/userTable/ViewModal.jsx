@@ -1,5 +1,7 @@
 // components/userTable/ViewModal.jsx
+import { useState, useEffect } from "react";
 import StatusBadge from "./StatusBadge";
+import { fetchApplicationById } from "../../api/adminApi";
 
 // ── Shared styles ─────────────────────────────────────────
 const miniTableStyle = { width: "100%", borderCollapse: "collapse", fontSize: "13px" };
@@ -64,11 +66,12 @@ function StatusField({ status }) {
   );
 }
 
-// ── Role-specific view sections ───────────────────────────
+// ── Application view sections ─────────────────────────────
+function ApplicationView({ row, fmt, fmtDateTime }) {
+  const education = row.education || [];
+  const skills    = row.skills    || [];
 
-function ApplicantView({ row, fmt, fmtDateTime }) {
-  const education    = row.education || [];
-  const skills       = row.skills    || [];
+  // Show interview section for statuses where it is relevant and data exists
   const showInterview = (
     ["interview", "rejected_interview", "approved", "accepted"].includes(row.status?.toLowerCase())
     && row.interview_datetime
@@ -79,15 +82,15 @@ function ApplicantView({ row, fmt, fmtDateTime }) {
       {/* Personal Information */}
       <Section icon="👤" title="Personal Information">
         <Grid>
-          <Field label="Name"           value={row.name}         wide />
-          <Field label="IC Number"      value={row.ic_number}    wide />
+          <Field label="Name"           value={row.name}            wide />
+          <Field label="IC Number"      value={row.ic_number}       wide />
           <Field label="Date of Birth"  value={fmt(row.date_of_birth)} />
           <Field label="Gender"         value={row.gender} />
           <Field label="Race"           value={row.race} />
           <Field label="Marital Status" value={row.marital_status} />
           <Field label="Email"          value={row.email} />
           <Field label="Phone"          value={row.phone} />
-          <Field label="Address"        value={row.street_address} wide />
+          <Field label="Address"        value={row.street_address}  wide />
           <Field label="City"           value={row.city} />
           <Field label="Postal Code"    value={row.postal_code} />
           <Field label="State"          value={row.state} />
@@ -155,6 +158,7 @@ function ApplicantView({ row, fmt, fmtDateTime }) {
       {showInterview && (
         <Section icon="📅" title="Interview Details">
           <Grid>
+            {/* FIX: fmtDateTime was not being passed down — interview datetime was always "—" */}
             <Field label="Date & Time" value={fmtDateTime(row.interview_datetime)} wide />
             <Field label="Venue"       value={row.venue}            wide />
             <Field label="Interviewer" value={row.interviewer_name} />
@@ -163,6 +167,20 @@ function ApplicantView({ row, fmt, fmtDateTime }) {
         </Section>
       )}
     </>
+  );
+}
+
+// ── Role-specific view sections ───────────────────────────
+function ApplicantView({ row, fmt }) {
+  return (
+    <Section icon="👤" title="Applicant Information">
+      <Grid>
+        <Field label="Name"   value={row.name}  wide />
+        <Field label="Email"  value={row.email} wide />
+        <StatusField status={row.status} />
+        <Field label="Joined" value={fmt(row.date)} />
+      </Grid>
+    </Section>
   );
 }
 
@@ -186,13 +204,13 @@ function IndustryPartnerView({ row, fmt }) {
   return (
     <Section icon="🏢" title="Industry Partner Information">
       <Grid>
-        <Field label="Company Name"     value={row.company_name} wide />
-        <Field label="Email"            value={row.email}        wide />
-        <Field label="Phone"            value={row.phone} />
-        <Field label="Industry Sector"  value={row.industry_sector} />
-        <Field label="Location"         value={row.location} />
+        <Field label="Company Name"    value={row.company_name}    wide />
+        <Field label="Email"           value={row.email}           wide />
+        <Field label="Phone"           value={row.phone} />
+        <Field label="Industry Sector" value={row.industry_sector} />
+        <Field label="Location"        value={row.location} />
         <StatusField status={row.status} />
-        <Field label="Joined"           value={fmt(row.date)} />
+        <Field label="Joined"          value={fmt(row.date)} />
       </Grid>
     </Section>
   );
@@ -202,38 +220,84 @@ function IndustrySupervisorView({ row, fmt }) {
   return (
     <Section icon="👔" title="Industry Supervisor Information">
       <Grid>
-        <Field label="Name"           value={row.name}    wide />
-        <Field label="Email"          value={row.email}   wide />
-        <Field label="Phone"          value={row.phone} />
-        <Field label="Company"        value={row.company} />
+        <Field label="Name"            value={row.name}     wide />
+        <Field label="Email"           value={row.email}    wide />
+        <Field label="Phone"           value={row.phone} />
+        <Field label="Company"         value={row.company} />
         <Field label="Role / Position" value={row.position} />
         <StatusField status={row.status} />
-        <Field label="Joined"         value={fmt(row.date)} />
+        <Field label="Joined"          value={fmt(row.date)} />
       </Grid>
     </Section>
   );
 }
 
+// ── Loading / Error states ────────────────────────────────
+function LoadingState() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px", gap: "16px" }}>
+      <div style={{ width: "36px", height: "36px", borderRadius: "50%", border: "3px solid #e2e8f0", borderTopColor: "#6366f1", animation: "spin 0.8s linear infinite" }} />
+      <p style={{ color: "#94a3b8", fontSize: "14px", margin: 0 }}>Loading details…</p>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
+function ErrorState({ message }) {
+  return (
+    <div style={{ padding: "24px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px", color: "#b91c1c", fontSize: "14px", textAlign: "center" }}>
+      {message || "Failed to load application details."}
+    </div>
+  );
+}
+
 // ── Main ViewModal ────────────────────────────────────────
 export default function ViewModal({ row, type, onClose }) {
+  // FIX: applications need full data (education, skills, interview details)
+  //      that the list endpoint does not return. We fetch it here on open.
+  const [fullRow,   setFullRow]   = useState(type !== "application" ? row : null);
+  const [fetching,  setFetching]  = useState(type === "application");
+  const [fetchError, setFetchError] = useState("");
+
+  useEffect(() => {
+    if (type !== "application") return;
+
+    setFetching(true);
+    setFetchError("");
+
+    fetchApplicationById(row.id)
+      .then(setFullRow)
+      .catch((err) => setFetchError(err.message || "Failed to load application details."))
+      .finally(() => setFetching(false));
+  }, [type, row.id]);
+
   const fmt = (d) => d
     ? new Date(d).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })
     : "—";
+
   const fmtDateTime = (d) => d
     ? new Date(d).toLocaleString("en-MY", { dateStyle: "full", timeStyle: "short" })
     : "—";
 
   const renderContent = () => {
+    if (fetching)    return <LoadingState />;
+    if (fetchError)  return <ErrorState message={fetchError} />;
+
+    const data = fullRow || row;
+
     switch (type) {
+      case "application":
+        // FIX: was missing fmtDateTime — interview date/time was always "—"
+        return <ApplicationView row={data} fmt={fmt} fmtDateTime={fmtDateTime} />;
       case "student":
-        return <StudentView row={row} fmt={fmt} />;
+        return <StudentView row={data} fmt={fmt} />;
       case "industry_partner":
-        return <IndustryPartnerView row={row} fmt={fmt} />;
+        return <IndustryPartnerView row={data} fmt={fmt} />;
       case "industry_supervisor":
-        return <IndustrySupervisorView row={row} fmt={fmt} />;
+        return <IndustrySupervisorView row={data} fmt={fmt} />;
       case "applicant":
       default:
-        return <ApplicantView row={row} fmt={fmt} fmtDateTime={fmtDateTime} />;
+        return <ApplicantView row={data} fmt={fmt} />;
     }
   };
 

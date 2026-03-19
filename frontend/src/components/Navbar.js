@@ -7,8 +7,11 @@ const Navbar = () => {
   return (
     <nav className="nav">
       <div className="nav-logo" onClick={() => navigate("/")}>
-        <div className="nav-logo-dot" />
-        Vitrox Academy
+        <img 
+          src="https://learn.vitrox.academy/pluginfile.php/1/theme_edumy/headerlogo_mobile/1663920908/Vitrox%20Academy%20Logo%20FINAL-20%20MAY%202020-high%20res%20%281%29.png" 
+          alt="ViTrox Academy" 
+          className="nav-logo-img"
+        /> ViTrox Academy
       </div>
 
       <div className="nav-links">

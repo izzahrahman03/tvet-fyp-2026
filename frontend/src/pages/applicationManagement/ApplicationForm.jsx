@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from "react-router-dom";
 import "../../css/applicationManagement/applicationForm.css";
 import Layout from '../../components/dashboard/Layout';
 
@@ -34,12 +35,116 @@ const uid = () => `row_${++_uid}`;
 const newEdu   = () => ({ _id: uid(), institute: '', qualification: '', major: '', startDate: '', endDate: '' });
 const newSkill = () => ({ _id: uid(), skillName: '', proficiency: '' });
 
+// ── IC Number auto-formatter ───────────────────────────────
+// Strips non-digits, inserts dashes at positions 6 and 8 → XXXXXX-XX-XXXX
+const formatIC = (raw) => {
+  const d = raw.replace(/\D/g, '').slice(0, 12);
+  if (d.length <= 6)  return d;
+  if (d.length <= 8)  return `${d.slice(0, 6)}-${d.slice(6)}`;
+  return `${d.slice(0, 6)}-${d.slice(6, 8)}-${d.slice(8)}`;
+};
+
+// ── DD / MM / YYYY Date-of-Birth input ─────────────────────
+// value  : "YYYY-MM-DD" string (or "")
+// onChange: called with new "YYYY-MM-DD" string (or "" if incomplete)
+function DobInput({ value, onChange, hasError }) {
+  // Parse incoming YYYY-MM-DD value
+  const parts  = value ? value.split('-') : ['', '', ''];
+  const initDD = parts[2] || '';
+  const initMM = parts[1] || '';
+  const initYY = parts[0] || '';
+
+  const [dd, setDD] = useState(initDD);
+  const [mm, setMM] = useState(initMM);
+  const [yy, setYY] = useState(initYY);
+
+  const mmRef = useRef();
+  const yyRef = useRef();
+
+  // Sync from parent when existing application loads
+  useEffect(() => {
+    const p = value ? value.split('-') : ['', '', ''];
+    setDD(p[2] || '');
+    setMM(p[1] || '');
+    setYY(p[0] || '');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);   // only on mount to avoid clobbering user input mid-type
+
+  const emit = (newDD, newMM, newYY) => {
+    const d = newDD.padStart(2, '0');
+    const m = newMM.padStart(2, '0');
+    const y = newYY;
+    if (newDD && newMM && newYY.length === 4) {
+      onChange(`${y}-${m}-${d}`);
+    } else {
+      onChange('');
+    }
+  };
+
+  const handleDD = (e) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 2);
+    setDD(val);
+    emit(val, mm, yy);
+    if (val.length === 2) mmRef.current?.focus();
+  };
+
+  const handleMM = (e) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 2);
+    setMM(val);
+    emit(dd, val, yy);
+    if (val.length === 2) yyRef.current?.focus();
+  };
+
+  const handleYY = (e) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+    setYY(val);
+    emit(dd, mm, val);
+  };
+
+  const errCls = hasError ? 'error' : '';
+
+  return (
+    <div className="af-dob-wrap">
+      <input
+        className={`af-dob-seg ${errCls}`}
+        value={dd}
+        onChange={handleDD}
+        placeholder="DD"
+        inputMode="numeric"
+        maxLength={2}
+      />
+      <span className="af-dob-sep">/</span>
+      <input
+        ref={mmRef}
+        className={`af-dob-seg ${errCls}`}
+        value={mm}
+        onChange={handleMM}
+        placeholder="MM"
+        inputMode="numeric"
+        maxLength={2}
+      />
+      <span className="af-dob-sep">/</span>
+      <input
+        ref={yyRef}
+        className={`af-dob-seg af-dob-year ${errCls}`}
+        value={yy}
+        onChange={handleYY}
+        placeholder="YYYY"
+        inputMode="numeric"
+        maxLength={4}
+      />
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════
 // STEP 1 – Personal Information
 // ══════════════════════════════════════════════════════════
-function StepPersonal({ data, onChange, avatarPreview, onAvatarChange, errors }) {
+function StepPersonal({ data, onChange, avatarPreview, onAvatarChange, errors, onFieldChange }) {
   const fileRef = useRef();
-  const set = (field) => (e) => onChange({ ...data, [field]: e.target.value });
+
+  // Generic setter that also clears the error for that field
+  const set = (field) => (e) => onFieldChange(field, e.target.value);
 
   return (
     <>
@@ -64,27 +169,45 @@ function StepPersonal({ data, onChange, avatarPreview, onAvatarChange, errors })
       </div>
 
       <div className="af-form-grid">
+
+        {/* Full Name */}
         <div className="af-field af-col-full">
           <label className="af-label">Full Name<span className="af-required">*</span></label>
-          <input className={`af-input ${errors.fullName ? 'error' : ''}`} value={data.fullName}
-            onChange={set('fullName')} placeholder="e.g. Ahmad Faris bin Abdullah" />
+          <input
+            className={`af-input ${errors.fullName ? 'error' : ''}`}
+            value={data.fullName}
+            onChange={set('fullName')}
+            placeholder="e.g. Ahmad Faris bin Abdullah"
+          />
           {errors.fullName && <p className="af-field-error">{errors.fullName}</p>}
         </div>
 
+        {/* IC Number – auto-formats to XXXXXX-XX-XXXX */}
         <div className="af-field af-col-full">
           <label className="af-label">IC Number<span className="af-required">*</span></label>
-          <input className={`af-input ${errors.icNumber ? 'error' : ''}`} value={data.icNumber}
-            onChange={set('icNumber')} placeholder="e.g. 990101-01-1234" />
+          <input
+            className={`af-input ${errors.icNumber ? 'error' : ''}`}
+            value={data.icNumber}
+            onChange={(e) => onFieldChange('icNumber', formatIC(e.target.value))}
+            placeholder="e.g. 990101-01-1234"
+            inputMode="numeric"
+            maxLength={14}
+          />
           {errors.icNumber && <p className="af-field-error">{errors.icNumber}</p>}
         </div>
 
+        {/* Date of Birth – DD / MM / YYYY */}
         <div className="af-field">
           <label className="af-label">Date of Birth<span className="af-required">*</span></label>
-          <input type="date" className={`af-input ${errors.dob ? 'error' : ''}`}
-            value={data.dob} onChange={set('dob')} />
+          <DobInput
+            value={data.dob}
+            onChange={(val) => onFieldChange('dob', val)}
+            hasError={!!errors.dob}
+          />
           {errors.dob && <p className="af-field-error">{errors.dob}</p>}
         </div>
 
+        {/* Gender */}
         <div className="af-field">
           <label className="af-label">Gender<span className="af-required">*</span></label>
           <select className={`af-select ${errors.gender ? 'error' : ''}`} value={data.gender} onChange={set('gender')}>
@@ -95,6 +218,7 @@ function StepPersonal({ data, onChange, avatarPreview, onAvatarChange, errors })
           {errors.gender && <p className="af-field-error">{errors.gender}</p>}
         </div>
 
+        {/* Race */}
         <div className="af-field">
           <label className="af-label">Race<span className="af-required">*</span></label>
           <select className={`af-select ${errors.race ? 'error' : ''}`} value={data.race} onChange={set('race')}>
@@ -107,6 +231,7 @@ function StepPersonal({ data, onChange, avatarPreview, onAvatarChange, errors })
           {errors.race && <p className="af-field-error">{errors.race}</p>}
         </div>
 
+        {/* Marital Status */}
         <div className="af-field">
           <label className="af-label">Marital Status<span className="af-required">*</span></label>
           <select className={`af-select ${errors.maritalStatus ? 'error' : ''}`} value={data.maritalStatus} onChange={set('maritalStatus')}>
@@ -119,41 +244,71 @@ function StepPersonal({ data, onChange, avatarPreview, onAvatarChange, errors })
           {errors.maritalStatus && <p className="af-field-error">{errors.maritalStatus}</p>}
         </div>
 
+        {/* Email */}
         <div className="af-field">
           <label className="af-label">Email Address<span className="af-required">*</span></label>
-          <input type="email" className={`af-input ${errors.email ? 'error' : ''}`}
-            value={data.email} onChange={set('email')} placeholder="email@example.com" />
+          <input
+            type="email"
+            className={`af-input ${errors.email ? 'error' : ''}`}
+            value={data.email}
+            onChange={set('email')}
+            placeholder="email@example.com"
+          />
           {errors.email && <p className="af-field-error">{errors.email}</p>}
         </div>
 
+        {/* Phone */}
         <div className="af-field">
           <label className="af-label">Phone Number<span className="af-required">*</span></label>
-          <input className={`af-input ${errors.phone ? 'error' : ''}`}
-            value={data.phone} onChange={set('phone')} placeholder="e.g. 012-3456789" />
+          <input
+            className={`af-input ${errors.phone ? 'error' : ''}`}
+            value={data.phone}
+            onChange={set('phone')}
+            placeholder="e.g. 012-3456789"
+            inputMode="tel"
+          />
           {errors.phone && <p className="af-field-error">{errors.phone}</p>}
         </div>
 
+        {/* Street Address */}
         <div className="af-field af-col-full">
           <label className="af-label">Street Address<span className="af-required">*</span></label>
-          <input className={`af-input ${errors.streetAddress ? 'error' : ''}`}
-            value={data.streetAddress} onChange={set('streetAddress')} placeholder="Street address" />
+          <input
+            className={`af-input ${errors.streetAddress ? 'error' : ''}`}
+            value={data.streetAddress}
+            onChange={set('streetAddress')}
+            placeholder="Street address"
+          />
           {errors.streetAddress && <p className="af-field-error">{errors.streetAddress}</p>}
         </div>
 
+        {/* City */}
         <div className="af-field">
           <label className="af-label">City<span className="af-required">*</span></label>
-          <input className={`af-input ${errors.city ? 'error' : ''}`}
-            value={data.city} onChange={set('city')} placeholder="e.g. Penang" />
+          <input
+            className={`af-input ${errors.city ? 'error' : ''}`}
+            value={data.city}
+            onChange={set('city')}
+            placeholder="e.g. Penang"
+          />
           {errors.city && <p className="af-field-error">{errors.city}</p>}
         </div>
 
+        {/* Postal Code */}
         <div className="af-field">
           <label className="af-label">Postal Code<span className="af-required">*</span></label>
-          <input className={`af-input ${errors.postalCode ? 'error' : ''}`}
-            value={data.postalCode} onChange={set('postalCode')} placeholder="e.g. 11700" />
+          <input
+            className={`af-input ${errors.postalCode ? 'error' : ''}`}
+            value={data.postalCode}
+            onChange={(e) => onFieldChange('postalCode', e.target.value.replace(/\D/g, '').slice(0, 5))}
+            placeholder="e.g. 11700"
+            inputMode="numeric"
+            maxLength={5}
+          />
           {errors.postalCode && <p className="af-field-error">{errors.postalCode}</p>}
         </div>
 
+        {/* State */}
         <div className="af-field">
           <label className="af-label">State<span className="af-required">*</span></label>
           <select className={`af-select ${errors.state ? 'error' : ''}`} value={data.state} onChange={set('state')}>
@@ -167,12 +322,18 @@ function StepPersonal({ data, onChange, avatarPreview, onAvatarChange, errors })
           {errors.state && <p className="af-field-error">{errors.state}</p>}
         </div>
 
+        {/* Country */}
         <div className="af-field">
           <label className="af-label">Country<span className="af-required">*</span></label>
-          <input className={`af-input ${errors.country ? 'error' : ''}`}
-            value={data.country} onChange={set('country')} placeholder="e.g. Malaysia" />
+          <input
+            className={`af-input ${errors.country ? 'error' : ''}`}
+            value={data.country}
+            onChange={set('country')}
+            placeholder="e.g. Malaysia"
+          />
           {errors.country && <p className="af-field-error">{errors.country}</p>}
         </div>
+
       </div>
     </>
   );
@@ -300,6 +461,7 @@ function StepEduSkills({ education, skills, onEduChange, onSkillChange }) {
 // Main Component
 // ══════════════════════════════════════════════════════════
 export default function ApplicationForm() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
 
   const [personal, setPersonal] = useState({
@@ -307,16 +469,18 @@ export default function ApplicationForm() {
     race: '', maritalStatus: '', email: '', phone: '',
     streetAddress: '', city: '', postalCode: '', state: '', country: 'Malaysia',
   });
-  const [errors, setErrors]               = useState({});
-  const [avatarFile, setAvatarFile]       = useState(null);
+  const [errors,       setErrors]       = useState({});
+  const [step1Alert,   setStep1Alert]   = useState(null); // { type, msg } – banner above the form
+  const [avatarFile,   setAvatarFile]   = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
-  const [education, setEducation]         = useState([]);
-  const [skills, setSkills]               = useState([]);
-  const [submitting, setSubmitting]       = useState(false);
-  const [submitAlert, setSubmitAlert]     = useState(null);
-  const [submitted, setSubmitted]         = useState(false);
-  const [toast, setToast]                 = useState(null);
-  const [loading, setLoading]             = useState(true);
+  const [education,    setEducation]    = useState([]);
+  const [skills,       setSkills]       = useState([]);
+  const [submitting,   setSubmitting]   = useState(false);
+  const [submitAlert,  setSubmitAlert]  = useState(null);
+  const [submitted,    setSubmitted]    = useState(false);
+  const [toast,        setToast]        = useState(null);
+  const [loading,      setLoading]      = useState(true);
+
   const showToast = useCallback((msg, type = 'success') => setToast({ msg, type }), []);
 
   // ── Load existing application on mount ──────────────────
@@ -330,19 +494,19 @@ export default function ApplicationForm() {
         if (res.ok && data.application) {
           const a = data.application;
           setPersonal({
-            fullName:      a.name      || '',
-            icNumber:      a.ic_number      || '',
-            dob:           a.date_of_birth  ? a.date_of_birth.split('T')[0] : '',
-            gender:        a.gender         || '',
-            race:          a.race           || '',
-            maritalStatus: a.marital_status || '',
-            email:         a.email          || '',
-            phone:         a.phone          || '',
-            streetAddress: a.street_address || '',
-            city:          a.city           || '',
-            postalCode:    a.postal_code    || '',
-            state:         a.state          || '',
-            country:       a.country        || 'Malaysia',
+            fullName:      a.name            || '',
+            icNumber:      a.ic_number       || '',
+            dob:           a.date_of_birth ? a.date_of_birth.split('T')[0] : '',
+            gender:        a.gender          || '',
+            race:          a.race            || '',
+            maritalStatus: a.marital_status  || '',
+            email:         a.email           || '',
+            phone:         a.phone           || '',
+            streetAddress: a.street_address  || '',
+            city:          a.city            || '',
+            postalCode:    a.postal_code     || '',
+            state:         a.state           || '',
+            country:       a.country         || 'Malaysia',
           });
           if (a.avatar_url) setAvatarPreview((process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001') + a.avatar_url);
           if (a.education?.length)
@@ -357,8 +521,8 @@ export default function ApplicationForm() {
           if (a.skills?.length)
             setSkills(a.skills.map((s) => ({
               _id:         uid(),
-              skillName:   s.skill_name   || '',
-              proficiency: s.proficiency  || '',
+              skillName:   s.skill_name  || '',
+              proficiency: s.proficiency || '',
             })));
         }
       } catch (err) {
@@ -376,26 +540,79 @@ export default function ApplicationForm() {
     setAvatarPreview(URL.createObjectURL(file));
   };
 
+  // ── Field change: update personal + clear that field's error + clear banner ─
+  const handleFieldChange = (field, value) => {
+    setPersonal((prev) => ({ ...prev, [field]: value }));
+    if (errors[field])    setErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
+    if (step1Alert)       setStep1Alert(null);
+  };
+
+  // ── Validation ───────────────────────────────────────────
   const validateStep1 = () => {
-    const required = {
-      fullName: 'Full name is required.', icNumber: 'IC number is required.',
-      dob: 'Date of birth is required.', gender: 'Please select a gender.',
-      race: 'Please select a race.', maritalStatus: 'Please select marital status.',
-      email: 'Email is required.', phone: 'Phone number is required.',
-      streetAddress: 'Street address is required.', city: 'City is required.',
-      postalCode: 'Postal code is required.', state: 'State is required.',
-      country: 'Country is required.',
-    };
     const errs = {};
-    Object.entries(required).forEach(([k, msg]) => { if (!personal[k]?.trim()) errs[k] = msg; });
+
+    // ── Required presence checks ──
+    const required = {
+      fullName:      'Full name is required.',
+      icNumber:      'IC number is required.',
+      dob:           'Date of birth is required.',
+      gender:        'Please select a gender.',
+      race:          'Please select a race.',
+      maritalStatus: 'Please select marital status.',
+      email:         'Email address is required.',
+      phone:         'Phone number is required.',
+      streetAddress: 'Street address is required.',
+      city:          'City is required.',
+      postalCode:    'Postal code is required.',
+      state:         'Please select a state.',
+      country:       'Country is required.',
+    };
+    Object.entries(required).forEach(([k, msg]) => {
+      if (!personal[k]?.trim()) errs[k] = msg;
+    });
+
+    // ── Format validations (only if field has a value) ──
+
+    // IC: must match XXXXXX-XX-XXXX
+    if (personal.icNumber && !/^\d{6}-\d{2}-\d{4}$/.test(personal.icNumber))
+      errs.icNumber = 'IC number must be in the format XXXXXX-XX-XXXX.';
+
+    // DOB: validate the reconstructed date is real
+    if (personal.dob) {
+      const d = new Date(personal.dob);
+      const now = new Date();
+      if (isNaN(d.getTime())) {
+        errs.dob = 'Please enter a valid date.';
+      } else if (d > now) {
+        errs.dob = 'Date of birth cannot be in the future.';
+      } else if (now.getFullYear() - d.getFullYear() > 100) {
+        errs.dob = 'Please enter a valid year.';
+      }
+    }
+
+    // Email: basic format
     if (personal.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personal.email))
-      errs.email = 'Enter a valid email address.';
+      errs.email = 'Please enter a valid email address.';
+
+    // Phone: Malaysian format – 01X-XXXXXXX or 01X-XXXXXXXX (with or without dash)
+    if (personal.phone && !/^(\+?60|0)\d{1,2}[-\s]?\d{7,8}$/.test(personal.phone.trim()))
+      errs.phone = 'Enter a valid Malaysian phone number (e.g. 012-3456789).';
+
+    // Postal code: exactly 5 digits
+    if (personal.postalCode && !/^\d{5}$/.test(personal.postalCode.trim()))
+      errs.postalCode = 'Postal code must be exactly 5 digits.';
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
   const handleNext = () => {
-    if (!validateStep1()) { showToast('Please fill in all required fields.', 'error'); return; }
+    if (!validateStep1()) {
+      setStep1Alert({ type: 'error', msg: 'Please fill in all required fields.' });
+      window.scrollTo(0, 0);
+      return;
+    }
+    setStep1Alert(null);
     setStep(2);
     window.scrollTo(0, 0);
   };
@@ -410,12 +627,12 @@ export default function ApplicationForm() {
       Object.entries(personal).forEach(([k, v]) => formData.append(k, v));
       if (avatarFile) formData.append('avatar', avatarFile);
       formData.append('education', JSON.stringify(education.map(({ _id, ...rest }) => rest)));
-      formData.append('skills', JSON.stringify(skills.map(({ _id, ...rest }) => rest)));
+      formData.append('skills',    JSON.stringify(skills.map(({ _id, ...rest }) => rest)));
 
       const res  = await fetch(`${API}/application-form`, {
-        method: 'POST',
+        method:  'POST',
         headers: { Authorization: `Bearer ${getToken()}` },
-        body: formData,
+        body:    formData,
       });
       const data = await res.json();
 
@@ -462,16 +679,23 @@ export default function ApplicationForm() {
   // ── Submitted success screen ─────────────────────────────
   if (submitted) {
     return (
-      <Layout activePage="application">           {/* ← your Layout handles sidebar + topbar */}
+      <Layout activePage="application">
         <div className="af-content">
           <div className="af-card">
             <div className="af-success-wrap">
-              <span className="af-success-icon">🎉</span>
               <p className="af-success-title">Application Submitted!</p>
               <p className="af-success-text">
                 Your application has been received successfully.
                 Our team will review it and get back to you soon.
               </p>
+              <button
+                className="af-btn-next"
+                style={{ marginTop: '24px' }}
+                onClick={() => navigate(`/my-application`)}
+              >
+                My Application
+                <Icon d="M5 12h14M12 5l7 7-7 7" size={14} color="white" />
+              </button>
             </div>
           </div>
         </div>
@@ -481,7 +705,7 @@ export default function ApplicationForm() {
 
   // ── Main render ──────────────────────────────────────────
   return (
-    <Layout activePage="application">             {/* ← your Layout handles sidebar + topbar */}
+    <Layout activePage="application">
       {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
 
       <div className="af-content">
@@ -498,13 +722,31 @@ export default function ApplicationForm() {
           </div>
 
           <div className="af-card-body">
+
+            {/* ── Step 1 alert banner ── */}
+            {step === 1 && step1Alert && (
+              <div className={`af-alert ${step1Alert.type}`}>
+                <Icon
+                  d={step1Alert.type === 'error'
+                    ? 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01'
+                    : 'M20 6L9 17l-5-5'}
+                  size={15}
+                />
+                {step1Alert.msg}
+              </div>
+            )}
+
             {step === 1 && (
               <StepPersonal
-                data={personal} onChange={setPersonal}
-                avatarPreview={avatarPreview} onAvatarChange={handleAvatarChange}
+                data={personal}
+                onChange={setPersonal}
+                avatarPreview={avatarPreview}
+                onAvatarChange={handleAvatarChange}
                 errors={errors}
+                onFieldChange={handleFieldChange}
               />
             )}
+
             {step === 2 && (
               <>
                 {submitAlert && (
