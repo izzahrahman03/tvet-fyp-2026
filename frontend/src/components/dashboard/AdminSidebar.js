@@ -74,46 +74,45 @@ export const NAV_ITEMS = [
     ],
   },
   {
-    label: "Application Management",
-    id:    "application-management",
-    icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="2" width="8" height="8" rx="1" />
-        <rect x="14" y="2" width="8" height="8" rx="1" />
-        <rect x="2" y="14" width="8" height="8" rx="1" />
-        <rect x="14" y="14" width="8" height="8" rx="1" />
-      </svg>
-    ),
-    // ✅ Fix 1: was "children1", now "children"
-    children: [
-      {
-        label: "Applications",
-        id:    "applications",
-        path:  "/admin/applications",
-        icon: (
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="8" y1="13" x2="16" y2="13" />
-            <line x1="8" y1="17" x2="16" y2="17" />
-            <line x1="8" y1="9" x2="10" y2="9" />
-          </svg>
-        ),
-      },
-    ],
+      label: "Intakes",
+      id:    "intakes",
+      path:  "/admin/intakes",
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="8" y1="13" x2="16" y2="13" />
+          <line x1="8" y1="17" x2="16" y2="17" />
+          <line x1="8" y1="9" x2="10" y2="9" />
+        </svg>
+      ),
   },
-];
+  {
+      label: "Applications",
+      id:    "applications",
+      path:  "/admin/applications",
+      icon: (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="8" y1="13" x2="16" y2="13" />
+          <line x1="8" y1="17" x2="16" y2="17" />
+          <line x1="8" y1="9" x2="10" y2="9" />
+        </svg>
+      ),
+    },
+  ];
+
 
 // ── Vitrox logo ────────────────────────────────────────────
 function VitroxLogo() {
   return (
     <div className="db-logo" style={{ display: "flex", alignItems: "center" }}>
-      <img
-        src="https://learn.vitrox.academy/pluginfile.php/1/theme_edumy/headerlogo_mobile/1663920908/Vitrox%20Academy%20Logo%20FINAL-20%20MAY%202020-high%20res%20%281%29.png"
-        alt="ViTrox Academy"
-        className="nav-logo-img"
-      />
-      ViTrox Academy
+      <img 
+          src="https://learn.vitrox.academy/pluginfile.php/1/theme_edumy/headerlogo_mobile/1663920908/Vitrox%20Academy%20Logo%20FINAL-20%20MAY%202020-high%20res%20%281%29.png" 
+          alt="ViTrox Academy" 
+          className="nav-logo-img"></img>
+          <span className="db-logo-text">ViTrox Academy</span>
     </div>
   );
 }

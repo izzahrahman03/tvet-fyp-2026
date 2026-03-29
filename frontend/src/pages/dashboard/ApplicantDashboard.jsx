@@ -13,16 +13,16 @@ function StatusBadge({ status }) {
     interview:           { label: "Interview",             bg: "#f3e8ff", color: "#6b21a8" },
     approved:            { label: "Approved",              bg: "#dcfce7", color: "#166534" },
     accepted:            { label: "Accepted",              bg: "#dcfce7", color: "#166534" },
-    rejected_review:     { label: "Rejected (Review)",     bg: "#fee2e2", color: "#991b1b" },
-    rejected_interview:  { label: "Rejected (Interview)",  bg: "#fee2e2", color: "#991b1b" },
+    rejected_review:     { label: "Rejected",     bg: "#fee2e2", color: "#991b1b" },
+    rejected_interview:  { label: "Rejected",  bg: "#fee2e2", color: "#991b1b" },
     withdraw:            { label: "Withdrawn",             bg: "#f1f5f9", color: "#475569" },
   };
   const s = map[status?.toLowerCase()] || map.pending;
   return (
     <span style={{
       background: s.bg, color: s.color,
-      fontSize: "11px", fontWeight: "700", padding: "3px 10px",
-      borderRadius: "20px", letterSpacing: "0.3px",
+      fontSize: "14px", fontWeight: "700", padding: "10px 14px",
+      borderRadius: "20px", letterSpacing: "normal",
     }}>
       {s.label}
     </span>
@@ -71,10 +71,10 @@ function ProgressStep({ label, sub, state, isLast }) {
         )}
       </div>
       <div style={{ paddingTop: "2px" }}>
-        <p style={{ fontSize: "13px", fontWeight: "600", margin: 0, color: state === "pending" ? "#94a3b8" : "#1e293b" }}>
+        <p style={{ fontSize: "15px", fontWeight: "600", margin: 0, color: state === "pending" ? "#94a3b8" : "#1e293b" }}>
           {label}
         </p>
-        <p style={{ fontSize: "11px", color: c.text, margin: "2px 0 0" }}>{sub}</p>
+        <p style={{ fontSize: "13px", color: c.text, margin: "2px 0 0" }}>{sub}</p>
       </div>
     </div>
   );
@@ -88,7 +88,7 @@ function InterviewCard({ application }) {
     : "—";
   return (
     <div style={{ marginTop: "20px", padding: "16px", background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: "12px" }}>
-      <p style={{ fontSize: "12px", fontWeight: "700", color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 12px" }}>
+      <p style={{ fontSize: "14px", fontWeight: "700", color: "#7c3aed", textTransform: "uppercase", letterSpacing: "normal", margin: "0 0 12px" }}>
         📅 Interview Details
       </p>
       {[
@@ -98,8 +98,8 @@ function InterviewCard({ application }) {
         ...(application.remarks ? [{ label: "Remarks", value: application.remarks }] : []),
       ].map(({ label, value }) => (
         <div key={label} style={{ marginBottom: "8px" }}>
-          <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</p>
-          <p style={{ fontSize: "13px", color: "#1e293b", fontWeight: "500", margin: 0 }}>{value || "—"}</p>
+          <p style={{ fontSize: "13px", color: "#94a3b8", fontWeight: "600", margin: "0 0 2px", textTransform: "uppercase", letterSpacing: "normal" }}>{label}</p>
+          <p style={{ fontSize: "15px", color: "#1e293b", fontWeight: "500", margin: 0 }}>{value || "—"}</p>
         </div>
       ))}
     </div>
@@ -113,10 +113,10 @@ function OfferCard({ onAccept, onWithdraw, loading }) {
       marginTop: "20px", padding: "18px",
       background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "12px",
     }}>
-      <p style={{ fontSize: "13px", fontWeight: "600", color: "#166534", margin: "0 0 6px" }}>
+      <p style={{ fontSize: "15px", fontWeight: "600", color: "#166534", margin: "0 0 6px" }}>
         🎉 Congratulations! You have been approved.
       </p>
-      <p style={{ fontSize: "12px", color: "#15803d", margin: "0 0 16px" }}>
+      <p style={{ fontSize: "14px", color: "#15803d", margin: "0 0 16px" }}>
         Please confirm your decision below. Accepting will upgrade your account to Student.
       </p>
       <div style={{ display: "flex", gap: "10px" }}>
@@ -126,7 +126,7 @@ function OfferCard({ onAccept, onWithdraw, loading }) {
           style={{
             flex: 1, padding: "10px", borderRadius: "8px", border: "none",
             background: "#16a34a", color: "white",
-            fontSize: "13px", fontWeight: "600", cursor: loading ? "not-allowed" : "pointer",
+            fontSize: "15px", fontWeight: "600", cursor: loading ? "not-allowed" : "pointer",
             opacity: loading ? 0.7 : 1,
           }}
         >
@@ -138,7 +138,7 @@ function OfferCard({ onAccept, onWithdraw, loading }) {
           style={{
             flex: 1, padding: "10px", borderRadius: "8px",
             border: "1px solid #fca5a5", background: "#fef2f2", color: "#dc2626",
-            fontSize: "13px", fontWeight: "600", cursor: loading ? "not-allowed" : "pointer",
+            fontSize: "15px", fontWeight: "600", cursor: loading ? "not-allowed" : "pointer",
             opacity: loading ? 0.7 : 1,
           }}
         >
@@ -307,7 +307,7 @@ export default function ApplicantDashboard() {
 
       {/* ── Welcome banner ── */}
       <div style={{
-        background: "linear-gradient(135deg, #1e3a8a 0%, #1a56db 60%, #2563eb 100%)",
+        background: "#1b3a6b",
         borderRadius: "16px", padding: "28px 32px", marginBottom: "28px",
       }}>
         <h1 style={{ color: "white", fontSize: "22px", fontWeight: "700", margin: 0 }}>
@@ -322,23 +322,37 @@ export default function ApplicantDashboard() {
         boxShadow: "0 1px 6px rgba(0,0,0,0.05)",
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-          <h3 style={{ fontSize: "14px", fontWeight: "600", color: "#1e293b", margin: 0 }}>My Application Status</h3>
+          <h3 style={{ fontSize: "18px", fontWeight: "600", color: "#1e293b", margin: 0 }}>My Application Status</h3>
           {!loading && application && <StatusBadge status={application.status} />}
         </div>
 
         {loading && (
-          <p style={{ fontSize: "13px", color: "#94a3b8", textAlign: "center", padding: "12px 0" }}>Loading…</p>
+          <p style={{ fontSize: "14px", color: "#94a3b8", textAlign: "center", padding: "12px 0" }}>Loading…</p>
         )}
 
         {!loading && !application && (
           <div style={{ textAlign: "center", padding: "12px 0" }}>
-            <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "16px" }}>
+            <p style={{ fontSize: "15px", color: "#64748b", marginBottom: "16px" }}>
               You have not submitted any applications yet.
             </p>
             <button
               onClick={() => navigate("/application-form")}
-              style={{ background: "#1a56db", color: "white", border: "none", borderRadius: "8px", padding: "10px 24px", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}
-            >
+              style={{ 
+              padding: "9px 26px",
+              background: "#1b3a6b",
+              color: "white",
+              border: "none",
+              borderRadius: "2px",
+              fontSize: "15px",
+              fontWeight: "700",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              transition: "background 0.15s",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "7px", }}>
               Create Application
             </button>
           </div>
@@ -348,16 +362,16 @@ export default function ApplicantDashboard() {
           <>
             <div style={{ display: "flex", gap: "24px", marginBottom: "20px" }}>
               <div>
-                <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", margin: "0 0 2px" }}>APPLICATION ID</p>
-                <p style={{ fontSize: "13px", fontWeight: "700", color: "#1e293b", margin: 0 }}>{formatAppId(application.application_id)}</p>
+                <p style={{ fontSize: "13px", color: "#94a3b8", fontWeight: "600", margin: "0 0 2px" }}>APPLICATION ID</p>
+                <p style={{ fontSize: "15px", fontWeight: "700", color: "#1e293b", margin: 0 }}>{formatAppId(application.application_id)}</p>
               </div>
               <div>
-                <p style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "600", margin: "0 0 2px" }}>SUBMITTED DATE</p>
-                <p style={{ fontSize: "13px", fontWeight: "700", color: "#1e293b", margin: 0 }}>{fmt(application.created_at)}</p>
+                <p style={{ fontSize: "13px", color: "#94a3b8", fontWeight: "600", margin: "0 0 2px" }}>SUBMITTED DATE</p>
+                <p style={{ fontSize: "15px", fontWeight: "700", color: "#1e293b", margin: 0 }}>{fmt(application.created_at)}</p>
               </div>
             </div>
 
-            <p style={{ fontSize: "12px", fontWeight: "700", color: "#1a56db", marginBottom: "16px" }}>
+            <p style={{ fontSize: "14px", fontWeight: "700", color: "#1a56db", marginBottom: "16px" }}>
               Application Progress
             </p>
 

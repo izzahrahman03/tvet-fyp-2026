@@ -52,7 +52,7 @@
 }
 
 .auth-side-logo {
-  font-family: 'Fraunces', serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 1.5rem;
   font-weight: 700;
   color: #fff;
@@ -64,7 +64,7 @@
 }
 
 .auth-side-title {
-  font-family: 'Fraunces', serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 2.2rem;
   font-weight: 700;
   color: #fff;
@@ -85,7 +85,7 @@
 }
 
 .auth-side-num {
-  font-family: 'Fraunces', serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 1.8rem;
   font-weight: 700;
   color: #fff;
@@ -193,10 +193,10 @@
 .auth-form-header { margin-bottom: 2rem; }
 
 .auth-form-title {
-  font-family: 'Fraunces', serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 1.8rem;
   font-weight: 700;
-  color: #0A1628;
+  color: #1e293b;
   margin-bottom: .4rem;
 }
 

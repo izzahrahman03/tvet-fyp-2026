@@ -107,13 +107,13 @@ const Signup = () => {
           </p>
         </div>
 
-        <button className="btn-google anim-fade-up delay-1">
+        {/* <button className="btn-google anim-fade-up delay-1">
           <GoogleIcon /> Sign up with Google
         </button>
 
         <div className="auth-divider anim-fade-up delay-2">
           or sign up with email
-        </div>
+        </div> */}
 
         {/* ── Alert banner (error or success) ── */}
         {alert && (

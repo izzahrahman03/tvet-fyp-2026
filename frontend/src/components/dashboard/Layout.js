@@ -1,9 +1,9 @@
 import { useState } from "react";
 import ApplicantSidebar from "./ApplicantSidebar";
 import AdminSidebar from "./AdminSidebar";
-// import StudentSidebar from "./StudentSidebar";
-// import PartnerSidebar from "./PartnerSidebar";
-// import SupervisorSidebar from "./SupervisorSidebar";
+import StudentSidebar from "./StudentSidebar";
+import PartnerSidebar from "./PartnerSidebar";
+import SupervisorSidebar from "./SupervisorSidebar";
 import Topbar  from "./Topbar";
 import "../../css/dashboard/applicantDashboard.css"; // ← your existing CSS file
 
@@ -39,29 +39,29 @@ export default function Layout({ children, title }) {
           />
         );
     
-    //   case "student":
-    //     return (
-    //       <StudentSidebar
-    //         isOpen={sidebarOpen}
-    //         onClose={() => setSidebarOpen(false)}
-    //       />
-    //     );
+      case "student":
+        return (
+          <StudentSidebar
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
+        );
 
-      //   case "industry_partner":
-    //     return (
-    //       <PartnerSidebar
-    //         isOpen={sidebarOpen}
-    //         onClose={() => setSidebarOpen(false)}
-    //       />
-    //     );
+        case "industry_partner":
+        return (
+          <PartnerSidebar
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
+        );
 
-    //   case "industry_supervisor":
-    //     return (
-    //       <SupervisorSidebar
-    //         isOpen={sidebarOpen}
-    //         onClose={() => setSidebarOpen(false)}
-    //       />
-    //     );
+      case "industry_supervisor":
+        return (
+          <SupervisorSidebar
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
+        );
 }
   };
 

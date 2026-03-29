@@ -40,28 +40,25 @@ exports.submitApplication = async (req, res) => {
 
     const {
       fullName, icNumber, dob, gender, race, maritalStatus,
-      email, phone, streetAddress, city, postalCode, state, country,
+      email, phone, fullAddress, postalCode, state,
     } = req.body;
 
-    let education = [], skills = [];
+    let education = [];
     try { education = JSON.parse(req.body.education || '[]'); } catch {}
-    try { skills    = JSON.parse(req.body.skills    || '[]'); } catch {}
 
-    const required = { fullName, icNumber, dob, gender, race, maritalStatus, email, phone, streetAddress, city, postalCode, state, country };
+    const required = { fullName, icNumber, dob, gender, race, maritalStatus, email, phone, fullAddress, postalCode, state};
     const missing  = Object.entries(required).filter(([, v]) => !v?.trim()).map(([k]) => k);
 
     if (missing.length > 0) {
       const labels = {
         fullName: 'Full Name', icNumber: 'IC Number', dob: 'Date of Birth',
         gender: 'Gender', race: 'Race', maritalStatus: 'Marital Status',
-        email: 'Email', phone: 'Phone', streetAddress: 'Street Address',
-        city: 'City', postalCode: 'Postal Code', state: 'State', country: 'Country',
+        email: 'Email', phone: 'Phone', fullAddress: 'Full Address',
+        postalCode: 'Postal Code', state: 'State',
       };
       const friendlyMissing = missing.map(k => labels[k] || k);
       return res.status(400).json({ message: `Missing required fields: ${friendlyMissing.join(', ')}` });
     }
-
-    const avatarUrl = req.file ? `/uploads/applications/${req.file.filename}` : null;
 
     const [rows] = await db.query(
       'SELECT application_id FROM applications WHERE user_id = ?',
@@ -76,18 +73,16 @@ exports.submitApplication = async (req, res) => {
       await db.query(
         `UPDATE applications SET
           name=?, ic_number=?, date_of_birth=?, gender=?, race=?,
-          marital_status=?, email=?, phone=?, street_address=?, city=?,
-          postal_code=?, state=?, country=?, avatar_url=COALESCE(?,avatar_url),
+          marital_status=?, email=?, phone=?, full_address=?,
+          postal_code=?, state=?,
           status='pending', updated_at=NOW()
         WHERE application_id=?`,
         [fullName, icNumber, dob, gender, race, maritalStatus, email, phone,
-         streetAddress, city, postalCode, state, country, avatarUrl, appId]
+         fullAddress, postalCode, state, appId]
       );
 
       await db.query('DELETE FROM application_education WHERE application_id=?', [appId]);
       await insertEducation(appId, education);
-      await db.query('DELETE FROM application_skills WHERE application_id=?', [appId]);
-      await insertSkills(appId, skills);
 
       return res.json({ message: 'Application updated', application_id: appId });
 
@@ -95,15 +90,14 @@ exports.submitApplication = async (req, res) => {
       const [result] = await db.query(
         `INSERT INTO applications
         (user_id, name, ic_number, date_of_birth, gender, race, marital_status,
-         email, phone, street_address, city, postal_code, state, country, avatar_url, status, created_at, updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',NOW(),NOW())`,
+         email, phone, full_address, postal_code, state, status, created_at, updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'pending',NOW(),NOW())`,
         [userId, fullName, icNumber, dob, gender, race, maritalStatus,
-         email, phone, streetAddress, city, postalCode, state, country, avatarUrl]
+         email, phone, fullAddress, postalCode, state]
       );
 
       appId = result.insertId;
       await insertEducation(appId, education);
-      await insertSkills(appId, skills);
 
       return res.status(201).json({ message: 'Application submitted', application_id: appId });
     }
@@ -120,26 +114,13 @@ async function insertEducation(appId, rows) {
   if (!rows?.length) return;
   const values = rows
     .filter(r => r.institute?.trim())
-    .map(r => [appId, r.institute, r.qualification, r.major, r.startDate || null, r.endDate || null]);
+    .map(r => [appId, r.institute, r.qualification, r.startDate || null, r.endDate || null]);
   if (!values.length) return;
   await db.query(
-    'INSERT INTO application_education (application_id, institute_name, qualification, major, start_date, end_date) VALUES ?',
+    'INSERT INTO application_education (application_id, institute_name, qualification, start_date, end_date) VALUES ?',
     [values]
   );
 }
-
-async function insertSkills(appId, rows) {
-  if (!rows?.length) return;
-  const values = rows
-    .filter(r => r.skillName?.trim())
-    .map(r => [appId, r.skillName, r.proficiency]);
-  if (!values.length) return;
-  await db.query(
-    'INSERT INTO application_skills (application_id, skill_name, proficiency) VALUES ?',
-    [values]
-  );
-}
-
 
 // ══════════════════════════════════════════════════════════
 // GET MY APPLICATION
@@ -169,11 +150,8 @@ exports.getMyApplication = async (req, res) => {
     const [education] = await db.query(
       'SELECT * FROM application_education WHERE application_id = ?', [appId]
     );
-    const [skills] = await db.query(
-      'SELECT * FROM application_skills WHERE application_id = ?', [appId]
-    );
 
-    return res.json({ application: { ...app, education, skills } });
+    return res.json({ application: { ...app, education } });
 
   } catch (err) {
     console.error('getMyApplication:', err);
@@ -378,11 +356,8 @@ exports.adminGetApplication = async (req, res) => {
     const [education] = await db.query(
       'SELECT * FROM application_education WHERE application_id = ?', [id]
     );
-    const [skills] = await db.query(
-      'SELECT * FROM application_skills WHERE application_id = ?', [id]
-    );
 
-    return res.json({ application: { ...app, education, skills } });
+    return res.json({ application: { ...app, education } });
 
   } catch (err) {
     console.error('adminGetApplication:', err);
@@ -402,8 +377,8 @@ exports.adminDeleteApplication = async (req, res) => {
     const { id } = req.params;
 
     await conn.query('DELETE FROM application_education  WHERE application_id = ?', [id]);
-    await conn.query('DELETE FROM application_skills     WHERE application_id = ?', [id]);
     await conn.query('DELETE FROM application_interviews WHERE application_id = ?', [id]);
+    await conn.query('DELETE FROM students WHERE application_id = ?', [id]);
 
     const [result] = await conn.query(
       'DELETE FROM applications WHERE application_id = ?', [id]

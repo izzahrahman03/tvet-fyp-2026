@@ -14,20 +14,6 @@ export const NAV_ITEMS = [
     ),
   },
   {
-    label: "Application Form",
-    id:    "form",
-    path:  "/application-form",
-    icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-        <polyline points="10 9 9 9 8 9" />
-      </svg>
-    ),
-  },
-  {
     label: "My Application",
     id:    "application",
     path:  "/my-application",
@@ -48,7 +34,7 @@ function VitroxLogo() {
           src="https://learn.vitrox.academy/pluginfile.php/1/theme_edumy/headerlogo_mobile/1663920908/Vitrox%20Academy%20Logo%20FINAL-20%20MAY%202020-high%20res%20%281%29.png" 
           alt="ViTrox Academy" 
           className="nav-logo-img"></img>
-          ViTrox Academy
+          <span className="db-logo-text">ViTrox Academy</span>
     </div>
   );
 }

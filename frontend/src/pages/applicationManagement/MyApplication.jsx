@@ -4,6 +4,7 @@ import "../../css/dashboard/applicantDashboard.css";
 import "../../css/applicationManagement/applicationForm.css";
 import "../../css/applicationManagement/myApplication.css";
 import Layout from '../../components/dashboard/Layout';
+// import FormSeparator from '../../pages/applicationManagement/ApplicationForm';
 
 const API       = process.env.REACT_APP_API_URL;
 const getToken  = () => localStorage.getItem('token');
@@ -23,8 +24,8 @@ const STATUS_MAP = {
   interview:          { label: 'Interview',            bg: '#f3e8ff', color: '#6b21a8', dot: '#8b5cf6' },
   approved:           { label: 'Approved',             bg: '#dcfce7', color: '#166534', dot: '#22c55e' },
   accepted:           { label: 'Accepted',             bg: '#dcfce7', color: '#166534', dot: '#22c55e' },
-  rejected_review:    { label: 'Rejected (Review)',    bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
-  rejected_interview: { label: 'Rejected (Interview)', bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
+  rejected_review:    { label: 'Rejected',    bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
+  rejected_interview: { label: 'Rejected', bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
   withdraw:           { label: 'Withdrawn',            bg: '#f1f5f9', color: '#475569', dot: '#94a3b8' },
 };
 
@@ -35,7 +36,7 @@ function StatusBadge({ status }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '5px',
       background: s.bg, color: s.color,
-      fontSize: '11px', fontWeight: '700', padding: '4px 10px',
+      fontSize: '18px', fontWeight: '700', padding: '13px 18px',
       borderRadius: '20px', letterSpacing: '0.3px',
     }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0 }} />
@@ -120,7 +121,7 @@ function StatusNotice({ status }) {
       display: 'flex', alignItems: 'flex-start', gap: '10px',
       background: t.bg, border: `1px solid ${t.border}`, color: t.color,
       borderRadius: '10px', padding: '12px 16px', marginBottom: '20px',
-      fontSize: '13px', fontWeight: '500',
+      fontSize: '17px', fontWeight: '500',
     }}>
       <Icon d={notice.icon} size={15} color={t.color} />
       {notice.msg}
@@ -135,10 +136,10 @@ function OfferActions({ onAccept, onWithdraw, loading }) {
       background: '#f0fdf4', border: '1px solid #bbf7d0',
       borderRadius: '12px', padding: '20px', marginBottom: '20px',
     }}>
-      <p style={{ fontSize: '13px', fontWeight: '700', color: '#166534', margin: '0 0 4px' }}>
+      <p style={{ fontSize: '15px', fontWeight: '700', color: '#166534', margin: '0 0 4px' }}>
         Action Required
       </p>
-      <p style={{ fontSize: '12px', color: '#15803d', margin: '0 0 16px' }}>
+      <p style={{ fontSize: '14px', color: '#15803d', margin: '0 0 16px' }}>
         Accepting will upgrade your account to Student and you will need to log in again to access the student portal.
       </p>
       <div style={{ display: 'flex', gap: '12px' }}>
@@ -148,7 +149,7 @@ function OfferActions({ onAccept, onWithdraw, loading }) {
           style={{
             flex: 1, padding: '11px 16px', borderRadius: '8px', border: 'none',
             background: '#16a34a', color: 'white',
-            fontSize: '13px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: '14px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
           }}
         >
@@ -161,7 +162,7 @@ function OfferActions({ onAccept, onWithdraw, loading }) {
           style={{
             flex: 1, padding: '11px 16px', borderRadius: '8px',
             border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626',
-            fontSize: '13px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: '14px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
           }}
         >
@@ -207,6 +208,15 @@ function InterviewDetails({ application }) {
   );
 }
 
+function FormSeparator({ title }) {
+  return (
+    <div className="af-form-separator af-col-full">
+      <span className="af-form-separator-label">{title}</span>
+      <div className="af-form-separator-line" />
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════
 // Main Component
 // ══════════════════════════════════════════════════════════
@@ -233,7 +243,6 @@ export default function MyApplication() {
           setApplication({
             status:             a.status,
             submittedAt:        a.created_at,
-            avatar:             a.avatar_url ? (process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001') + a.avatar_url : null,
             fullName:           a.name,
             icNumber:           a.ic_number,
             dob:                a.date_of_birth,
@@ -242,11 +251,9 @@ export default function MyApplication() {
             maritalStatus:      a.marital_status,
             email:              a.email,
             phone:              a.phone,
-            streetAddress:      a.street_address,
-            city:               a.city,
+            fullAddress:        a.full_address,
             postalCode:         a.postal_code,
             state:              a.state,
-            country:            a.country,
             interviewDatetime:  a.interview_datetime,
             venue:              a.venue,
             interviewerName:    a.interviewer_name,
@@ -257,10 +264,6 @@ export default function MyApplication() {
               major:         e.major,
               startDate:     e.start_date,
               endDate:       e.end_date,
-            })),
-            skills: (a.skills || []).map((s) => ({
-              skillName:   s.skill_name,
-              proficiency: s.proficiency,
             })),
           });
         }
@@ -353,10 +356,10 @@ export default function MyApplication() {
   }
 
   const {
-    status, submittedAt, avatar,
+    status, submittedAt,
     fullName, icNumber, dob, gender, race, maritalStatus,
-    email, phone, streetAddress, city, postalCode, state, country,
-    education = [], skills = [],
+    email, phone, fullAddress, postalCode, state,
+    education = [],
   } = application;
 
   const isPending    = status?.toLowerCase() === 'pending';
@@ -374,26 +377,11 @@ export default function MyApplication() {
           </div>
           <div className="ma-header-right">
             <StatusBadge status={status} />
-            {isPending && (
-              <button className="af-btn-next ma-edit-btn" onClick={() => navigate('/application-form')} type="button">
-                <Icon d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" size={13} color="white" />
-                Edit Application
-              </button>
-            )}
           </div>
         </div>
 
         {/* ── Status notice ── */}
         <StatusNotice status={status} />
-
-        {/* ── Accept / Decline buttons — only shown when approved ── */}
-        {isApproved && (
-          <OfferActions
-            onAccept={handleAccept}
-            onWithdraw={handleWithdraw}
-            loading={offerLoading}
-          />
-        )}
 
         {/* ── Interview details ── */}
         <InterviewDetails application={application} />
@@ -412,25 +400,21 @@ export default function MyApplication() {
             </div>
           </div>
           <div className="af-card-body">
-            {avatar && (
-              <div className="af-avatar-section ma-avatar-view">
-                <div className="af-avatar-circle"><img src={avatar} alt="Profile" /></div>
-              </div>
-            )}
             <div className="af-form-grid">
+              <FormSeparator title="Basic Information" />
               <ReadField label="Full Name"      value={fullName}      fullWidth />
               <ReadField label="IC Number"      value={icNumber}      fullWidth />
               <ReadField label="Date of Birth"  value={fmt(dob)} />
+              <FormSeparator title="Demographic Information" />
               <ReadField label="Gender"         value={gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : ''} />
               <ReadField label="Race"           value={race   ? race.charAt(0).toUpperCase()   + race.slice(1)   : ''} />
               <ReadField label="Marital Status" value={maritalStatus ? maritalStatus.charAt(0).toUpperCase() + maritalStatus.slice(1) : ''} />
+              <FormSeparator title="Contact & Address" />
               <ReadField label="Email Address"  value={email} />
               <ReadField label="Phone Number"   value={phone} />
-              <ReadField label="Street Address" value={streetAddress} fullWidth />
-              <ReadField label="City"           value={city} />
+              <ReadField label="Full Address" value={fullAddress} fullWidth />
               <ReadField label="Postal Code"    value={postalCode} />
               <ReadField label="State"          value={state} />
-              <ReadField label="Country"        value={country} />
             </div>
           </div>
         </div>
@@ -452,16 +436,15 @@ export default function MyApplication() {
             <div className="af-table-wrap" style={{ borderRadius: 0, border: 'none' }}>
               <table className="af-table">
                 <thead>
-                  <tr><th>Institute Name</th><th>Qualification</th><th>Major</th><th>Start Date</th><th>End Date</th></tr>
+                  <tr><th>Institute Name</th><th>Qualification</th><th>Start Date</th><th>End Date</th></tr>
                 </thead>
                 <tbody>
                   {education.length === 0
-                    ? <tr><td colSpan={5} className="af-empty">No education records found</td></tr>
+                    ? <tr><td colSpan={4} className="af-empty">No education records found</td></tr>
                     : education.map((row, i) => (
                       <tr key={i}>
                         <td className="ma-td">{row.institute     || '—'}</td>
                         <td className="ma-td">{row.qualification || '—'}</td>
-                        <td className="ma-td">{row.major         || '—'}</td>
                         <td className="ma-td">{fmt(row.startDate)}</td>
                         <td className="ma-td">{fmt(row.endDate)}</td>
                       </tr>
@@ -473,41 +456,27 @@ export default function MyApplication() {
           </div>
         </div>
 
-        {/* ── Skills ── */}
-        <div className="af-card ma-section-card">
-          <div className="af-card-header ma-section-card-header">
-            <div className="ma-section-heading">
-              <div className="ma-section-icon">
-                <Icon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" size={15} color="#1a56db" />
-              </div>
-              <div>
-                <p className="af-card-title">Skills</p>
-                <p className="af-card-subtitle">Your listed skills and proficiency levels</p>
-              </div>
-            </div>
+        {isPending && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+            <button
+              className="af-btn-next"
+              onClick={() => navigate('/application-form')}
+              type="button"
+            >
+              <Icon d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" size={14} color="white" />
+              Edit Application
+            </button>
           </div>
-          <div className="af-card-body" style={{ padding: 0 }}>
-            <div className="af-table-wrap" style={{ borderRadius: 0, border: 'none' }}>
-              <table className="af-table">
-                <thead>
-                  <tr><th>Skill Name</th><th>Proficiency</th></tr>
-                </thead>
-                <tbody>
-                  {skills.length === 0
-                    ? <tr><td colSpan={2} className="af-empty">No skills listed</td></tr>
-                    : skills.map((row, i) => (
-                      <tr key={i}>
-                        <td className="ma-td">{row.skillName || '—'}</td>
-                        <td className="ma-td"><ProficiencyPill level={row.proficiency} /></td>
-                      </tr>
-                    ))
-                  }
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        )}
 
+        {/* ── Accept / Decline buttons — only shown when approved ── */}
+        {isApproved && (
+          <OfferActions
+            onAccept={handleAccept}
+            onWithdraw={handleWithdraw}
+            loading={offerLoading}
+          />
+        )}
       </div>
     </Layout>
   );

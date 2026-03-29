@@ -9,10 +9,14 @@ import Login from './pages/Login';
 
 import ApplicantDashboard from './pages/dashboard/ApplicantDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
+import StudentDashboard from './pages/dashboard/StudentDashboard';
 import PartnerDashboard from './pages/dashboard/PartnerDashboard';
+import SupervisorDashboard from './pages/dashboard/SupervisorDashboard';
 
 import UserTable from './pages/userManagement/UserTable';
 import DashboardLayout from './components/dashboard/Layout'; // ✅ renamed import
+import IntakePage from './pages/userManagement/IntakePage';
+// import InterviewSlotManager from './pages/userManagement/InterviewSlotManager';
 
 import ActivationPage from './pages/userManagement/ActivationPage';
 import SetPasswordPage from './pages/userManagement/SetPasswordPage';
@@ -85,11 +89,29 @@ function App() {
             <UserTable type="application" />
           </DashboardLayout>
         } />
+        <Route path="/admin/intakes" element={
+          <DashboardLayout title="Intakes">
+            <IntakePage type="intake" />
+          </DashboardLayout>
+        } />
+        {/* <Route path="/admin/interview-slots" element={
+          <DashboardLayout title="Interview Slots">
+            <InterviewSlotManager />
+          </DashboardLayout>
+        } /> */}
+
+
+        {/* ── Student dashboard ─────────────────────── */}
+        <Route path="/student-dashboard" element={<StudentDashboard />} />
+        {/* <Route path="/internship"    element={<InternshipPage />} /> */}
 
         {/* ── Industry Partner dashboard ─────────────────────── */}
-        <Route path="/industry-partner-dashboard" element={<PartnerDashboard />} />
-        <Route path="/application-form"    element={<ApplicationForm />} />
-        <Route path="/my-application"      element={<MyApplication />} />
+        <Route path="/partner-dashboard" element={<PartnerDashboard />} />
+        {/* <Route path="/internship"    element={<InternshipPage />} /> */}
+
+        {/* ── Industry Supervisor dashboard ─────────────────────── */}
+        <Route path="/supervisor-dashboard" element={<SupervisorDashboard />} />
+        {/* <Route path="/internship"    element={<InternshipPage />} /> */}
 
       </Routes>
     </Router>

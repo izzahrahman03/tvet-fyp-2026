@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from "react-router-dom";
 import "../../css/applicationManagement/applicationForm.css";
 import Layout from '../../components/dashboard/Layout';
@@ -32,8 +32,7 @@ let _uid = 0;
 const uid = () => `row_${++_uid}`;
 
 // ── Empty row factories ────────────────────────────────────
-const newEdu   = () => ({ _id: uid(), institute: '', qualification: '', major: '', startDate: '', endDate: '' });
-const newSkill = () => ({ _id: uid(), skillName: '', proficiency: '' });
+const newEdu   = () => ({ _id: uid(), institute: '', qualification: '', startDate: '', endDate: '' });
 
 // ── IC Number auto-formatter ───────────────────────────────
 // Strips non-digits, inserts dashes at positions 6 and 8 → XXXXXX-XX-XXXX
@@ -44,133 +43,30 @@ const formatIC = (raw) => {
   return `${d.slice(0, 6)}-${d.slice(6, 8)}-${d.slice(8)}`;
 };
 
-// ── DD / MM / YYYY Date-of-Birth input ─────────────────────
-// value  : "YYYY-MM-DD" string (or "")
-// onChange: called with new "YYYY-MM-DD" string (or "" if incomplete)
-function DobInput({ value, onChange, hasError }) {
-  // Parse incoming YYYY-MM-DD value
-  const parts  = value ? value.split('-') : ['', '', ''];
-  const initDD = parts[2] || '';
-  const initMM = parts[1] || '';
-  const initYY = parts[0] || '';
-
-  const [dd, setDD] = useState(initDD);
-  const [mm, setMM] = useState(initMM);
-  const [yy, setYY] = useState(initYY);
-
-  const mmRef = useRef();
-  const yyRef = useRef();
-
-  // Sync from parent when existing application loads
-  useEffect(() => {
-    const p = value ? value.split('-') : ['', '', ''];
-    setDD(p[2] || '');
-    setMM(p[1] || '');
-    setYY(p[0] || '');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);   // only on mount to avoid clobbering user input mid-type
-
-  const emit = (newDD, newMM, newYY) => {
-    const d = newDD.padStart(2, '0');
-    const m = newMM.padStart(2, '0');
-    const y = newYY;
-    if (newDD && newMM && newYY.length === 4) {
-      onChange(`${y}-${m}-${d}`);
-    } else {
-      onChange('');
-    }
-  };
-
-  const handleDD = (e) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 2);
-    setDD(val);
-    emit(val, mm, yy);
-    if (val.length === 2) mmRef.current?.focus();
-  };
-
-  const handleMM = (e) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 2);
-    setMM(val);
-    emit(dd, val, yy);
-    if (val.length === 2) yyRef.current?.focus();
-  };
-
-  const handleYY = (e) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 4);
-    setYY(val);
-    emit(dd, mm, val);
-  };
-
-  const errCls = hasError ? 'error' : '';
-
+function FormSeparator({ title }) {
   return (
-    <div className="af-dob-wrap">
-      <input
-        className={`af-dob-seg ${errCls}`}
-        value={dd}
-        onChange={handleDD}
-        placeholder="DD"
-        inputMode="numeric"
-        maxLength={2}
-      />
-      <span className="af-dob-sep">/</span>
-      <input
-        ref={mmRef}
-        className={`af-dob-seg ${errCls}`}
-        value={mm}
-        onChange={handleMM}
-        placeholder="MM"
-        inputMode="numeric"
-        maxLength={2}
-      />
-      <span className="af-dob-sep">/</span>
-      <input
-        ref={yyRef}
-        className={`af-dob-seg af-dob-year ${errCls}`}
-        value={yy}
-        onChange={handleYY}
-        placeholder="YYYY"
-        inputMode="numeric"
-        maxLength={4}
-      />
+    <div className="af-form-separator af-col-full">
+      <span className="af-form-separator-label">{title}</span>
+      <div className="af-form-separator-line" />
     </div>
   );
 }
 
+
 // ══════════════════════════════════════════════════════════
 // STEP 1 – Personal Information
 // ══════════════════════════════════════════════════════════
-function StepPersonal({ data, onChange, avatarPreview, onAvatarChange, errors, onFieldChange }) {
-  const fileRef = useRef();
+function StepPersonal({ data, onChange, errors, onFieldChange }) {
 
   // Generic setter that also clears the error for that field
   const set = (field) => (e) => onFieldChange(field, e.target.value);
 
   return (
     <>
-      <div className="af-avatar-section">
-        <div className="af-avatar-upload" onClick={() => fileRef.current?.click()} title="Upload photo">
-          <div className="af-avatar-circle">
-            {avatarPreview
-              ? <img src={avatarPreview} alt="avatar" />
-              : (
-                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
-                </svg>
-              )
-            }
-          </div>
-          <div className="af-avatar-edit">
-            <Icon d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" size={10} color="white" />
-          </div>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
-            onChange={(e) => { const f = e.target.files[0]; if (f) onAvatarChange(f); }} />
-        </div>
-      </div>
-
       <div className="af-form-grid">
 
         {/* Full Name */}
+        <FormSeparator title="Basic Information" />
         <div className="af-field af-col-full">
           <label className="af-label">Full Name<span className="af-required">*</span></label>
           <input
@@ -196,18 +92,21 @@ function StepPersonal({ data, onChange, avatarPreview, onAvatarChange, errors, o
           {errors.icNumber && <p className="af-field-error">{errors.icNumber}</p>}
         </div>
 
-        {/* Date of Birth – DD / MM / YYYY */}
+        {/* Date of Birth – calendar picker */}
         <div className="af-field">
           <label className="af-label">Date of Birth<span className="af-required">*</span></label>
-          <DobInput
+          <input
+            type="date"
+            className={`af-input ${errors.dob ? 'error' : ''}`}
             value={data.dob}
-            onChange={(val) => onFieldChange('dob', val)}
-            hasError={!!errors.dob}
+            onChange={(e) => onFieldChange('dob', e.target.value)}
+            max={new Date().toISOString().split('T')[0]}
           />
           {errors.dob && <p className="af-field-error">{errors.dob}</p>}
         </div>
 
         {/* Gender */}
+        <FormSeparator title="Demographic Information" />
         <div className="af-field">
           <label className="af-label">Gender<span className="af-required">*</span></label>
           <select className={`af-select ${errors.gender ? 'error' : ''}`} value={data.gender} onChange={set('gender')}>
@@ -245,6 +144,7 @@ function StepPersonal({ data, onChange, avatarPreview, onAvatarChange, errors, o
         </div>
 
         {/* Email */}
+        <FormSeparator title="Contact & Address" />
         <div className="af-field">
           <label className="af-label">Email Address<span className="af-required">*</span></label>
           <input
@@ -270,28 +170,17 @@ function StepPersonal({ data, onChange, avatarPreview, onAvatarChange, errors, o
           {errors.phone && <p className="af-field-error">{errors.phone}</p>}
         </div>
 
-        {/* Street Address */}
+        {/* Full Address */}
         <div className="af-field af-col-full">
-          <label className="af-label">Street Address<span className="af-required">*</span></label>
-          <input
-            className={`af-input ${errors.streetAddress ? 'error' : ''}`}
-            value={data.streetAddress}
-            onChange={set('streetAddress')}
-            placeholder="Street address"
+          <label className="af-label">Full Address<span className="af-required">*</span></label>
+          <textarea
+            className={`af-textarea ${errors.fullAddress ? 'error' : ''}`}
+            value={data.fullAddress}
+            onChange={set('fullAddress')}
+            placeholder="Full address"
+            rows="4"
           />
-          {errors.streetAddress && <p className="af-field-error">{errors.streetAddress}</p>}
-        </div>
-
-        {/* City */}
-        <div className="af-field">
-          <label className="af-label">City<span className="af-required">*</span></label>
-          <input
-            className={`af-input ${errors.city ? 'error' : ''}`}
-            value={data.city}
-            onChange={set('city')}
-            placeholder="e.g. Penang"
-          />
-          {errors.city && <p className="af-field-error">{errors.city}</p>}
+          {errors.fullAddress && <p className="af-field-error">{errors.fullAddress}</p>}
         </div>
 
         {/* Postal Code */}
@@ -321,44 +210,23 @@ function StepPersonal({ data, onChange, avatarPreview, onAvatarChange, errors, o
           </select>
           {errors.state && <p className="af-field-error">{errors.state}</p>}
         </div>
-
-        {/* Country */}
-        <div className="af-field">
-          <label className="af-label">Country<span className="af-required">*</span></label>
-          <input
-            className={`af-input ${errors.country ? 'error' : ''}`}
-            value={data.country}
-            onChange={set('country')}
-            placeholder="e.g. Malaysia"
-          />
-          {errors.country && <p className="af-field-error">{errors.country}</p>}
-        </div>
-
       </div>
     </>
   );
 }
 
 // ══════════════════════════════════════════════════════════
-// STEP 2 – Education & Skills
+// STEP 2 – Education
 // ══════════════════════════════════════════════════════════
-function StepEduSkills({ education, skills, onEduChange, onSkillChange }) {
+function StepEducation({ education, onEduChange }) {
   const addEdu   = () => onEduChange([...education, newEdu()]);
   const delEdu   = (id) => onEduChange(education.filter((r) => r._id !== id));
   const setEdu   = (id, field, val) => onEduChange(education.map((r) => r._id === id ? { ...r, [field]: val } : r));
-
-  const addSkill   = () => onSkillChange([...skills, newSkill()]);
-  const delSkill   = (id) => onSkillChange(skills.filter((r) => r._id !== id));
-  const setSkill   = (id, field, val) => onSkillChange(skills.map((r) => r._id === id ? { ...r, [field]: val } : r));
 
   return (
     <>
       <div className="af-section">
         <div className="af-section-header">
-          <div>
-            <p className="af-section-title">Education</p>
-            <p className="af-section-subtitle">Please provide your educational background</p>
-          </div>
           <button className="af-btn-add" onClick={addEdu} type="button">
             <Icon d="M12 5v14M5 12h14" size={13} color="white" />
             Add Education
@@ -368,7 +236,7 @@ function StepEduSkills({ education, skills, onEduChange, onSkillChange }) {
           <table className="af-table">
             <thead>
               <tr>
-                <th>Institute Name</th><th>Qualification</th><th>Major</th>
+                <th>Institute Name</th><th>Qualification</th>
                 <th>Start Date</th><th>End Date</th><th style={{ width: 40 }}></th>
               </tr>
             </thead>
@@ -379,70 +247,22 @@ function StepEduSkills({ education, skills, onEduChange, onSkillChange }) {
                   <tr key={row._id}>
                     <td><input className="af-table-input" value={row.institute}
                       onChange={(e) => setEdu(row._id, 'institute', e.target.value)}
-                      placeholder="e.g. Universiti Teknologi Malaysia" /></td>
+                      placeholder="e.g. SMK Tasek Gelugor" /></td>
                     <td>
                       <select className="af-table-select" value={row.qualification}
                         onChange={(e) => setEdu(row._id, 'qualification', e.target.value)}>
                         <option value="">Select</option>
-                        <option>SPM</option><option>Diploma</option>
-                        <option>Bachelor's Degree</option><option>Master's Degree</option>
-                        <option>PhD</option><option>Others</option>
+                        <option>SPM</option><option>UEC</option>
+                        <option>SKM</option>
+                        <option>Others</option>
                       </select>
                     </td>
-                    <td><input className="af-table-input" value={row.major}
-                      onChange={(e) => setEdu(row._id, 'major', e.target.value)}
-                      placeholder="e.g. Computer Science" /></td>
                     <td><input type="date" className="af-table-input" value={row.startDate}
                       onChange={(e) => setEdu(row._id, 'startDate', e.target.value)} /></td>
                     <td><input type="date" className="af-table-input" value={row.endDate}
                       onChange={(e) => setEdu(row._id, 'endDate', e.target.value)} /></td>
                     <td>
                       <button className="af-row-del" onClick={() => delEdu(row._id)} type="button" title="Remove">
-                        <Icon d="M18 6L6 18M6 6l12 12" size={13} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="af-section">
-        <div className="af-section-header">
-          <div>
-            <p className="af-section-title">Skills</p>
-            <p className="af-section-subtitle">Please provide your additional skills</p>
-          </div>
-          <button className="af-btn-add" onClick={addSkill} type="button">
-            <Icon d="M12 5v14M5 12h14" size={13} color="white" />
-            Add Skills
-          </button>
-        </div>
-        <div className="af-table-wrap">
-          <table className="af-table">
-            <thead>
-              <tr><th>Skills Name</th><th>Proficiency</th><th style={{ width: 40 }}></th></tr>
-            </thead>
-            <tbody>
-              {skills.length === 0
-                ? <tr><td colSpan={3} className="af-empty">No data found</td></tr>
-                : skills.map((row) => (
-                  <tr key={row._id}>
-                    <td><input className="af-table-input" value={row.skillName}
-                      onChange={(e) => setSkill(row._id, 'skillName', e.target.value)}
-                      placeholder="e.g. React.js" /></td>
-                    <td>
-                      <select className="af-table-select" value={row.proficiency}
-                        onChange={(e) => setSkill(row._id, 'proficiency', e.target.value)}>
-                        <option value="">Select</option>
-                        <option>Beginner</option><option>Intermediate</option>
-                        <option>Advanced</option><option>Expert</option>
-                      </select>
-                    </td>
-                    <td>
-                      <button className="af-row-del" onClick={() => delSkill(row._id)} type="button" title="Remove">
                         <Icon d="M18 6L6 18M6 6l12 12" size={13} />
                       </button>
                     </td>
@@ -467,14 +287,11 @@ export default function ApplicationForm() {
   const [personal, setPersonal] = useState({
     fullName: '', icNumber: '', dob: '', gender: '',
     race: '', maritalStatus: '', email: '', phone: '',
-    streetAddress: '', city: '', postalCode: '', state: '', country: 'Malaysia',
+    fullAddress: '', postalCode: '', state: '',
   });
   const [errors,       setErrors]       = useState({});
   const [step1Alert,   setStep1Alert]   = useState(null); // { type, msg } – banner above the form
-  const [avatarFile,   setAvatarFile]   = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(null);
   const [education,    setEducation]    = useState([]);
-  const [skills,       setSkills]       = useState([]);
   const [submitting,   setSubmitting]   = useState(false);
   const [submitAlert,  setSubmitAlert]  = useState(null);
   const [submitted,    setSubmitted]    = useState(false);
@@ -502,27 +319,17 @@ export default function ApplicationForm() {
             maritalStatus: a.marital_status  || '',
             email:         a.email           || '',
             phone:         a.phone           || '',
-            streetAddress: a.street_address  || '',
-            city:          a.city            || '',
+            fullAddress: a.full_address  || '',
             postalCode:    a.postal_code     || '',
             state:         a.state           || '',
-            country:       a.country         || 'Malaysia',
           });
-          if (a.avatar_url) setAvatarPreview((process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001') + a.avatar_url);
           if (a.education?.length)
             setEducation(a.education.map((e) => ({
               _id:           uid(),
               institute:     e.institute_name || '',
               qualification: e.qualification  || '',
-              major:         e.major          || '',
               startDate:     e.start_date ? e.start_date.split('T')[0] : '',
               endDate:       e.end_date   ? e.end_date.split('T')[0]   : '',
-            })));
-          if (a.skills?.length)
-            setSkills(a.skills.map((s) => ({
-              _id:         uid(),
-              skillName:   s.skill_name  || '',
-              proficiency: s.proficiency || '',
             })));
         }
       } catch (err) {
@@ -533,12 +340,6 @@ export default function ApplicationForm() {
     };
     fetchMyApplication();
   }, []);
-
-  const handleAvatarChange = (file) => {
-    if (file.size > 3 * 1024 * 1024) { showToast('Image must be under 3 MB.', 'error'); return; }
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
-  };
 
   // ── Field change: update personal + clear that field's error + clear banner ─
   const handleFieldChange = (field, value) => {
@@ -561,11 +362,9 @@ export default function ApplicationForm() {
       maritalStatus: 'Please select marital status.',
       email:         'Email address is required.',
       phone:         'Phone number is required.',
-      streetAddress: 'Street address is required.',
-      city:          'City is required.',
+      fullAddress: 'Full address is required.',
       postalCode:    'Postal code is required.',
       state:         'Please select a state.',
-      country:       'Country is required.',
     };
     Object.entries(required).forEach(([k, msg]) => {
       if (!personal[k]?.trim()) errs[k] = msg;
@@ -625,9 +424,7 @@ export default function ApplicationForm() {
     try {
       const formData = new FormData();
       Object.entries(personal).forEach(([k, v]) => formData.append(k, v));
-      if (avatarFile) formData.append('avatar', avatarFile);
       formData.append('education', JSON.stringify(education.map(({ _id, ...rest }) => rest)));
-      formData.append('skills',    JSON.stringify(skills.map(({ _id, ...rest }) => rest)));
 
       const res  = await fetch(`${API}/application-form`, {
         method:  'POST',
@@ -660,7 +457,7 @@ export default function ApplicationForm() {
       <div className={`af-step-line ${step > 1 ? 'done' : ''}`} />
       <div className="af-step">
         <div className={`af-step-dot ${step === 2 ? 'active' : ''}`}>2</div>
-        <span className={`af-step-label ${step === 2 ? 'active' : ''}`}>Education & Skills</span>
+        <span className={`af-step-label ${step === 2 ? 'active' : ''}`}>Education</span>
       </div>
     </div>
   );
@@ -716,8 +513,8 @@ export default function ApplicationForm() {
             {step === 1
               ? <><p className="af-card-title">Personal Information</p>
                   <p className="af-card-subtitle">Please provide your contact details</p></>
-              : <><p className="af-card-title">Education & Skills</p>
-                  <p className="af-card-subtitle">Please provide your educational background and skills</p></>
+              : <><p className="af-card-title">Education</p>
+                  <p className="af-card-subtitle">Please provide your educational background</p></>
             }
           </div>
 
@@ -740,8 +537,6 @@ export default function ApplicationForm() {
               <StepPersonal
                 data={personal}
                 onChange={setPersonal}
-                avatarPreview={avatarPreview}
-                onAvatarChange={handleAvatarChange}
                 errors={errors}
                 onFieldChange={handleFieldChange}
               />
@@ -755,9 +550,9 @@ export default function ApplicationForm() {
                     {submitAlert.msg}
                   </div>
                 )}
-                <StepEduSkills
-                  education={education} skills={skills}
-                  onEduChange={setEducation} onSkillChange={setSkills}
+                <StepEducation
+                  education={education}
+                  onEduChange={setEducation}
                 />
               </>
             )}

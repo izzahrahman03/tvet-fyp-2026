@@ -90,11 +90,9 @@ function ApplicationView({ row, fmt, fmtDateTime }) {
           <Field label="Marital Status" value={row.marital_status} />
           <Field label="Email"          value={row.email} />
           <Field label="Phone"          value={row.phone} />
-          <Field label="Address"        value={row.street_address}  wide />
-          <Field label="City"           value={row.city} />
+          <Field label="Full Address"        value={row.full_address}  wide />
           <Field label="Postal Code"    value={row.postal_code} />
           <Field label="State"          value={row.state} />
-          <Field label="Country"        value={row.country} />
           <StatusField status={row.status} />
           <Field label="Last Updated"   value={fmt(row.updated_at)} />
         </Grid>
@@ -123,30 +121,6 @@ function ApplicationView({ row, fmt, fmtDateTime }) {
                   <td style={miniTdStyle}>{e.major          || "—"}</td>
                   <td style={miniTdStyle}>{fmt(e.start_date)}</td>
                   <td style={miniTdStyle}>{fmt(e.end_date)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Section>
-
-      {/* Skills */}
-      <Section icon="💼" title="Skills">
-        {skills.length === 0 ? (
-          <p style={{ fontSize: "13px", color: "#94a3b8", margin: 0 }}>No skills listed.</p>
-        ) : (
-          <table style={miniTableStyle}>
-            <thead>
-              <tr>
-                <th style={miniThStyle}>Skill</th>
-                <th style={miniThStyle}>Proficiency</th>
-              </tr>
-            </thead>
-            <tbody>
-              {skills.map((s, i) => (
-                <tr key={i}>
-                  <td style={miniTdStyle}>{s.skill_name  || "—"}</td>
-                  <td style={miniTdStyle}>{s.proficiency || "—"}</td>
                 </tr>
               ))}
             </tbody>

@@ -1,4 +1,5 @@
 import "../css/pages/home.css";
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 /* ── SVG Icon Components ── */
@@ -54,36 +55,6 @@ const FEATURES = [
   { Icon: IconUnlock,   name: "No SPM Barrier",              desc: "Strong SPM results are not required. If you have a genuine interest in electronics, electrical, and semiconductor fields, you are welcome to apply." },
 ];
 
-const PROGRAMMES = [
-  {
-    img:    "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&q=80",
-    accent: "#1A3A6B",
-    cat:    "Track A — TVET",
-    code:   "TVET BOLTS",
-    name:   "Bridging Opportunities Learning Technical & Skills",
-    meta:   "6 months · Batu Kawan, Penang · RM 1,700 / month",
-    tag:    "Fully Sponsored",
-  },
-  {
-    img:    "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&q=80",
-    accent: "#8A5E10",
-    cat:    "Advancement Track",
-    code:   "SKM L2 & L3",
-    name:   "Sijil Kemahiran Malaysia — Industrial Automation",
-    meta:   "12 months · ViTrox Academy · Ministry-Recognised",
-    tag:    "Post-BOLTS Pathway",
-  },
-  {
-    img:    "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=600&q=80",
-    accent: "#1D5C2B",
-    cat:    "Higher Education",
-    code:   "Diploma",
-    name:   "Diploma in Electrical & Electronics Engineering",
-    meta:   "MQA Accredited · Work-Based Learning Model",
-    tag:    "MQA/PA15866",
-  },
-];
-
 const PHOTO_STRIP = [
   { src: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=600&q=80", caption: "Workshop Training" },
   { src: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=600&q=80", caption: "Electronics Lab" },
@@ -92,7 +63,6 @@ const PHOTO_STRIP = [
 ];
 
 const FOOTER_LINKS = [
-  ["Programme", ["K-Youth TVET BOLTS", "SKM Pathway", "Diploma Courses", "Corporate Training"]],
   ["Academy",   ["About ViTrox Academy", "Our Instructors", "Facilities", "News & Updates"]],
   ["Support",   ["How to Apply", "FAQ", "Contact Us", "Khazanah K-Youth"]],
 ];
@@ -101,6 +71,65 @@ const STATS = [
   ["500+",     "Programme places available"],
   ["RM 1,700", "Monthly allowance"],
   ["6 months", "Programme duration"],
+];
+
+const SLIDES = [
+  {
+    badge:    ["Khazanah Nasional Berhad Initiative", "Delivered by ViTrox Academy"],
+    tag:      "Now Accepting Applications",
+    title:    "K-Youth Development\nProgramme 2026",
+    titleEm:  "Programme 2026",
+    sub:      "A government-sponsored TVET apprenticeship for Form 5 graduates aged 17\u201323. Earn while you learn \u2014 receive RM\u00a01,700 per month as you build industry-ready technical skills in Malaysia's semiconductor sector.",
+    subBold:  "RM\u00a01,700 per month",
+    cta:      "Apply Now",
+    ctaLink:  "signup",
+    highlight: "#60a5fa",
+    bg:       "linear-gradient(145deg, #060e1e 0%, #0c1d3a 45%, #132d58 100%)",
+    orb1:     "rgba(59,130,246,.22)",
+    orb2:     "rgba(29,78,216,.15)",
+  },
+  {
+    badge:    ["New Cohort Opening", "Limited to 25 Seats"],
+    tag:      "Deadline: 31 July 2026",
+    title:    "Fully Sponsored\nZero Fees. Real Pay.",
+    titleEm:  "Zero Fees. Real Pay.",
+    sub:      "No tuition fees. No hidden costs. Participants receive RM\u00a01,700 monthly allowance inclusive of EPF & SOCSO contributions \u2014 fully funded by Khazanah Nasional Berhad throughout the 6-month programme.",
+    subBold:  "RM\u00a01,700 monthly allowance",
+    cta:      "Secure Your Seat",
+    ctaLink:  "signup",
+    highlight: "#34d399",
+    bg:       "linear-gradient(145deg, #041810 0%, #062e1a 45%, #0a4a2a 100%)",
+    orb1:     "rgba(52,211,153,.18)",
+    orb2:     "rgba(16,185,129,.12)",
+  },
+  {
+    badge:    ["Industry-Embedded Learning", "70% On-the-Job Training"],
+    tag:      "Work & Learn Model",
+    title:    "Learn on the\nFactory Floor",
+    titleEm:  "Factory Floor",
+    sub:      "70% of your learning happens inside real semiconductor factories. Apprentices are placed at leading electronics companies in Penang, returning to ViTrox Academy every Friday for structured theory sessions led by industry engineers.",
+    subBold:  null,
+    cta:      "See How It Works",
+    ctaLink:  "signup",
+    highlight: "#f59e0b",
+    bg:       "linear-gradient(145deg, #0f0800 0%, #1c1000 45%, #2d1f00 100%)",
+    orb1:     "rgba(245,158,11,.18)",
+    orb2:     "rgba(217,119,6,.12)",
+  },
+  {
+    badge:    ["Recognised Qualification", "JPK & MQA Accredited"],
+    tag:      "Career Pathway",
+    title:    "Certified &\nCareer-Ready",
+    titleEm:  "Career-Ready",
+    sub:      "Graduate with the Sijil K-Youth TVET BOLTS \u2014 a nationally recognised credential. Progress directly to SKM Level 2 & 3 certification, building toward an 18-month journey and a full career as an industry technologist.",
+    subBold:  "Sijil K-Youth TVET BOLTS",
+    cta:      "View Career Pathways",
+    ctaLink:  "signup",
+    highlight: "#c084fc",
+    bg:       "linear-gradient(145deg, #0c0418 0%, #160830 45%, #200d48 100%)",
+    orb1:     "rgba(192,132,252,.18)",
+    orb2:     "rgba(139,92,246,.12)",
+  },
 ];
 
 const TIMELINE = [
@@ -116,47 +145,108 @@ const INFO_ROWS = [
   ["Delivered by",      "ViTrox Academy, Batu Kawan",                 false],
   ["Funded by",         "Khazanah Nasional Berhad",                   false],
   ["Duration",          "6 months (extendable to 18 months via SKM)", false],
-  ["Monthly Allowance", "RM 1,700 (incl. EPF & SOCSO)",               true],
-  ["Eligibility",       "Form 5 graduates, age 17–23",                false],
+  ["Monthly Allowance", "RM 1,700",               true],
+  ["Eligibility",       "Form 5 graduates, age 18–23",                false],
   ["SPM Required?",     "No — interest is sufficient",                true],
   ["Availability",      "Limited — 25 trainees per cohort",           false],
 ];
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const [slide, setSlide] = useState(0);
+  const [animDir, setAnimDir] = useState(""); // "left" | "right"
+
+  const goTo = useCallback((idx) => {
+    setAnimDir(idx > slide ? "left" : "right");
+    setSlide(idx);
+  }, [slide]);
+
+  const prev = useCallback(() => {
+    const idx = (slide - 1 + SLIDES.length) % SLIDES.length;
+    setAnimDir("right");
+    setSlide(idx);
+  }, [slide]);
+
+  const next = useCallback(() => {
+    const idx = (slide + 1) % SLIDES.length;
+    setAnimDir("left");
+    setSlide(idx);
+  }, [slide]);
+
+  // Auto-advance every 6s
+  useEffect(() => {
+    const t = setTimeout(() => next(), 6000);
+    return () => clearTimeout(t);
+  }, [slide, next]);
+
+  const s = SLIDES[slide];
+
+  // Build sub text with optional bold word
+  const renderSub = (sub, bold) => {
+    if (!bold) return sub;
+    const parts = sub.split(bold);
+    return <>{parts[0]}<strong style={{ color: "#fff" }}>{bold}</strong>{parts[1]}</>;
+  };
+
+  // Build title with em on second line
+  const renderTitle = (title, em) => {
+    const lines = title.split("\n");
+    return lines.map((line, i) =>
+      line === em
+        ? <em key={i}>{line}</em>
+        : <span key={i}>{line}{i < lines.length - 1 && <br />}</span>
+    );
+  };
 
   return (
     <>
-      {/* ── Hero ── */}
-      <section className="hero-section">
-        <div className="hero-container">
+      {/* ── Hero Slider ── */}
+      <section
+        className="hero-section"
+        id="announcements"
+        style={{ background: s.bg, "--orb1": s.orb1, "--orb2": s.orb2, "--accent": s.highlight }}
+      >
+        {/* nav arrows */}
+        <button className="hero-arrow hero-arrow--prev" onClick={prev} aria-label="Previous slide">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <button className="hero-arrow hero-arrow--next" onClick={next} aria-label="Next slide">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+
+        <div className={`hero-container hero-slide-content hero-slide--${animDir}`} key={slide}>
           <div>
-            <div className="hero-badge">
-              <span>Khazanah Nasional Berhad Initiative</span>
-              <span className="badge-divider" />
-              <span>Delivered by ViTrox Academy</span>
+            <div className="hero-tag" style={{ borderColor: `${s.highlight}55`, background: `${s.highlight}18`, color: s.highlight }}>
+              {s.tag}
             </div>
 
-            <h1 className="hero-title">
-              K-Youth Development<br />
-              <em>Programme 2026</em>
+            <div className="hero-badge">
+              <span>{s.badge[0]}</span>
+              <span className="badge-divider" />
+              <span>{s.badge[1]}</span>
+            </div>
+
+            <h1 className="hero-title" style={{ "--em-color": s.highlight }}>
+              {renderTitle(s.title, s.titleEm)}
             </h1>
 
-            <p className="hero-sub">
-              A government-sponsored TVET apprenticeship for Form 5 graduates aged 17–23.
-              Earn while you learn — receive <strong>RM 1,700 per month</strong> as you build
-              industry-ready technical skills in Malaysia's semiconductor sector.
-            </p>
+            <p className="hero-sub">{renderSub(s.sub, s.subBold)}</p>
 
             <div className="hero-actions">
-              <button className="btn-primary" onClick={() => navigate("signup")}>Apply Now</button>
-              <button className="btn-outline">Learn More ↓</button>
+              <button className="btn-hero-primary" style={{ background: `linear-gradient(135deg, ${s.highlight}cc, ${s.highlight})`, boxShadow: `0 8px 28px ${s.highlight}44` }} onClick={() => navigate(s.ctaLink)}>
+                {s.cta} →
+              </button>
+              <button className="btn-outline hero-btn-outline">Learn More ↓</button>
             </div>
 
             <div className="hero-stats">
               {STATS.map(([num, label]) => (
                 <div className="stat-item" key={label}>
-                  <div className="stat-num">{num}</div>
+                  <div className="stat-num" style={{ color: s.highlight }}>{num}</div>
                   <div className="stat-label">{label}</div>
                 </div>
               ))}
@@ -164,19 +254,45 @@ const HomePage = () => {
           </div>
 
           <div className="hero-visual">
-            <div className="hero-info-card">
-              <div className="info-card-header">Programme at a Glance</div>
+            <div className="hero-info-card" style={{ borderColor: `${s.highlight}33` }}>
+              <div className="info-card-header" style={{ borderBottomColor: `${s.highlight}44` }}>
+                Programme at a Glance
+              </div>
               {INFO_ROWS.map(([k, v, hi]) => (
                 <div className="info-row" key={k}>
                   <span className="info-key">{k}</span>
-                  <span className={`info-val${hi ? " highlight" : ""}`}>{v}</span>
+                  <span className={`info-val${hi ? " highlight" : ""}`} style={hi ? { color: s.highlight } : {}}>
+                    {v}
+                  </span>
                 </div>
               ))}
-              <button className="btn-primary btn-full" style={{ marginTop: "1.5rem" }} onClick={() => navigate("signup")}>
+              <button
+                className="btn-outline btn-full"
+                style={{ marginTop: "1.5rem", borderColor: s.highlight, color: s.highlight }}
+                onClick={() => navigate("signup")}
+              >
                 Register Your Interest
               </button>
             </div>
           </div>
+        </div>
+
+        {/* dot indicators */}
+        <div className="hero-dots">
+          {SLIDES.map((_, i) => (
+            <button
+              key={i}
+              className={`hero-dot${i === slide ? " hero-dot--active" : ""}`}
+              style={i === slide ? { background: s.highlight, width: "2rem" } : {}}
+              onClick={() => goTo(i)}
+              aria-label={`Go to slide ${i + 1}`}
+            />
+          ))}
+        </div>
+
+        {/* progress bar */}
+        <div className="hero-progress">
+          <div className="hero-progress-bar" style={{ background: s.highlight }} key={slide} />
         </div>
       </section>
 
@@ -191,7 +307,7 @@ const HomePage = () => {
       </div>
 
       {/* ── About ── */}
-      <div className="about-band">
+      <div className="about-band" id="background">
         <div className="section">
           <div className="about-grid">
             <div>
@@ -227,7 +343,7 @@ const HomePage = () => {
       </div>
 
       {/* ── Features ── */}
-      <div className="section">
+      <div className="section" id="components">
         <div className="section-label">Programme Components</div>
         <h2 className="section-title">What the Programme Covers</h2>
         <p className="section-sub">
@@ -246,7 +362,7 @@ const HomePage = () => {
       </div>
 
       {/* ── Timeline ── */}
-      <div className="timeline-band">
+      <div className="timeline-band" id="application">
         <div className="section">
           <div className="timeline-layout">
             <div className="timeline-left">
@@ -274,39 +390,6 @@ const HomePage = () => {
               ))}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* ── Programmes ── */}
-      <div className="section">
-        <div className="courses-header">
-          <div>
-            <div className="section-label">Available Pathways</div>
-            <h2 className="section-title" style={{ marginBottom: 0 }}>Choose Your Track</h2>
-          </div>
-          <button className="btn-outline" style={{ whiteSpace: "nowrap" }}>
-            View Full Programme Guide →
-          </button>
-        </div>
-        <div className="courses-grid">
-          {PROGRAMMES.map((c) => (
-            <div key={c.name} className="course-card">
-              <div className="course-thumb">
-                <img src={c.img} alt={c.name} className="course-thumb-img" />
-                <div className="course-thumb-overlay">
-                  <span className="course-code-badge">{c.code}</span>
-                </div>
-              </div>
-              <div className="course-body">
-                <div className="course-cat" style={{ color: c.accent }}>{c.cat}</div>
-                <div className="course-name">{c.name}</div>
-                <div className="course-meta">{c.meta}</div>
-                <div className="course-footer">
-                  <span className="course-tag">{c.tag}</span>
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -369,7 +452,7 @@ const HomePage = () => {
             </div>
             <div style={{ display: "flex", gap: "1.2rem" }}>
               {["Privacy Policy", "Terms of Use", "Sitemap"].map((l) => (
-                <div key={l} className="footer-copy" style={{ cursor: "pointer", color: "#94A3B8" }}>{l}</div>
+                <div key={l} className="footer-copy" style={{ cursor: "pointer", color: "#64748b" }}>{l}</div>
               ))}
             </div>
           </div>

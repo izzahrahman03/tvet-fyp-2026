@@ -36,12 +36,12 @@ function Toast({ msg, kind, onClose }) {
       background: s.bg, border: `1px solid ${s.border}`, color: s.color,
       borderRadius: "12px", padding: "14px 18px",
       display: "flex", alignItems: "center", gap: "10px",
-      fontSize: "13.5px", fontWeight: "600",
+      fontSize: "15.5px", fontWeight: "600",
       boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
       animation: "slideIn 0.3s ease",
       maxWidth: "340px",
     }}>
-      <span style={{ fontSize: "16px" }}>{s.icon}</span>
+      <span style={{ fontSize: "18px" }}>{s.icon}</span>
       <span style={{ flex: 1 }}>{msg}</span>
       <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", fontSize: "16px", lineHeight: 1, padding: 0, opacity: 0.6 }}>×</button>
     </div>
@@ -52,12 +52,12 @@ function Toast({ msg, kind, onClose }) {
 function Field({ label, hint, error, children }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-      <label style={{ fontSize: "12.5px", fontWeight: "700", color: "#374151", letterSpacing: "0.02em" }}>
+      <label style={{ fontSize: "14.5px", fontWeight: "700", color: "#374151", letterSpacing: "0.02em" }}>
         {label}
       </label>
       {children}
-      {hint  && !error && <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>{hint}</span>}
-      {error && <span style={{ fontSize: "11.5px", color: "#ef4444", fontWeight: "600" }}>{error}</span>}
+      {hint  && !error && <span style={{ fontSize: "13.5px", color: "#94a3b8" }}>{hint}</span>}
+      {error && <span style={{ fontSize: "13.5px", color: "#ef4444", fontWeight: "600" }}>{error}</span>}
     </div>
   );
 }
@@ -78,7 +78,7 @@ function Input({ icon, rightEl, error, ...props }) {
       {icon && <span style={{ color: "#94a3b8", flexShrink: 0, display: "flex" }}>{icon}</span>}
       <input style={{
         flex: 1, border: "none", outline: "none", background: "none",
-        padding: "11px 0", fontSize: "14px", color: "#1e293b", fontFamily: "inherit",
+        padding: "11px 0", fontSize: "16px", color: "#1e293b", fontFamily: "inherit",
       }} {...props} />
       {rightEl}
     </div>
@@ -94,8 +94,8 @@ function Card({ title, subtitle, children }) {
       border: "1px solid #f1f5f9",
     }}>
       <div style={{ padding: "22px 28px 18px", borderBottom: "1px solid #f8fafc" }}>
-        <h2 style={{ fontSize: "15px", fontWeight: "800", color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>{title}</h2>
-        {subtitle && <p style={{ fontSize: "12.5px", color: "#94a3b8", marginTop: "3px", marginBottom: 0 }}>{subtitle}</p>}
+        <h2 style={{ fontSize: "17px", fontWeight: "800", color: "#0f172a", margin: 0, letterSpacing: "-0.3px" }}>{title}</h2>
+        {subtitle && <p style={{ fontSize: "14.5px", color: "#94a3b8", marginTop: "3px", marginBottom: 0 }}>{subtitle}</p>}
       </div>
       <div style={{ padding: "24px 28px" }}>
         {children}
@@ -236,7 +236,7 @@ export default function UpdateProfile() {
         .profile-section { animation: fadeUp 0.4s ease both; }
         .profile-section:nth-child(2) { animation-delay: 0.08s; }
         .profile-section:nth-child(3) { animation-delay: 0.16s; }
-        .save-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(26,86,219,0.4) !important; }
+        .save-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: none; }
         .save-btn:active:not(:disabled) { transform: translateY(0); }
       `}</style>
 
@@ -279,12 +279,24 @@ export default function UpdateProfile() {
                   />
                 </Field>
 
+                <Field label="Role">
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: "9px",
+                    border: "1.5px solid #e2e8f0", borderRadius: "10px",
+                    padding: "11px 13px", background: "#f1f5f9", // greyed out
+                    fontSize: "16px", color: "#64748b",           // muted color
+                    cursor: "not-allowed",
+                  }}>
+                    {roleLabels[userRole] || userRole}
+                  </div>
+                </Field>
+
                 <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "4px" }}>
                   <button className="save-btn" onClick={handleSaveProfile} disabled={savingProfile}
                     style={{
-                      background: "linear-gradient(135deg, #1a56db, #3b82f6)",
-                      color: "white", border: "none", borderRadius: "10px",
-                      padding: "11px 24px", fontSize: "14px", fontWeight: "700",
+                      background: "#1b3a6b",
+                      color: "white", border: "none", borderRadius: "2px",
+                      padding: "11px 24px", fontSize: "16px", fontWeight: "700",
                       cursor: savingProfile ? "not-allowed" : "pointer",
                       opacity: savingProfile ? 0.7 : 1,
                       display: "flex", alignItems: "center", gap: "7px",
@@ -352,8 +364,8 @@ export default function UpdateProfile() {
                   {newPw && (
                     <div style={{ marginTop: "8px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
-                        <span style={{ fontSize: "11.5px", color: "#94a3b8" }}>Password strength</span>
-                        <span style={{ fontSize: "11.5px", fontWeight: "700", color: STRENGTH_COLORS[strength] }}>
+                        <span style={{ fontSize: "13.5px", color: "#94a3b8" }}>Password strength</span>
+                        <span style={{ fontSize: "13.5px", fontWeight: "700", color: STRENGTH_COLORS[strength] }}>
                           {STRENGTH_LABELS[strength]}
                         </span>
                       </div>
@@ -367,7 +379,7 @@ export default function UpdateProfile() {
                   {newPw && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "8px" }}>
                       {requirements.map((r) => (
-                        <div key={r.label} style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12px", color: r.met ? "#10b981" : "#94a3b8", fontWeight: r.met ? "600" : "400", transition: "color 0.2s" }}>
+                        <div key={r.label} style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "14.5px", color: r.met ? "#10b981" : "#94a3b8", fontWeight: r.met ? "600" : "400", transition: "color 0.2s" }}>
                           <span style={{ width: "14px", textAlign: "center" }}>{r.met ? "✓" : "·"}</span>
                           {r.label}
                         </div>
@@ -391,13 +403,13 @@ export default function UpdateProfile() {
                     }
                     rightEl={<EyeBtn show={showConf} onToggle={() => setShowConf(v => !v)} />}
                   />
-                  {pwMismatch && <span style={{ fontSize: "11.5px", color: "#ef4444", fontWeight: "600" }}>✕ Passwords do not match</span>}
-                  {pwMatch    && <span style={{ fontSize: "11.5px", color: "#10b981", fontWeight: "600" }}>✓ Passwords match</span>}
+                  {pwMismatch && <span style={{ fontSize: "13.5px", color: "#ef4444", fontWeight: "600" }}>✕ Passwords do not match</span>}
+                  {pwMatch    && <span style={{ fontSize: "13.5px", color: "#10b981", fontWeight: "600" }}>✓ Passwords match</span>}
                 </Field>
 
                 {/* Error */}
                 {pwErr && (
-                  <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "9px", padding: "10px 14px", fontSize: "13px", color: "#b91c1c", fontWeight: "500" }}>
+                  <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "9px", padding: "10px 14px", fontSize: "15px", color: "#b91c1c", fontWeight: "500" }}>
                     {pwErr}
                   </div>
                 )}
@@ -406,9 +418,9 @@ export default function UpdateProfile() {
                   <button className="save-btn" onClick={handleSavePassword}
                     disabled={savingPw || pwMismatch || !currentPw || !newPw || !confirmPw || !requirements.every(r => r.met)}
                     style={{
-                      background: "linear-gradient(135deg, #1a56db, #3b82f6)",
-                      color: "white", border: "none", borderRadius: "10px",
-                      padding: "11px 24px", fontSize: "14px", fontWeight: "700",
+                      background: "#1b3a6b",
+                      color: "white", border: "none", borderRadius: "2px",
+                      padding: "11px 24px", fontSize: "16px", fontWeight: "700",
                       cursor: (savingPw || pwMismatch || !currentPw || !newPw || !confirmPw) ? "not-allowed" : "pointer",
                       opacity: (savingPw || pwMismatch || !currentPw || !newPw || !confirmPw || !requirements.every(r => r.met)) ? 0.55 : 1,
                       display: "flex", alignItems: "center", gap: "7px",

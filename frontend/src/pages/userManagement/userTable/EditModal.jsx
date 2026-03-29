@@ -26,9 +26,12 @@ export default function EditModal({ row, type, onClose, onSave }) {
     application:         ["status"],
   }[type] || ["name", "email", "status"];
 
+  // ── Status options ──────────────────────────────────────
+  // 'pending' has been replaced by 'draft' (for pre-submission)
+  // and 'under_review' (for submitted). Admins manage the
+  // under_review → onward pipeline only.
   const statusOptions = type === "application"
     ? [
-        { value: "pending",            label: "Pending" },
         { value: "under_review",       label: "Under Review" },
         { value: "interview",          label: "Interview" },
         { value: "rejected_review",    label: "Rejected (Review)" },
@@ -44,7 +47,6 @@ export default function EditModal({ row, type, onClose, onSave }) {
   const isInterview = form.status === "interview";
 
   const handleSave = async () => {
-    // ── Validation ────────────────────────────────────────────
     if (type !== "applicant" && type !== "application" && !form.name?.trim())
       return setError("Name is required.");
     if (type !== "applicant" && type !== "application" && !form.email?.trim())
@@ -61,7 +63,6 @@ export default function EditModal({ row, type, onClose, onSave }) {
 
     try {
       if (type === "application") {
-        // ── Call the correct applications endpoint ────────────
         await updateApplicationStatus(row.id, {
           status: form.status,
           ...(isInterview && {
@@ -72,10 +73,6 @@ export default function EditModal({ row, type, onClose, onSave }) {
           }),
         });
 
-        // ── FIX: controller only returns { message }, not a row.
-        //         Always build the updated row from the original row
-        //         merged with whatever changed in the form, so the
-        //         table updates correctly without showing "undefined".
         onSave({
           ...row,
           status: form.status,
@@ -88,7 +85,6 @@ export default function EditModal({ row, type, onClose, onSave }) {
         });
 
       } else {
-        // ── All other user roles ──────────────────────────────
         const payload = { ...form };
         if (!isInterview) {
           delete payload.interview_datetime;
@@ -99,10 +95,7 @@ export default function EditModal({ row, type, onClose, onSave }) {
         delete payload.education;
         delete payload.skills;
 
-        // updateUser returns { user: { ... } } — the controller sends
-        // back the updated row, so we can use it directly if present,
-        // otherwise fall back to the merged form data.
-        const result  = await updateUser(type, row.id, payload);
+        const result = await updateUser(type, row.id, payload);
         onSave(result ?? { ...row, ...form });
       }
 
@@ -171,6 +164,17 @@ export default function EditModal({ row, type, onClose, onSave }) {
                 <label>Remarks</label>
                 <textarea className="form-input" value={form.remarks || ""} onChange={set("remarks")} placeholder="Any additional notes for the applicant…" rows={3} style={{ resize: "vertical" }} />
               </div>
+            </div>
+          )}
+
+          {/* Show preferred slot info for context — read-only */}
+          {type === "application" && row.preferred_slot_label && (
+            <div style={{
+              marginTop: "8px", padding: "12px 14px",
+              background: "#f0f9ff", border: "1px solid #bae6fd",
+              borderRadius: "8px", fontSize: "13px", color: "#0c4a6e",
+            }}>
+              <strong>Applicant's preferred slot:</strong> {row.preferred_slot_label}
             </div>
           )}
 

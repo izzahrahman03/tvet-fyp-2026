@@ -106,3 +106,32 @@ export const fetchApplicationById = async (id) => {
   const data = await apiFetch(`/admin/applications/${id}`);
   return data.application;  // GET /admin/applications/:id
 };
+
+// ══════════════════════════════════════════════════════════
+// INTAKES  — add these to adminApi.js
+// ══════════════════════════════════════════════════════════
+
+export const fetchIntakes = async () => {
+  const data = await apiFetch("/admin/intakes");
+  return data.intakes || [];
+};
+
+export const createIntake = async (payload) => {
+  const data = await apiFetch("/admin/intakes", {
+    method: "POST",
+    body:   JSON.stringify(payload),
+  });
+  return data.intake;
+};
+
+export const updateIntake = async (id, payload) => {
+  const data = await apiFetch(`/admin/intakes/${id}`, {
+    method: "PUT",
+    body:   JSON.stringify(payload),
+  });
+  return data.intake;
+};
+
+export const deleteIntake = async (id) => {
+  return apiFetch(`/admin/intakes/${id}`, { method: "DELETE" });
+};

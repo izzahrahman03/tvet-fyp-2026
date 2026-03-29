@@ -81,19 +81,43 @@ exports.listUsers = async (req, res) => {
         }
         sql += ' ORDER BY u.created_at DESC';
 
-      } else {
+      } else if (role === 'student') {
         sql = `
-          SELECT user_id AS id, name, email, active_status AS status, created_at AS date
-          FROM users WHERE role = ?
+          SELECT
+            u.user_id        AS id,
+            u.name,
+            u.email,
+            u.active_status  AS status,
+            u.created_at     AS date,
+            s.matric_number,
+            a.phone,
+            i.intake_name
+          FROM users u
+          LEFT JOIN students     s  ON s.user_id        = u.user_id
+          LEFT JOIN applications a  ON a.application_id = s.application_id
+          LEFT JOIN intakes      i  ON i.intake_id      = s.intake_id
+          WHERE u.role = ?
         `;
         params.push(role);
         if (search) {
-          sql += ` AND (name LIKE ? OR email LIKE ?)`;
-          params.push(`%${search}%`, `%${search}%`);
+          sql += ` AND (u.name LIKE ? OR u.email LIKE ? OR s.matric_number LIKE ?)`;
+          params.push(`%${search}%`, `%${search}%`, `%${search}%`);
         }
-        sql += ' ORDER BY created_at DESC';
-      }
+        sql += ' ORDER BY u.created_at DESC';
 
+        } else {
+          // fallback for any other role
+          sql = `
+            SELECT user_id AS id, name, email, active_status AS status, created_at AS date
+            FROM users WHERE role = ?
+          `;
+          params.push(role);
+          if (search) {
+            sql += ` AND (name LIKE ? OR email LIKE ?)`;
+            params.push(`%${search}%`, `%${search}%`);
+          }
+          sql += ' ORDER BY created_at DESC';
+        }
       const [rows] = await db.query(sql, params);
       return res.json({ users: rows });
     }

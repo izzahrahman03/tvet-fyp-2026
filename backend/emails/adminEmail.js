@@ -177,7 +177,7 @@ exports.sendBulkActivationEmail = (toEmail, toName, tempPassword, activationToke
       Dear ${toName},
     </p>
     <p style="margin:0 0 20px 0; font-size:14px; color:#444444; line-height:1.7;">
-      A <strong>${roleLabel}</strong> account has been created for you on the Vitrox Academy portal.
+      The <strong>${roleLabel}</strong> account has been created for you on the Vitrox Academy portal.
       Please use the credentials below to activate your account and set a permanent password.
     </p>
 

@@ -14,6 +14,7 @@ import ViewModal    from "./userTable/ViewModal";
 import EditModal    from "./userTable/EditModal";
 import useToast     from "./userTable/useToast";
 import { COLUMNS, COL_LABEL } from "./userTable/tableConfig";
+import "../../css/userManagement/userTable.css";
 
 export default function UserTable({ type }) {
   const [rows, setRows]               = useState([]);

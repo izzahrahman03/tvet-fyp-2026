@@ -31,8 +31,8 @@ const Login = () => {
         case "admin":                navigate("/admin-dashboard");               break;
         case "applicant":            navigate("/applicant-dashboard");           break;
         case "student":              navigate("/student-dashboard");             break;
-        case "industry_partner":     navigate("/industry-partner-dashboard");    break;
-        case "industry_supervisor":  navigate("/industry-supervisor-dashboard"); break;
+        case "industry_partner":     navigate("/partner-dashboard");    break;
+        case "industry_supervisor":  navigate("/supervisor-dashboard"); break;
         default:                     navigate("/");
       }
     } catch (err) {
@@ -75,13 +75,13 @@ const Login = () => {
           </p>
         </div>
 
-        <button className="btn-google anim-fade-up delay-1">
+        {/* <button className="btn-google anim-fade-up delay-1">
           <GoogleIcon /> Continue with Google
         </button>
 
         <div className="auth-divider anim-fade-up delay-2">
           or log in with email
-        </div>
+        </div> */}
 
         <form onSubmit={handleSubmit}>
 

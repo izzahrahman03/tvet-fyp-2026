@@ -10,6 +10,7 @@ const adminRoutes     = require('./routes/adminRoutes');
 const applicationRoutes     = require('./routes/applicationRoutes');
 const { deactivateInactiveUsers } = require('./controllers/authControllers');
 const profileRoutes     = require('./routes/profileRoutes');
+const intakeRoutes     = require('./routes/intakeRoutes');
 const { profile } = require('console');
 
 const app  = express();
@@ -38,5 +39,6 @@ app.use('/api', authRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', applicationRoutes);
 app.use('/api', profileRoutes);
+app.use('/api', intakeRoutes);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

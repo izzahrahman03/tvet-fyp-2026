@@ -3,7 +3,7 @@
    Shared: reset · fonts · animations · navbar · buttons
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&family=Roboto:wght@400;500;700&display=swap');
 
 /* ── Reset ── */
 *, *::before, *::after {
@@ -13,14 +13,12 @@
 }
 
 body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   background: #F0F6FF;
   color: #0A1628;
   min-height: 100vh;
 }
 
-/* ── Typography helper ── */
-.fraunces { font-family: 'Fraunces', serif; }
 
 /* ── Animations ── */
 @keyframes fadeUp {
@@ -75,10 +73,10 @@ body {
   display: flex;
   align-items: center;
   gap: .55rem;
-  font-family: 'Fraunces', serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 1.3rem;
   font-weight: 700;
-  color: #0A1628;
+  color: #1e293b;
   cursor: pointer;
   user-select: none;
 }
@@ -99,6 +97,7 @@ body {
 
 .nav-links {
   display: flex;
+  justify-content: flex-end;
   align-items: center;
   gap: 1.8rem;
 }
