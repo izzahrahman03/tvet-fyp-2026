@@ -1,4 +1,6 @@
 import { useState } from "react";
+import "../css/pages/login.css";
+import "../css/pages/passwordFields.css";
 
 // ── Strength helpers ──────────────────────────────────────────────────────────
 const getStrength = (pw) => {
@@ -12,7 +14,7 @@ const getStrength = (pw) => {
 const STRENGTH_LABELS = ["", "Weak", "Fair", "Good", "Strong"];
 const STRENGTH_COLORS = ["", "#ef4444", "#f59e0b", "#3b82f6", "#10b981"];
 
-const EyeIcon = ({ visible }) =>
+export const EyeIcon = ({ visible }) =>
   visible ? (
     <>
       <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
@@ -43,6 +45,7 @@ const LockIcon = () => (
  *   onConfirmChange {fn}       – setter for confirm   (receives raw string)
  *   passwordLabel   {string?}  – label override (default "Password")
  *   confirmLabel    {string?}  – label override (default "Confirm Password")
+ *   errors          {object?}  – { password?: string, confirm?: string }
  *
  * The parent is responsible for keeping `password` and `confirm` in state;
  * this component owns only the show/hide toggles.
@@ -54,9 +57,10 @@ const PasswordFields = ({
   onConfirmChange,
   passwordLabel = "Password",
   confirmLabel  = "Confirm Password",
+  errors = {},
 }) => {
-  const [showPass, setShowPass]   = useState(false);
-  const [showConf, setShowConf]   = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [showConf, setShowConf] = useState(false);
 
   const strength       = getStrength(password);
   const strengthPct    = (strength / 4) * 100;
@@ -64,9 +68,10 @@ const PasswordFields = ({
   const mismatch       = confirm && password !== confirm;
 
   const requirements = [
-    { label: "At least 8 characters",     met: password.length >= 8 },
-    { label: "One uppercase letter (A–Z)", met: /[A-Z]/.test(password) },
-    { label: "One number (0–9)",           met: /[0-9]/.test(password) },
+    { label: "At least 8 characters",              met: password.length >= 8 },
+    { label: "One uppercase letter (A–Z)",          met: /[A-Z]/.test(password) },
+    { label: "One lowercase letter (a-z)",          met: /[a-z]/.test(password) },
+    { label: "One special character (!@#$%^&*()-+)", met: /[^A-Za-z0-9]/.test(password) },
   ];
 
   return (
@@ -74,9 +79,17 @@ const PasswordFields = ({
       {/* ── Password ───────────────────────────────────────────────── */}
       <div className="form-group">
         <label className="form-label" htmlFor="pf-password">
-          {passwordLabel}
+          {passwordLabel} <span style={{ color: "red" }}>*</span>
         </label>
-        <div className="act-input-wrap">
+        <div
+          className="act-input-wrap"
+          style={{
+            borderRadius: "2px",
+            fontSize: "15px",
+            borderColor: errors.password ? "#c0392b" : undefined,
+            boxShadow: errors.password ? "0 0 0 3px rgba(192, 57, 43, 0.09)" : undefined,
+          }}
+        >
           <svg className="act-input-icon" width="15" height="15" viewBox="0 0 24 24"
             fill="none" stroke="currentColor" strokeWidth="2"
             strokeLinecap="round" strokeLinejoin="round">
@@ -84,11 +97,11 @@ const PasswordFields = ({
           </svg>
           <input
             id="pf-password"
-            type={showPass ? "text" : "password"}
             className="act-inner-input"
+            type={showPass ? "text" : "password"}
+            placeholder="Create a strong password"
             value={password}
             onChange={(e) => onPasswordChange(e.target.value)}
-            placeholder="Create a strong password"
             autoComplete="new-password"
           />
           <button
@@ -105,7 +118,7 @@ const PasswordFields = ({
           </button>
         </div>
 
-        {/* Strength bar */}
+        {/* Strength bar — only show when user is typing */}
         {password && (
           <div className="act-strength-wrap">
             <div className="act-strength-row">
@@ -126,21 +139,29 @@ const PasswordFields = ({
             </div>
           </div>
         )}
+
+        {/* Field-level error */}
+        {errors.password && <p className="auth-field-error">{errors.password}</p>}
       </div>
 
       {/* ── Confirm Password ───────────────────────────────────────── */}
       <div className="form-group">
         <label className="form-label" htmlFor="pf-confirm">
-          {confirmLabel}
+          {confirmLabel} <span style={{ color: "red" }}>*</span>
         </label>
         <div
           className="act-input-wrap"
           style={{
-            borderColor: mismatch
+            borderRadius: "0px",
+            fontSize: "15px",
+            borderColor: errors.confirm
+              ? "#c0392b"
+              : mismatch
               ? "#ef4444"
               : passwordsMatch
               ? "#10b981"
               : undefined,
+            boxShadow: errors.confirm ? "0 0 0 3px rgba(192, 57, 43, 0.09)" : undefined,
           }}
         >
           <svg className="act-input-icon" width="15" height="15" viewBox="0 0 24 24"
@@ -152,6 +173,7 @@ const PasswordFields = ({
             id="pf-confirm"
             type={showConf ? "text" : "password"}
             className="act-inner-input"
+            style={{ fontSize: "15px" }}
             value={confirm}
             onChange={(e) => onConfirmChange(e.target.value)}
             placeholder="Re-enter your password"
@@ -170,8 +192,13 @@ const PasswordFields = ({
             </svg>
           </button>
         </div>
-        {mismatch       && <span className="act-hint error">Passwords do not match</span>}
-        {passwordsMatch && <span className="act-hint success">Passwords match ✓</span>}
+
+        {/* Match / mismatch hints */}
+        {mismatch       && !errors.confirm && <span className="act-hint error">Passwords do not match</span>}
+        {passwordsMatch && !errors.confirm && <span className="act-hint success">Passwords match</span>}
+
+        {/* Field-level error */}
+        {errors.confirm && <p className="auth-field-error">{errors.confirm}</p>}
       </div>
 
       {/* ── Requirements checklist ─────────────────────────────────── */}

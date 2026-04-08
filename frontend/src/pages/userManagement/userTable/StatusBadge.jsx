@@ -1,38 +1,55 @@
 // components/userTable/StatusBadge.jsx
 
 export const STATUS_STYLES = {
-  active:              { bg: "#dcfce7", color: "#16a34a", dot: "#22c55e" },
-  inactive:            { bg: "#fee2e2", color: "#dc2626", dot: "#ef4444" },
-  approved:            { bg: "#dcfce7", color: "#16a34a", dot: "#22c55e" },
-  accepted:            { bg: "#dcfce7", color: "#16a34a", dot: "#22c55e" },
-  pending:             { bg: "#fef9c3", color: "#ca8a04", dot: "#eab308" },
-  under_review:        { bg: "#eff6ff", color: "#1d4ed8", dot: "#3b82f6" },
-  interview:           { bg: "#f3e8ff", color: "#7c3aed", dot: "#8b5cf6" },
-  rejected_review:     { bg: "#fee2e2", color: "#dc2626", dot: "#ef4444" },
-  rejected_interview:  { bg: "#fee2e2", color: "#dc2626", dot: "#ef4444" },
-  withdraw:            { bg: "#f1f5f9", color: "#64748b", dot: "#94a3b8" },
+  draft:               { bg: "#f1f5f9", color: "#475569" },
+  submitted:           { bg: "#dbeafe", color: "#1e40af" },
+  attended:            { bg: "#e0f2fe", color: "#075985" },
+  absent:              { bg: "#ffedd5", color: "#9a3412" },
+  passed:              { bg: "#dcfce7", color: "#166534" },
+  failed:              { bg: "#fee2e2", color: "#991b1b" },
+  accepted:            { bg: "#dcfce7", color: "#166534" },
+  declined:            { bg: "#fee2e2", color: "#991b1b" },
+  // ── User account ─────────────────────────────────────────
+  active:              { bg: "#dcfce7", color: "#166534" },
+  inactive:            { bg: "#f1f5f9", color: "#64748b" },
+  // ── Vacancy ──────────────────────────────────────────────
+  open:                { bg: "#dcfce7", color: "#166534" },
+  closed:              { bg: "#f1f5f9", color: "#64748b" },
+  // ── Internship application ────────────────────────────────
+  pending:             { bg: "#eff6ff", color: "#1d4ed8" },
+  interview:           { bg: "#f5f3ff", color: "#6d28d9" },
+  withdrawn:           { bg: "#f8fafc", color: "#64748b" },
+  withdrawn_requested: { bg: "#fff7ed", color: "#c2410c" },
 };
 
 export const STATUS_LABEL = {
-  active:             "Active",
-  inactive:           "Inactive",
-  approved:           "Approved",
-  accepted:           "Accepted",
-  pending:            "Pending",
-  under_review:       "Under Review",
-  interview:          "Interview",
-  rejected_review:    "Rejected (Review)",
-  rejected_interview: "Rejected (Interview)",
-  withdraw:           "Withdrawn",
+  draft:               "Draft",
+  submitted:           "Submitted",
+  attended:            "Attended",
+  absent:              "Absent",
+  passed:              "Passed",
+  failed:              "Failed",
+  accepted:            "Accepted",
+  declined:            "Declined",
+  // ── User account ─────────────────────────────────────────
+  active:              "Active",
+  inactive:            "Inactive",
+  // ── Vacancy ──────────────────────────────────────────────
+  open:                "Open",
+  closed:              "Closed",
+  // ── Internship application ────────────────────────────────
+  pending:             "Pending",
+  interview:           "Interview",
+  withdrawn:           "Withdrawn",
+  withdrawn_requested: "Withdraw Requested",
 };
 
 export default function StatusBadge({ status }) {
   const key   = (status || "").toLowerCase();
-  const s     = STATUS_STYLES[key] || { bg: "#f1f5f9", color: "#64748b", dot: "#94a3b8" };
-  const label = STATUS_LABEL[key] || (status ?? "—");
+  const s     = STATUS_STYLES[key] || { bg: "#f1f5f9", color: "#64748b" };
+  const label = STATUS_LABEL[key]  || (status ?? "—");
   return (
-    <span className="status-badge" style={{ background: s.bg, color: s.color }}>
-      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
+    <span className="ut-status-badge" style={{ background: s.bg, color: s.color }}>
       {label}
     </span>
   );

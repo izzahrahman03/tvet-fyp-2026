@@ -1,6 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
 
-// ── Nav items — edit here to add/remove pages ──────────────
 export const NAV_ITEMS = [
   {
     label: "Dashboard",
@@ -26,35 +25,39 @@ export const NAV_ITEMS = [
   },
 ];
 
-// ── Vitrox logo ────────────────────────────────────────────
-function VitroxLogo() {
+function HamburgerIcon() {
   return (
-    <div className="db-logo" style={{ display: "flex", alignItems: "center" }}>
-      <img 
-          src="https://learn.vitrox.academy/pluginfile.php/1/theme_edumy/headerlogo_mobile/1663920908/Vitrox%20Academy%20Logo%20FINAL-20%20MAY%202020-high%20res%20%281%29.png" 
-          alt="ViTrox Academy" 
-          className="nav-logo-img"></img>
-          <span className="db-logo-text">ViTrox Academy</span>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" y1="6"  x2="21" y2="6"  />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  );
+}
+
+function VitroxLogo({ isOpen }) {
+  return (
+    <div className="db-logo">
+      <img
+        src="https://learn.vitrox.academy/pluginfile.php/1/theme_edumy/headerlogo_mobile/1663920908/Vitrox%20Academy%20Logo%20FINAL-20%20MAY%202020-high%20res%20%281%29.png"
+        alt="ViTrox Academy"
+        className="nav-logo-img"
+      />
+      {isOpen && <span className="db-logo-text">ViTrox Academy</span>}
     </div>
   );
 }
 
-// ══════════════════════════════════════════════════════════
-// ApplicantSidebar
-// Props:
-//   isOpen  — boolean   (mobile drawer open state)
-//   onClose — function  (called when overlay is clicked)
-// ══════════════════════════════════════════════════════════
-export default function ApplicantSidebar({ isOpen, onClose }) {
+export default function ApplicantSidebar({ isOpen, onClose, onToggle }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Active item = whichever nav path matches current URL
   const activeId = NAV_ITEMS.find((item) => location.pathname === item.path)?.id ?? "dashboard";
 
   const handleNav = (item) => {
     navigate(item.path);
-    onClose?.();
+    if (window.innerWidth < 769) onClose?.();
   };
 
   const handleSignOut = () => {
@@ -64,39 +67,44 @@ export default function ApplicantSidebar({ isOpen, onClose }) {
 
   return (
     <>
-      {/* Mobile backdrop */}
+      {/* Mobile overlay */}
       <div
         className={`db-overlay ${isOpen ? "visible" : ""}`}
         onClick={onClose}
       />
 
-      <aside className={`db-sidebar ${isOpen ? "open" : ""}`}>
-        {/* Logo */}
-        <VitroxLogo />
+      <aside className={`db-sidebar ${isOpen ? "open" : "closed"}`}>
 
-        {/* Nav */}
+        {/* Toggle button — always visible */}
+        <button className="db-sidebar-toggle" onClick={onToggle} aria-label="Toggle sidebar">
+          <HamburgerIcon />
+        </button>
+
+        <VitroxLogo isOpen={isOpen} />
+
         <nav className="db-nav">
           {NAV_ITEMS.map((item) => (
             <button
               key={item.id}
               className={`db-nav-btn ${activeId === item.id ? "active" : ""}`}
               onClick={() => handleNav(item)}
+              title={!isOpen ? item.label : undefined}
             >
               <span className="db-nav-icon">{item.icon}</span>
-              {item.label}
+              {isOpen && <span className="db-nav-label">{item.label}</span>}
             </button>
           ))}
         </nav>
 
-        {/* Sign out */}
-        <button className="db-signout-btn" onClick={handleSignOut}>
+        <button className="db-signout-btn" onClick={handleSignOut} title={!isOpen ? "Sign Out" : undefined}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
           </svg>
-          Sign Out
+          {isOpen && <span>Sign Out</span>}
         </button>
+
       </aside>
     </>
   );

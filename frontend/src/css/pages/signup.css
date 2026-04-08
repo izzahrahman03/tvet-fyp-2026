@@ -88,7 +88,7 @@
 .strength-seg {
   height: 3px;
   flex: 1;
-  border-radius: 3px;
+  border-radius: 0px;
   background: #DBEAFE;
   transition: background .3s;
 }

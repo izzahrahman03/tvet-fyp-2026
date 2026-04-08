@@ -130,7 +130,6 @@ exports.login = async (req, res) => {
     // user enumeration (attacker cannot tell whether the email exists)
     if (rows.length === 0)
       return res.status(401).json({ message: 'Invalid email or password.' });
-
     const user = rows[0];
 
     // FIX: added 'suspended' status check alongside 'inactive'
@@ -145,7 +144,16 @@ exports.login = async (req, res) => {
     const token = jwt.sign({ id: user.user_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     await db.query('UPDATE users SET last_login = NOW() WHERE user_id = ?', [user.user_id]);
 
-    res.json({ message: 'Login successful', token, name: user.name, email: user.email, role: user.role });
+    let matricNumber = "";
+    if (user.role === "student") {
+      const [rows] = await db.query(
+        "SELECT matric_number FROM students WHERE user_id = ?",
+        [user.user_id]
+      );
+      matricNumber = rows[0]?.matric_number || "";
+    }
+
+    res.json({ message: 'Login successful', token, name: user.name, email: user.email, role: user.role, matricNumber });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Something went wrong. Please try again.' });

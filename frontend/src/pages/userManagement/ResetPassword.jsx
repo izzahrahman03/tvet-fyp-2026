@@ -20,7 +20,7 @@ export default function ResetPassword() {
 
   const passwordsMatch = newPass && confirm && newPass === confirm;
   const mismatch       = confirm.length > 0 && newPass !== confirm;
-  const reqMet         = getStrength(newPass) >= 3;
+  const reqMet         = getStrength(newPass) >= 4;
 
   useEffect(() => {
     if (!token) { setTokenValid(false); return; }

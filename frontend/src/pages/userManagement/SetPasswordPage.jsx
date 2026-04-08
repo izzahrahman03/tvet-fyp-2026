@@ -16,6 +16,7 @@ const SetPasswordPage = () => {
   const [confirm,  setConfirm]  = useState("");
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState("");
+  const [errors,   setErrors]   = useState({});
   const [success,  setSuccess]  = useState(false);
 
   useEffect(() => {
@@ -27,10 +28,13 @@ const SetPasswordPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!newPass || !confirm)  { setError("Please fill in both fields."); return; }
-    if (newPass !== confirm)   { setError("Passwords do not match."); return; }
-    if (getStrength(newPass) < 2) { setError("Please choose a stronger password."); return; }
-
+    const errs = {};
+    if (!newPass)  errs.newPass  = "Please enter a new password.";
+    if (!confirm)  errs.confirm  = "Please confirm your password.";
+    if (Object.keys(errs).length > 0) { setErrors(errs); setError(""); return; }
+    setErrors({});
+    if (newPass !== confirm)   { setErrors({ confirm: "Passwords do not match." }); return; }
+    if (getStrength(newPass) < 4) { setError("Please choose a stronger password."); return; }
     setError("");
     setLoading(true);
     try {
@@ -155,12 +159,14 @@ const SetPasswordPage = () => {
           {/* ── Shared password + confirm + requirements ── */}
           <PasswordFields
             password={newPass}
-            onPasswordChange={setNew}
+            onPasswordChange={(val) => { setNew(val); setErrors(prev => ({ ...prev, newPass: "" })); }}
             confirm={confirm}
-            onConfirmChange={setConfirm}
+            onConfirmChange={(val) => { setConfirm(val); setErrors(prev => ({ ...prev, confirm: "" })); }}
             passwordLabel="New Password"
             confirmLabel="Confirm New Password"
           />
+          {errors.newPass && <p className="auth-field-error" style={{ marginTop: '-0.6rem', marginBottom: '0.8rem' }}>{errors.newPass}</p>}
+          {errors.confirm && <p className="auth-field-error" style={{ marginTop: '-0.6rem', marginBottom: '0.8rem' }}>{errors.confirm}</p>}
 
           <button
             type="submit"

@@ -1,24 +1,19 @@
 const express = require('express');
 const router  = express.Router();
 
-const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
+const { verifyToken, requireAdminOrManager } = require('../middleware/authMiddleware');
 const applicationControllers        = require('../controllers/applicationControllers');
 
-// ── Applicant: submit / update application ────────────────
 router.post('/application-form', verifyToken, applicationControllers.uploadMiddleware, applicationControllers.submitApplication);
-
-// ── Applicant: my application ─────────────────────────────
 router.get ('/my-application',          verifyToken, applicationControllers.getMyApplication);
 router.post('/my-application/accept',   verifyToken, applicationControllers.acceptOffer);
-router.post('/my-application/withdraw', verifyToken, applicationControllers.withdrawOffer);
+router.post('/my-application/decline', verifyToken, applicationControllers.declineOffer);
+router.get ('/interview-slots',         verifyToken, applicationControllers.listInterviewSlots);
 
-// ── Admin: applications ───────────────────────────────────
-router.get   ('/admin/applications',            verifyToken, requireAdmin, applicationControllers.adminListApplications);
-router.get   ('/admin/applications/:id',        verifyToken, requireAdmin, applicationControllers.adminGetApplication);
-router.put   ('/admin/applications/:id/status', verifyToken, requireAdmin, applicationControllers.adminUpdateStatus);
-router.delete('/admin/applications/:id',        verifyToken, requireAdmin, applicationControllers.adminDeleteApplication);
-// ── FIX: DELETE route was missing entirely — the frontend's deleteApplication()
-//         was calling DELETE /admin/applications/:id with no handler on the
-//         backend, causing every delete action to fail.
+router.get   ('/applications',            verifyToken, requireAdminOrManager, applicationControllers.listApplications);
+router.get   ('/applications/:id',        verifyToken, requireAdminOrManager, applicationControllers.getApplication);
+router.put   ('/applications/:id/status', verifyToken, requireAdminOrManager, applicationControllers.updateApplicationStatus);
+router.delete('/applications/:id',        verifyToken, requireAdminOrManager, applicationControllers.deleteApplication);
+
 
 module.exports = router;

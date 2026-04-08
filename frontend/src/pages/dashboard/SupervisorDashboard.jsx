@@ -20,7 +20,7 @@ export default function SupervisorDashboard() {
           {/* ── Welcome banner ── */}
           <div style={{
             background: "#1b3a6b",
-            borderRadius: "16px", padding: "28px 32px", marginBottom: "28px",
+            borderRadius: "5px", padding: "28px 32px", marginBottom: "28px",
           }}>
             <h1 style={{ color: "white", fontSize: "22px", fontWeight: "700", margin: 0 }}>
               Welcome back, {userName}

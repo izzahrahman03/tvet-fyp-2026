@@ -152,17 +152,12 @@ export default function ForgotPassword() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={() => setTouched(true)}
-                placeholder="your@email.com"
+                placeholder="Email Address"
                 autoComplete="email"
                 autoFocus
               />
-              {touched && (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={emailValid ? '#10b981' : '#ef4444'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  {emailValid ? <polyline points="20 6 9 17 4 12"/> : <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>}
-                </svg>
-              )}
             </div>
-            {showError && <span className="act-hint error">Please enter a valid email address.</span>}
+            {showError && <p className="auth-field-error">Please enter a valid email address.</p>}
           </div>
 
           <button type="submit" className="btn-act" disabled={loading}>

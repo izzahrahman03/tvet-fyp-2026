@@ -15,6 +15,7 @@ const ActivationPage = () => {
   const [showPass, setShow]   = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
+  const [errors, setErrors]   = useState({});
 
   useEffect(() => {
     if (!token) setError("Invalid activation link. Please check your email.");
@@ -22,7 +23,11 @@ const ActivationPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !tempPass) { setError("Please fill in both fields."); return; }
+    const errs = {};
+    if (!email)   errs.email   = "Please enter your email address.";
+    if (!tempPass) errs.tempPass = "Please enter your temporary password.";
+    if (Object.keys(errs).length > 0) { setErrors(errs); setError(""); return; }
+    setErrors({});
     setError("");
     setLoading(true);
     try {
@@ -131,12 +136,13 @@ const ActivationPage = () => {
                 type="email"
                 className="act-inner-input"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setErrors(prev => ({ ...prev, email: "" })); }}
                 placeholder="your@email.com"
                 autoComplete="email"
                 autoFocus
               />
             </div>
+            {errors.email && <p className="auth-field-error">{errors.email}</p>}
           </div>
 
           <div className="form-group">
@@ -150,7 +156,7 @@ const ActivationPage = () => {
                 type={showPass ? "text" : "password"}
                 className="act-inner-input"
                 value={tempPass}
-                onChange={(e) => setTemp(e.target.value)}
+                onChange={(e) => { setTemp(e.target.value); setErrors(prev => ({ ...prev, tempPass: "" })); }}
                 placeholder="From your activation email"
                 autoComplete="off"
               />
@@ -163,6 +169,7 @@ const ActivationPage = () => {
                 </svg>
               </button>
             </div>
+            {errors.tempPass && <p className="auth-field-error">{errors.tempPass}</p>}
           </div>
 
           <button type="submit" className="btn-act" disabled={loading || !token}>

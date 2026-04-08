@@ -131,13 +131,16 @@
 /* Form grid */
 .af-form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 18px 24px;
 }
 
 .af-col-full { grid-column: 1 / -1; }
 
-.af-field { display: flex; flex-direction: column; }
+.af-field { 
+  display: flex; 
+  flex-direction: column; 
+}
 
 .af-label {
   font-size: 15px;
@@ -487,8 +490,9 @@
 
 .af-toast {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
   padding: 12px 18px;
   border-radius: 2px;
   font-size: 15px;
@@ -500,7 +504,9 @@
   gap: 10px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.18);
   animation: af-toast-in 0.2s ease;
-  max-width: 340px;
+  min-width: 380px;
+  max-width: 560px;
+  justify-content: center;
 }
 
 .af-toast.success { background: #1a6b3a; }
@@ -508,8 +514,8 @@
 .af-toast.info    { background: #1b3a6b; }
 
 @keyframes af-toast-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -590,17 +596,131 @@
 }
 
 /* ══════════════════════════════════════════════════════════
+   SAVE DRAFT BUTTON
+   Sits between Back and Next in the form footer.
+══════════════════════════════════════════════════════════ */
+.af-btn-save {
+  padding: 9px 22px;
+  background: white;
+  color: #1a6b3a;
+  border: 1.5px solid #1a6b3a;
+  border-radius: 2px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background 0.15s, border-color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+ 
+.af-btn-save:hover:not(:disabled) { background: #edfaf3; }
+.af-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+ 
+/* Green spinner variant — used inside Save Draft while saving */
+.af-spinner-green {
+  border-color: rgba(26, 107, 58, 0.25);
+  border-top-color: #1a6b3a;
+}
+ 
+ 
+/* ══════════════════════════════════════════════════════════
+   INTERVIEW SLOT GRID  (Step 3)
+══════════════════════════════════════════════════════════ */
+.af-slot-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+ 
+.af-slot-card {
+  position: relative;
+  border: 2px solid #c8d5e8;
+  border-radius: 2px;
+  padding: 18px 16px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, opacity 0.15s;
+  background: white;
+  user-select: none;
+  flex: 1 1 100%;
+}
+ 
+.af-slot-card:hover:not(.full):not(.selected) {
+  border-color: #1b3a6b;
+  background: #f4f7fb;
+}
+ 
+.af-slot-card.selected {
+  border-color: #1b3a6b;
+  background: #eff6ff;
+}
+ 
+.af-slot-card.full {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+ 
+/* Date text inside slot card */
+.af-slot-card-date {
+  font-size: 15px;
+  font-weight: 800;
+  color: #1b3a6b;
+  margin-bottom: 5px;
+  line-height: 1.35;
+}
+ 
+/* Time text inside slot card */
+.af-slot-card-time {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  color: #5a6f8a;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+ 
+/* Availability text inside slot card */
+.af-slot-card-avail {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a6b3a;
+}
+ 
+.af-slot-card-avail-full { color: #c0392b; }
+ 
+/* Top-right badge on slot cards */
+.af-slot-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+ 
+.af-slot-badge-selected { background: #dbeafe; color: #1e40af; }
+.af-slot-badge-full     { background: #fee2e2; color: #c0392b; }
+ 
+ 
+/* ══════════════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════════════ */
-@media (max-width: 768px) {
-  .af-sidebar  { display: none; }
-  .af-content  { padding: 18px 16px; }
-  .af-form-grid { grid-template-columns: 1fr; }
-  .af-col-full  { grid-column: 1; }
-  .af-topbar    { padding: 0 16px; }
-}
-
 @media (max-width: 560px) {
-  .af-form-footer { flex-direction: column-reverse; }
-  .af-btn-back, .af-btn-next { width: 100%; justify-content: center; }
+  .af-slot-grid { grid-template-columns: 1fr 1fr; }
+  .af-btn-save  { width: 100%; justify-content: center; }
+}
+ 
+@media (max-width: 380px) {
+  .af-slot-grid { grid-template-columns: 1fr; }
 }

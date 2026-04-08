@@ -3,13 +3,35 @@ import { useState, useEffect, useRef } from "react";
 import { fetchPartners } from "../../api/adminApi";
 
 export default function CompanyDropdown({ value, onChange }) {
-  const [query,    setQuery]    = useState(value || "");
+  // query holds the visible text in the input (company name, not ID)
+  const [query,    setQuery]    = useState("");
   const [options,  setOptions]  = useState([]);
   const [open,     setOpen]     = useState(false);
   const [fetching, setFetching] = useState(false);
-  const ref = useRef(null);
+  const ref         = useRef(null);
+  const initialised = useRef(false); // guard so we only resolve once on mount
 
-  // Close on outside click
+  // ── On mount: resolve the incoming partner_id → company name ─────────────
+  useEffect(() => {
+    if (!value || initialised.current) return;
+    initialised.current = true;
+
+    (async () => {
+      try {
+        // Fetch all partners (empty query) and find the one matching the id
+        const results = await fetchPartners("");
+        const match   = results.find(
+          (p) => String(p.partner_id) === String(value)
+        );
+        if (match) setQuery(match.company_name);
+      } catch {
+        // If lookup fails just leave the input blank; user can search manually
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty — run once on mount only
+
+  // ── Close on outside click ────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
@@ -18,8 +40,9 @@ export default function CompanyDropdown({ value, onChange }) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Debounced fetch
+  // ── Debounced search ──────────────────────────────────────────────────────
   useEffect(() => {
+    if (!open) return; // don't fetch while the dropdown is closed
     const timer = setTimeout(async () => {
       setFetching(true);
       try {
@@ -32,12 +55,19 @@ export default function CompanyDropdown({ value, onChange }) {
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, open]);
 
   const handleSelect = (partner) => {
-    setQuery(partner.company_name);
-    onChange(partner.company_name);
+    setQuery(partner.company_name);  // show name in input
+    onChange(partner.partner_id);    // emit ID to parent
     setOpen(false);
+  };
+
+  const handleInputChange = (e) => {
+    setQuery(e.target.value);
+    // If the user clears the field, also clear the selected ID in the parent
+    if (!e.target.value) onChange("");
+    setOpen(true);
   };
 
   return (
@@ -46,7 +76,7 @@ export default function CompanyDropdown({ value, onChange }) {
         <input
           className="form-input"
           value={query}
-          onChange={(e) => { setQuery(e.target.value); onChange(e.target.value); setOpen(true); }}
+          onChange={handleInputChange}
           onFocus={() => setOpen(true)}
           placeholder="Search company name…"
           autoComplete="off"
@@ -63,7 +93,7 @@ export default function CompanyDropdown({ value, onChange }) {
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 100,
-          background: "white", border: "1px solid #e2e8f0", borderRadius: "8px",
+          background: "white", border: "1px solid #e2e8f0", borderRadius: "2px",
           boxShadow: "0 4px 16px rgba(0,0,0,0.1)", maxHeight: "200px", overflowY: "auto",
         }}>
           {fetching ? (

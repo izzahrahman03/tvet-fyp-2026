@@ -13,17 +13,43 @@ const COLUMN_MAPS = {
     example:  [{ name: "Muhammad Haziq", email: "haziq@student.edu", phone: "014-1234567", status: "Active" }],
   },
   industry_partner: {
-    required: ["name", "email"],
+    // name/email = contact person (stored in users table)
+    // company_name = company (stored in industry_partners.company_name)
+    required: ["name", "email", "company_name"],
     optional: ["phone", "industry_sector", "location", "status"],
-    // ✅ field names match DB columns exactly
-    example:  [{ name: "Tech Solutions Sdn Bhd", email: "hr@techsolutions.com", phone: "03-12345678", industry_sector: "IT & Software", location: "Kuala Lumpur", status: "Active" }],
+    example:  [{
+      name:            "Ahmad Faris",
+      email:           "faris@techsolutions.com",
+      company_name:    "Tech Solutions Sdn Bhd",
+      phone:           "03-12345678",
+      industry_sector: "IT & Software",
+      location:        "Kuala Lumpur",
+      status:          "Active",
+    }],
   },
   industry_supervisor: {
+    // company is inherited from industry_partners via partner_id — not a free-text field
     required: ["name", "email"],
-    optional: ["phone", "company", "position", "status"],
-    // ✅ "position" not "role" — matches DB column
-    example:  [{ name: "Mr. David Loh", email: "david@techsolutions.com", phone: "012-8765432", company: "Tech Solutions Sdn Bhd", position: "Senior Engineer", status: "Active" }],
+    optional: ["phone", "partner_id", "position", "status"],
+    example:  [{
+      name:       "Mr. David Loh",
+      email:      "david@techsolutions.com",
+      phone:      "012-8765432",
+      partner_id: "34",          // must match an existing industry_partners.partner_id
+      position:   "Senior Engineer",
+      status:     "Active",
+    }],
   },
+  manager: {
+    required: ["name", "email"],
+    optional: ["phone", "status"],
+    example:  [{ name: "Emily Tan", email: "emilytan@vitrox.com", phone: "019-2345678", status: "Active" }],
+  },
+  application: {
+    required: ["name", "email"],
+    optional: ["phone", "status"],
+    example:  [{ name: "Ali Hassan", email: "ali@example.com", phone: "012-3456789", status: "Active" }],
+  }
 };
 
 export default function ImportModal({ type, onClose, onImport }) {
@@ -102,7 +128,6 @@ export default function ImportModal({ type, onClose, onImport }) {
     onClose();
   };
 
-  // Determine which columns are actually present in the file
   const presentCols = allCols.filter((c) => c in (rows[0] || {}));
 
   return (
@@ -112,17 +137,17 @@ export default function ImportModal({ type, onClose, onImport }) {
         {/* Header */}
         <div className="modal-header">
           <p className="modal-title">Import from Excel / CSV</p>
-          <button className="modal-close-btn" onClick={onClose}>
+          <button className="ut-modal-close-btn" onClick={onClose}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M18 6L6 18 M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {/* Template download */}
+        {/* Column hints */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
           <p style={{ fontSize: "12.5px", color: "#64748b" }}>
-            Required: <strong style={{ color: "#1e293b" }}>{config.required.join(", ")}</strong>
+            Required: <strong style={{ color: "#1b3a6b" }}>{config.required.join(", ")}</strong>
             {config.optional.length > 0 && (
               <span style={{ color: "#94a3b8" }}> · Optional: {config.optional.join(", ")}</span>
             )}
@@ -132,6 +157,18 @@ export default function ImportModal({ type, onClose, onImport }) {
           </button>
         </div>
 
+        {/* Hint for industry_partner: explain name vs company_name */}
+        {type === "industry_partner" && (
+          <div style={{ fontSize: "12px", color: "#6366f1", background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: "2px", padding: "8px 12px", marginBottom: "12px" }}>
+            <strong>Note:</strong> <em>name</em> = contact person's name · <em>company_name</em> = company / organisation name
+          </div>
+        )}
+        {type === "industry_supervisor" && (
+          <div style={{ fontSize: "12px", color: "#6366f1", background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: "2px", padding: "8px 12px", marginBottom: "12px" }}>
+            <strong>Note:</strong> <em>partner_id</em> must match an existing Industry Partner's ID. Company will be inherited automatically.
+          </div>
+        )}
+
         {/* Drop zone */}
         <div
           className={`import-drop-zone ${dragOver ? "drag-over" : ""}`}
@@ -140,7 +177,6 @@ export default function ImportModal({ type, onClose, onImport }) {
           onDragLeave={() => setDrag(false)}
           onDrop={handleDrop}
         >
-          <div className="import-drop-icon">📂</div>
           <p className="import-drop-text">
             {fileName ? `✅ ${fileName}` : "Click to upload or drag & drop"}
           </p>
@@ -148,7 +184,6 @@ export default function ImportModal({ type, onClose, onImport }) {
           <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} style={{ display: "none" }} />
         </div>
 
-        {/* Error */}
         {error && (
           <p style={{ fontSize: "13px", color: "#ef4444", marginTop: "10px", fontWeight: "500" }}>
             ⚠ {error}
@@ -189,14 +224,14 @@ export default function ImportModal({ type, onClose, onImport }) {
 
         {/* Footer */}
         <div className="modal-footer" style={{ marginTop: "18px" }}>
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="ut-btn-secondary" onClick={onClose}>Cancel</button>
           <button
-            className="btn-success"
+            className="ut-btn-success"
             onClick={handleImport}
             disabled={rows.length === 0}
             style={{ opacity: rows.length === 0 ? 0.5 : 1, cursor: rows.length === 0 ? "not-allowed" : "pointer" }}
           >
-            ✓ Import {rows.length > 0 ? `${rows.length} Records` : ""}
+             Import {rows.length > 0 ? `${rows.length} Records` : ""}
           </button>
         </div>
       </div>

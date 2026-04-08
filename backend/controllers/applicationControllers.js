@@ -31,85 +31,7 @@ const upload = multer({
 exports.uploadMiddleware = upload.single('avatar');
 
 
-// ══════════════════════════════════════════════════════════
-// SUBMIT APPLICATION
-// ══════════════════════════════════════════════════════════
-exports.submitApplication = async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const {
-      fullName, icNumber, dob, gender, race, maritalStatus,
-      email, phone, fullAddress, postalCode, state,
-    } = req.body;
-
-    let education = [];
-    try { education = JSON.parse(req.body.education || '[]'); } catch {}
-
-    const required = { fullName, icNumber, dob, gender, race, maritalStatus, email, phone, fullAddress, postalCode, state};
-    const missing  = Object.entries(required).filter(([, v]) => !v?.trim()).map(([k]) => k);
-
-    if (missing.length > 0) {
-      const labels = {
-        fullName: 'Full Name', icNumber: 'IC Number', dob: 'Date of Birth',
-        gender: 'Gender', race: 'Race', maritalStatus: 'Marital Status',
-        email: 'Email', phone: 'Phone', fullAddress: 'Full Address',
-        postalCode: 'Postal Code', state: 'State',
-      };
-      const friendlyMissing = missing.map(k => labels[k] || k);
-      return res.status(400).json({ message: `Missing required fields: ${friendlyMissing.join(', ')}` });
-    }
-
-    const [rows] = await db.query(
-      'SELECT application_id FROM applications WHERE user_id = ?',
-      [userId]
-    );
-
-    let appId;
-
-    if (rows.length > 0) {
-      appId = rows[0].application_id;
-
-      await db.query(
-        `UPDATE applications SET
-          name=?, ic_number=?, date_of_birth=?, gender=?, race=?,
-          marital_status=?, email=?, phone=?, full_address=?,
-          postal_code=?, state=?,
-          status='pending', updated_at=NOW()
-        WHERE application_id=?`,
-        [fullName, icNumber, dob, gender, race, maritalStatus, email, phone,
-         fullAddress, postalCode, state, appId]
-      );
-
-      await db.query('DELETE FROM application_education WHERE application_id=?', [appId]);
-      await insertEducation(appId, education);
-
-      return res.json({ message: 'Application updated', application_id: appId });
-
-    } else {
-      const [result] = await db.query(
-        `INSERT INTO applications
-        (user_id, name, ic_number, date_of_birth, gender, race, marital_status,
-         email, phone, full_address, postal_code, state, status, created_at, updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'pending',NOW(),NOW())`,
-        [userId, fullName, icNumber, dob, gender, race, maritalStatus,
-         email, phone, fullAddress, postalCode, state]
-      );
-
-      appId = result.insertId;
-      await insertEducation(appId, education);
-
-      return res.status(201).json({ message: 'Application submitted', application_id: appId });
-    }
-
-  } catch (err) {
-    console.error('submitApplication:', err);
-    return res.status(500).json({ message: 'Something went wrong. Please try again.' });
-  }
-};
-
-
-// ─── Helpers ──────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────
 async function insertEducation(appId, rows) {
   if (!rows?.length) return;
   const values = rows
@@ -122,8 +44,236 @@ async function insertEducation(appId, rows) {
   );
 }
 
+
 // ══════════════════════════════════════════════════════════
-// GET MY APPLICATION
+// SUBMIT / SAVE DRAFT APPLICATION
+// POST /api/application-form
+//
+// action = 'draft'  → save progress, status = 'draft' (no validation)
+// action = 'submit' → full validation, status = 'submitted'
+// ══════════════════════════════════════════════════════════
+exports.submitApplication = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const {
+      fullName, dob, gender,
+      email, phone, fullAddress, postalCode, state,
+      hearAboutUs, interviewSlotId,
+      action = 'submit',
+    } = req.body;
+
+    //     const {
+    //   fullName, icNumber, dob, gender, race, maritalStatus,
+    //   email, phone, fullAddress, postalCode, state,
+    //   hearAboutUs, interviewSlotId,
+    //   action = 'submit',
+    // } = req.body;
+
+    const isDraft = action === 'draft';
+    const status  = isDraft ? 'draft' : 'submitted';
+
+    let education = [];
+    try { education = JSON.parse(req.body.education || '[]'); } catch {}
+
+    // ── Full validation on submit only ──────────────────────
+    if (!isDraft) {
+      const required = {
+        fullName, dob, gender,
+        email, phone, fullAddress, postalCode, state, hearAboutUs,
+      };
+      // const required = {
+      //   fullName, icNumber, dob, gender, race, maritalStatus,
+      //   email, phone, fullAddress, postalCode, state, hearAboutUs,
+      // };
+      const labels = {
+        fullName: 'Full Name', dob: 'Date of Birth', gender: 'Gender',
+        email: 'Email', phone: 'Phone', fullAddress: 'Full Address',
+        postalCode: 'Postal Code', state: 'State',
+        hearAboutUs: 'How Did You Hear About Us',
+      };
+      // const labels = {
+      //   fullName: 'Full Name', icNumber: 'IC Number', dob: 'Date of Birth',
+      //   gender: 'Gender', race: 'Race', maritalStatus: 'Marital Status',
+      //   email: 'Email', phone: 'Phone', fullAddress: 'Full Address',
+      //   postalCode: 'Postal Code', state: 'State',
+      //   hearAboutUs: 'How Did You Hear About Us',
+      // };
+      const missing = Object.entries(required).filter(([, v]) => !v?.trim()).map(([k]) => k);
+      if (missing.length > 0) {
+        const friendly = missing.map(k => labels[k] || k);
+        return res.status(400).json({ message: `Missing required fields: ${friendly.join(', ')}` });
+      }
+
+      if (!interviewSlotId) {
+        return res.status(400).json({ message: 'Please select an interview slot.' });
+      }
+
+      // Verify slot still has capacity
+      const [slotRows] = await db.query(
+        `SELECT slot_id, capacity,
+           (SELECT COUNT(*) FROM applications WHERE interview_slot_id = s.slot_id AND status != 'draft') AS booked
+         FROM interview_slots s
+         WHERE slot_id = ?`,
+        [interviewSlotId]
+      );
+      if (slotRows.length === 0) {
+        return res.status(400).json({ message: 'Selected interview slot no longer exists.' });
+      }
+      if (slotRows[0].booked >= slotRows[0].capacity) {
+        return res.status(400).json({ message: 'Sorry, that interview slot is now full. Please choose another.' });
+      }
+    }
+
+    const slotIdValue = interviewSlotId ? parseInt(interviewSlotId, 10) : null;
+
+    // ── Check for existing application ──────────────────────
+    const [existing] = await db.query(
+      'SELECT application_id, status FROM applications WHERE user_id = ?',
+      [userId]
+    );
+
+    let appId;
+
+    if (existing.length > 0) {
+      appId = existing[0].application_id;
+
+      // Lock editing once admin has started processing (interview stage or beyond).
+      // Draft saves (action='draft') are also blocked at this point — no point
+      // saving a draft once the application is past 'submitted'.
+      const currentStatus = existing[0].status;
+      const editableStatuses = ['draft', 'submitted'];
+      if (!editableStatuses.includes(currentStatus)) {
+        return res.status(400).json({
+          message: 'Your application can no longer be edited at this stage.',
+        });
+      }
+
+      await db.query(
+        `UPDATE applications SET
+          date_of_birth=?, gender=?,
+          phone=?, full_address=?,
+          postal_code=?, state=?,
+          hear_about_us=?, interview_slot_id=?,
+          status=?, updated_at=NOW()
+        WHERE application_id=?`,
+        [
+          dob || null, gender || null,
+          phone || null, fullAddress || null,
+          postalCode || null, state || null,
+          hearAboutUs || null, slotIdValue,
+          status, appId,
+        ]
+      );
+
+      // await db.query(
+      //   `UPDATE applications SET
+      //     ic_number=?, date_of_birth=?, gender=?, race=?,
+      //     marital_status=?, phone=?, full_address=?,
+      //     postal_code=?, state=?,
+      //     hear_about_us=?, interview_slot_id=?,
+      //     status=?, updated_at=NOW()
+      //   WHERE application_id=?`,
+      //   [
+      //     icNumber || null, dob || null,
+      //     gender || null, race || null, maritalStatus || null,
+      //     phone || null, fullAddress || null,
+      //     postalCode || null, state || null,
+      //     hearAboutUs || null, slotIdValue,
+      //     status, appId,
+      //   ]
+      // );
+
+      await db.query('DELETE FROM application_education WHERE application_id=?', [appId]);
+      await insertEducation(appId, education);
+
+      if (!isDraft) {
+        // Fetch slot datetime for confirmation email
+        let slotDatetime = null;
+        if (slotIdValue) {
+          const [slotInfo] = await db.query(
+            'SELECT slot_datetime FROM interview_slots WHERE slot_id = ?', [slotIdValue]
+          );
+          slotDatetime = slotInfo[0]?.slot_datetime || null;
+        }
+        sendApplicationStatusEmail(email, fullName, 'submitted', { slotDatetime });
+      }
+
+      return res.json({
+        message: isDraft ? 'Draft saved.' : 'Application submitted.',
+        application_id: appId,
+        status,
+      });
+
+    } else {
+      // ── New application ──────────────────────────────────
+      const [result] = await db.query(
+        `INSERT INTO applications
+         (user_id, date_of_birth, gender,
+          phone, full_address, postal_code, state,
+          hear_about_us, interview_slot_id, status, created_at, updated_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,NOW(),NOW())`,
+        [
+          userId,
+          dob || null,
+          gender || null,
+          phone || null, fullAddress || null,
+          postalCode || null, state || null,
+          hearAboutUs || null, slotIdValue, status,
+        ]
+      );
+
+      // const [result] = await db.query(
+      //   `INSERT INTO applications
+      //    (user_id, ic_number, date_of_birth, gender, race, marital_status,
+      //     phone, full_address, postal_code, state,
+      //     hear_about_us, interview_slot_id, status, created_at, updated_at)
+      //    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())`,
+      //   [
+      //     userId,
+      //     icNumber || null, dob || null,
+      //     gender || null, race || null, maritalStatus || null,
+      //     phone || null, fullAddress || null,
+      //     postalCode || null, state || null,
+      //     hearAboutUs || null, slotIdValue, status,
+      //   ]
+      // );
+
+      appId = result.insertId;
+      await insertEducation(appId, education);
+
+      if (!isDraft) {
+        const [userData] = await db.query(
+          'SELECT name, email FROM users WHERE user_id = ?', [userId]
+        );
+        const { name, email } = userData[0] || {};
+        // Fetch slot datetime for confirmation email
+        let slotDatetime = null;
+        if (slotIdValue) {
+          const [slotInfo] = await db.query(
+            'SELECT slot_datetime FROM interview_slots WHERE slot_id = ?', [slotIdValue]
+          );
+          slotDatetime = slotInfo[0]?.slot_datetime || null;
+        }
+        sendApplicationStatusEmail(email, name, 'submitted', { slotDatetime });
+      }
+
+      return res.status(201).json({
+        message: isDraft ? 'Draft saved.' : 'Application submitted.',
+        application_id: appId,
+        status,
+      });
+    }
+
+  } catch (err) {
+    console.error('submitApplication:', err);
+    return res.status(500).json({ message: 'Something went wrong. Please try again.' });
+  }
+};
+
+
+// ══════════════════════════════════════════════════════════
+// GET MY APPLICATION   GET /api/my-application
 // ══════════════════════════════════════════════════════════
 exports.getMyApplication = async (req, res) => {
   try {
@@ -131,13 +281,14 @@ exports.getMyApplication = async (req, res) => {
 
     const [rows] = await db.query(
       `SELECT
-        a.*,
-        ai.interview_datetime,
-        ai.venue,
-        ai.interviewer_name,
-        ai.remarks
+         a.*,
+         u.name,
+         u.email,
+         isl.slot_datetime AS selected_slot_datetime,
+         isl.capacity      AS selected_slot_capacity
        FROM applications a
-       LEFT JOIN application_interviews ai ON ai.application_id = a.application_id
+       JOIN users u ON u.user_id = a.user_id
+       LEFT JOIN interview_slots isl  ON isl.slot_id = a.interview_slot_id
        WHERE a.user_id = ?`,
       [userId]
     );
@@ -161,7 +312,7 @@ exports.getMyApplication = async (req, res) => {
 
 
 // ══════════════════════════════════════════════════════════
-// ACCEPT OFFER
+// ACCEPT OFFER   POST /api/my-application/accept
 // ══════════════════════════════════════════════════════════
 exports.acceptOffer = async (req, res) => {
   const conn = await db.getConnection();
@@ -180,9 +331,9 @@ exports.acceptOffer = async (req, res) => {
       return res.status(404).json({ message: 'No application found.' });
     }
 
-    if (apps[0].status !== 'approved') {
+    if (apps[0].status !== 'passed') {
       await conn.rollback();
-      return res.status(400).json({ message: 'Your application is not in an approved state.' });
+      return res.status(400).json({ message: 'Your application has not passed evaluation yet.' });
     }
 
     const appId = apps[0].application_id;
@@ -197,12 +348,11 @@ exports.acceptOffer = async (req, res) => {
       [userId]
     );
 
+    // Find active intake with available capacity
     const [intakes] = await conn.query(
       `SELECT
-        i.intake_id,
-        i.intake_name,
-        i.max_capacity,
-        COUNT(s.student_id) AS current_count
+         i.intake_id, i.intake_name, i.max_capacity,
+         COUNT(s.student_id) AS current_count
        FROM intakes i
        LEFT JOIN students s ON s.intake_id = i.intake_id
        WHERE CURDATE() BETWEEN i.start_date AND i.end_date
@@ -217,7 +367,6 @@ exports.acceptOffer = async (req, res) => {
     const intakeId     = activeIntake ? activeIntake.intake_id : null;
 
     const year = new Date().getFullYear();
-
     const [countRows] = await conn.query(
       `SELECT COUNT(*) AS total FROM students WHERE YEAR(created_at) = ?`,
       [year]
@@ -237,10 +386,26 @@ exports.acceptOffer = async (req, res) => {
       ? `You have been assigned to ${activeIntake.intake_name}.`
       : 'No active intake found — an admin will assign your intake shortly.';
 
+    // Send enrolment confirmation email
+    const [appData] = await db.query(
+      `SELECT u.email, u.name
+      FROM applications a
+      JOIN users u ON u.user_id = a.user_id
+      WHERE a.application_id = ?`,
+      [appId]
+    );
+    if (appData.length > 0) {
+      sendApplicationStatusEmail(
+        appData[0].email,
+        appData[0].name,
+        'accepted',
+        { matricNumber, intakeName: activeIntake?.intake_name || null }
+      );
+    }
+
     return res.json({
-      message:       `Offer accepted! Your matric number is ${matricNumber}. ${intakeMsg} Please log in again to access the student portal.`,
+      message: `Offer accepted! Your matric number is ${matricNumber}. ${intakeMsg} Please log in again to access the student portal.`,
       matric_number: matricNumber,
-      intake_name:   activeIntake?.intake_name || null,
     });
 
   } catch (err) {
@@ -254,9 +419,9 @@ exports.acceptOffer = async (req, res) => {
 
 
 // ══════════════════════════════════════════════════════════
-// WITHDRAW OFFER
+// DECLINE OFFER   POST /api/my-application/decline
 // ══════════════════════════════════════════════════════════
-exports.withdrawOffer = async (req, res) => {
+exports.declineOffer = async (req, res) => {
   try {
     const userId = req.user.id;
 
@@ -268,44 +433,59 @@ exports.withdrawOffer = async (req, res) => {
     if (apps.length === 0)
       return res.status(404).json({ message: 'No application found.' });
 
-    const allowedStatuses = ['approved', 'interview', 'under_review', 'pending'];
-    if (!allowedStatuses.includes(apps[0].status)) {
-      return res.status(400).json({
-        message: `Cannot withdraw from current status: ${apps[0].status}`,
-      });
-    }
+    const currentStatus    = apps[0].status;
+    const declineableFrom = ['passed', 'submitted', 'attended'];
+
+    if (!declineableFrom.includes(currentStatus))
+      return res.status(400).json({ message: 'You cannot decline at this stage.' });
 
     await db.query(
       'UPDATE applications SET status = ?, updated_at = NOW() WHERE application_id = ?',
-      ['withdraw', apps[0].application_id]
+      ['declined', apps[0].application_id]
     );
 
-    return res.json({ message: 'Application withdrawn successfully.' });
+    const msg = currentStatus === 'passed'
+      ? 'Offer declined successfully.'
+      : 'Application declined successfully.';
+
+    // Send decline confirmation email
+    const [appData] = await db.query(
+      'SELECT email, name FROM applications WHERE application_id = ?', [apps[0].application_id]
+    );
+    if (appData.length > 0) {
+      sendApplicationStatusEmail(appData[0].email, appData[0].name, 'declined', null);
+    }
+
+    return res.json({ message: msg });
 
   } catch (err) {
-    console.error('withdrawOffer:', err);
+    console.error('declineOffer:', err);
     return res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };
 
 
 // ══════════════════════════════════════════════════════════
-// ADMIN LIST APPLICATIONS
+// ADMIN LIST APPLICATIONS   GET /api/admin/applications
 // ══════════════════════════════════════════════════════════
-exports.adminListApplications = async (req, res) => {
+exports.listApplications = async (req, res) => {
   try {
     const { status, search } = req.query;
 
     let sql = `
       SELECT
         a.application_id AS id,
-        a.name, a.email, a.phone,
-        a.status, a.created_at, u.user_id
+        u.name, u.email, 
+        a.phone,
+        a.status, a.hear_about_us,
+        a.created_at, u.user_id,
+        isl.slot_datetime AS preferred_slot_datetime,
+        isl.capacity      AS preferred_slot_capacity
       FROM applications a
-      JOIN users u ON u.user_id = a.user_id
+      JOIN  users           u   ON u.user_id   = a.user_id
+      LEFT JOIN interview_slots isl ON isl.slot_id = a.interview_slot_id
       WHERE 1=1
     `;
-
     const params = [];
 
     if (status && status !== 'all') {
@@ -319,32 +499,42 @@ exports.adminListApplications = async (req, res) => {
     sql += ' ORDER BY a.created_at DESC';
 
     const [rows] = await db.query(sql, params);
-    return res.json({ applications: rows });
+
+    // Format the preferred slot label for convenience
+    const fmt = (d) => d
+      ? new Date(d).toLocaleString('en-MY', { dateStyle: 'medium', timeStyle: 'short' })
+      : null;
+
+    const applications = rows.map(r => ({
+      ...r,
+      preferred_slot_label: r.preferred_slot_datetime ? fmt(r.preferred_slot_datetime) : null,
+    }));
+
+    return res.json({ applications });
 
   } catch (err) {
-    console.error('adminListApplications:', err);
+    console.error('listApplications:', err);
     return res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };
 
 
 // ══════════════════════════════════════════════════════════
-// ADMIN VIEW ONE APPLICATION
+// ADMIN VIEW ONE APPLICATION   GET /api/admin/applications/:id
 // ══════════════════════════════════════════════════════════
-exports.adminGetApplication = async (req, res) => {
+exports.getApplication = async (req, res) => {
   try {
     const { id } = req.params;
 
     const [rows] = await db.query(
       `SELECT
-        a.application_id AS id,
-        a.*,
-        ai.interview_datetime,
-        ai.venue,
-        ai.interviewer_name,
-        ai.remarks
+         a.application_id AS id, a.*,
+         u.name, u.email,
+         isl.slot_datetime        AS selected_slot_datetime,
+         isl.capacity             AS selected_slot_capacity
        FROM applications a
-       LEFT JOIN application_interviews ai ON ai.application_id = a.application_id
+       JOIN users u ON u.user_id = a.user_id
+       LEFT JOIN interview_slots        isl ON isl.slot_id       = a.interview_slot_id
        WHERE a.application_id = ?`,
       [id]
     );
@@ -360,16 +550,16 @@ exports.adminGetApplication = async (req, res) => {
     return res.json({ application: { ...app, education } });
 
   } catch (err) {
-    console.error('adminGetApplication:', err);
+    console.error('getApplication:', err);
     return res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };
 
 
 // ══════════════════════════════════════════════════════════
-// ADMIN DELETE APPLICATION
+// ADMIN DELETE APPLICATION   DELETE /api/admin/applications/:id
 // ══════════════════════════════════════════════════════════
-exports.adminDeleteApplication = async (req, res) => {
+exports.deleteApplication = async (req, res) => {
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
@@ -377,8 +567,7 @@ exports.adminDeleteApplication = async (req, res) => {
     const { id } = req.params;
 
     await conn.query('DELETE FROM application_education  WHERE application_id = ?', [id]);
-    await conn.query('DELETE FROM application_interviews WHERE application_id = ?', [id]);
-    await conn.query('DELETE FROM students WHERE application_id = ?', [id]);
+    await conn.query('DELETE FROM students               WHERE application_id = ?', [id]);
 
     const [result] = await conn.query(
       'DELETE FROM applications WHERE application_id = ?', [id]
@@ -394,7 +583,7 @@ exports.adminDeleteApplication = async (req, res) => {
 
   } catch (err) {
     await conn.rollback();
-    console.error('adminDeleteApplication:', err);
+    console.error('deleteApplication:', err);
     return res.status(500).json({ message: 'Something went wrong. Please try again.' });
   } finally {
     conn.release();
@@ -403,22 +592,18 @@ exports.adminDeleteApplication = async (req, res) => {
 
 
 // ══════════════════════════════════════════════════════════
-// ADMIN UPDATE STATUS
+// ADMIN UPDATE STATUS   PATCH /api/admin/applications/:id/status
 // ══════════════════════════════════════════════════════════
-exports.adminUpdateStatus = async (req, res) => {
+exports.updateApplicationStatus = async (req, res) => {
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
 
     const { id } = req.params;
-    const { status, interview_datetime, venue, interviewer_name, remarks } = req.body;
+    const { status, remarks } = req.body;
 
-    const VALID = [
-      'pending', 'under_review', 'interview',
-      'approved', 'accepted',
-      'rejected_review', 'rejected_interview',
-      'withdraw',
-    ];
+    // Admin-settable statuses only — applicant sets draft/submitted/accepted/declined
+    const VALID = ['attended', 'absent', 'passed', 'failed', 'declined'];
 
     if (!VALID.includes(status)) {
       await conn.rollback();
@@ -426,8 +611,8 @@ exports.adminUpdateStatus = async (req, res) => {
     }
 
     const [result] = await conn.query(
-      'UPDATE applications SET status = ?, updated_at = NOW() WHERE application_id = ?',
-      [status, id]
+      'UPDATE applications SET status = ?, remarks = COALESCE(?, remarks), updated_at = NOW() WHERE application_id = ?',
+      [status, remarks || null, id]
     );
 
     if (result.affectedRows === 0) {
@@ -435,36 +620,11 @@ exports.adminUpdateStatus = async (req, res) => {
       return res.status(404).json({ message: 'Application not found.' });
     }
 
-    // ── Persist interview details when status is 'interview' ──
-    if (status === 'interview') {
-      if (!interview_datetime || !venue || !interviewer_name) {
-        await conn.rollback();
-        return res.status(400).json({
-          message: 'interview_datetime, venue, and interviewer_name are required when status is "interview".',
-        });
-      }
-
-      await conn.query(
-        `INSERT INTO application_interviews
-           (application_id, interview_datetime, venue, interviewer_name, remarks)
-         VALUES (?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE
-           interview_datetime = VALUES(interview_datetime),
-           venue              = VALUES(venue),
-           interviewer_name   = VALUES(interviewer_name),
-           remarks            = VALUES(remarks)`,
-        [id, interview_datetime, venue, interviewer_name, remarks || null]
-      );
-    }
-
     await conn.commit();
 
-    // ── Fetch the updated row for the response and the email ──
+    // ── Fetch updated row for response + email ───────────────
     const [rows] = await db.query(
-      `SELECT
-        a.application_id AS id,
-        a.name, a.email, a.phone,
-        a.status, a.created_at, u.user_id
+      `SELECT a.application_id AS id, u.name, u.email, a.phone, a.status, a.created_at, u.user_id
        FROM applications a
        JOIN users u ON u.user_id = a.user_id
        WHERE a.application_id = ?`,
@@ -473,44 +633,154 @@ exports.adminUpdateStatus = async (req, res) => {
 
     const application = rows[0] || null;
 
-    // ── Send status notification email to the applicant ──────
-    // Only statuses that have an entry in STATUS_CONFIG will send.
-    // 'pending' is intentionally excluded (no email needed).
-    //
-    // Signature: sendApplicationStatusEmail(
-    //   toEmail,        — applicant's email from the applications table
-    //   applicantName,  — applicant's name from the applications table
-    //   status,         — one of the VALID statuses above
-    //   interviewDetails — { datetime, venue, interviewer_name, remarks } | null
-    // )
     if (application) {
-      const interviewDetails = status === 'interview'
-        ? {
-            datetime:         interview_datetime,
-            venue,
-            interviewer_name,
-            remarks: remarks || null,
-          }
-        : null;
-
       sendApplicationStatusEmail(
-        application.email,       // ✅ from the fetched row — not undefined
-        application.name,        // ✅ from the fetched row — not undefined
-        status,                  // ✅ the validated status string
-        interviewDetails         // ✅ object when interview, null otherwise
+        application.email,
+        application.name,
+        status,
+        null
       );
-      // Fire-and-forget: email errors are caught inside sendApplicationStatusEmail
-      // and logged, so they will never crash the HTTP response.
     }
 
     return res.json({
-      message:     `Application status updated to ${status}.`,
+      message: `Application status updated to ${status}.`,
       application,
     });
 
   } catch (err) {
     await conn.rollback();
-    console.error('adminUpdateStatus:', err);
+    console.error('updateApplicationStatus:', err);
+    return res.status(500).json({ message: 'Something went wrong. Please try again.' });
+  } finally {
+    conn.release();
+  }
+};
+
+
+// ══════════════════════════════════════════════════════════
+// INTERVIEW SLOTS — APPLICANT  GET /api/interview-slots
+// Returns all future slots with booked count (full slots included
+// so the UI can grey them out rather than hide them entirely).
+// ══════════════════════════════════════════════════════════
+exports.listInterviewSlots = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         s.slot_id AS id,
+         s.slot_datetime AS datetime,
+         s.capacity,
+         COUNT(a.application_id) AS booked
+       FROM interview_slots s
+       LEFT JOIN applications a
+         ON a.interview_slot_id = s.slot_id
+        AND a.status NOT IN ('draft', 'declined')
+       WHERE s.slot_datetime > NOW()
+       GROUP BY s.slot_id
+       ORDER BY s.slot_datetime ASC`
+    );
+
+    return res.json({ slots: rows });
+
+  } catch (err) {
+    console.error('listInterviewSlots:', err);
+    return res.status(500).json({ message: 'Something went wrong. Please try again.' });
+  }
+};
+
+
+// ══════════════════════════════════════════════════════════
+// INTERVIEW SLOTS — ADMIN  GET /api/admin/interview-slots
+// ══════════════════════════════════════════════════════════
+exports.listInterviewSlots = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         s.slot_id AS id,
+         s.slot_datetime AS datetime,
+         s.capacity,
+         COUNT(a.application_id) AS booked,
+         s.created_at
+       FROM interview_slots s
+       LEFT JOIN applications a
+         ON a.interview_slot_id = s.slot_id
+        AND a.status NOT IN ('draft', 'declined')
+       GROUP BY s.slot_id
+       ORDER BY s.slot_datetime ASC`
+    );
+
+    return res.json({ slots: rows });
+
+  } catch (err) {
+    console.error('listInterviewSlots:', err);
+    return res.status(500).json({ message: 'Something went wrong. Please try again.' });
+  }
+};
+
+
+// ══════════════════════════════════════════════════════════
+// INTERVIEW SLOTS — ADMIN CREATE  POST /api/admin/interview-slots
+// ══════════════════════════════════════════════════════════
+exports.createInterviewSlot = async (req, res) => {
+  try {
+    const { datetime, capacity } = req.body;
+
+    if (!datetime)
+      return res.status(400).json({ message: 'datetime is required.' });
+
+    const cap = parseInt(capacity, 10);
+    if (isNaN(cap) || cap < 1)
+      return res.status(400).json({ message: 'capacity must be a positive number.' });
+
+    if (new Date(datetime) <= new Date())
+      return res.status(400).json({ message: 'Interview slot must be in the future.' });
+
+    const [result] = await db.query(
+      'INSERT INTO interview_slots (slot_datetime, capacity) VALUES (?, ?)',
+      [datetime, cap]
+    );
+
+    return res.status(201).json({
+      message: 'Interview slot created.',
+      slot: { id: result.insertId, datetime, capacity: cap, booked: 0 },
+    });
+
+  } catch (err) {
+    console.error('createInterviewSlot:', err);
+    return res.status(500).json({ message: 'Something went wrong. Please try again.' });
+  }
+};
+
+
+// ══════════════════════════════════════════════════════════
+// INTERVIEW SLOTS — ADMIN DELETE  DELETE /api/admin/interview-slots/:id
+// ══════════════════════════════════════════════════════════
+exports.deleteInterviewSlot = async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { id } = req.params;
+
+    // Clear references in applications first
+    await conn.query(
+      'UPDATE applications SET interview_slot_id = NULL WHERE interview_slot_id = ?', [id]
+    );
+
+    const [result] = await conn.query(
+      'DELETE FROM interview_slots WHERE slot_id = ?', [id]
+    );
+
+    if (result.affectedRows === 0) {
+      await conn.rollback();
+      return res.status(404).json({ message: 'Interview slot not found.' });
+    }
+
+    await conn.commit();
+    return res.json({ message: 'Interview slot deleted.' });
+
+  } catch (err) {
+    await conn.rollback();
+    console.error('deleteInterviewSlot:', err);
     return res.status(500).json({ message: 'Something went wrong. Please try again.' });
   } finally {
     conn.release();

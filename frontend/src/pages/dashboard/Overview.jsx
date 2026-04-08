@@ -60,21 +60,34 @@ function PieLegend({ data }) {
 }
 
 // ─── Overview Main ────────────────────────────────────────
-export default function Overview({ onNavigate }) {
+export default function Overview({ onNavigate, role = 'admin' }) {
   const [stats, setStats]   = useState(null);
   const [loading, setLoad]  = useState(true);
+  const [error, setError]  = useState(null);
 
-  useEffect(() => {
-    fetchStats()
+ useEffect(() => {
+    fetchStats(role)                                 // ← pass role
       .then(setStats)
+      .catch(() => setError(true))                   // ← catch the denied error
       .finally(() => setLoad(false));
-  }, []);
+  }, [role]);
 
   if (loading) {
     return (
       <div className="loading-container">
         <div className="loading-spinner" />
         <p className="loading-text">Loading dashboard…</p>
+      </div>
+    );
+  }
+
+  // ← add this block before destructuring
+  if (error || !stats) {
+    return (
+      <div className="loading-container">
+        <p className="loading-text" style={{ color: '#ef4444' }}>
+          Failed to load dashboard stats. Please try again.
+        </p>
       </div>
     );
   }

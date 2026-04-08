@@ -110,58 +110,68 @@ const ROLE_LABELS = {
   industry_partner:    'Industry Partner',
   industry_supervisor: 'Industry Supervisor',
   admin:               'Admin',
+  manager:             'Manager',
 };
 
 // ─── Status Config ────────────────────────────────────────
-// Maps each application status to a subject line, badge colour, and message body.
+// Maps each application status to subject line, badge colour, and message body.
 const STATUS_CONFIG = {
-  under_review: {
-    subject: 'Your Application Is Under Review',
-    badge:   { bg: '#e8f0fe', text: '#1a3c5e', label: 'Under Review' },
-    message: `Your application has been received and is currently under review by our admissions team.
-              We will notify you of any updates. No further action is required at this time.`,
+
+  // ── Applicant action ───────────────────────────────────
+  submitted: {
+    subject: 'Application Received — Vitrox Academy',
+    badge:   { bg: '#dbeafe', text: '#1e40af', label: 'Submitted' },
+    message: `Your application has been successfully submitted and your interview slot has been
+              reserved. Please ensure you attend on the scheduled date and arrive on time.
+              No further action is required at this time.`,
   },
-  interview: {
-    subject: 'Interview Invitation — Vitrox Academy',
-    badge:   { bg: '#fff8e1', text: '#b45309', label: 'Interview Scheduled' },
-    message: `Congratulations! We are pleased to invite you for an interview as part of the
-              admissions process. Please review the interview details below and attend at the
-              scheduled time.`,
+
+  // ── Admin actions ──────────────────────────────────────
+  attended: {
+    subject: 'Interview Attendance Recorded — Vitrox Academy',
+    badge:   { bg: '#e0f2fe', text: '#0369a1', label: 'Attended' },
+    message: `We have recorded your attendance at the interview. Our evaluation panel will
+              review your performance and you will be notified of the outcome shortly.
+              Thank you for attending.`,
   },
-  approved: {
-    subject: 'Application Approved — Offer of Admission',
-    badge:   { bg: '#e8f5e9', text: '#1b5e20', label: 'Approved' },
-    message: `We are delighted to inform you that your application has been approved.
-              Please log in to the portal to accept or decline this offer. Note that the offer
-              is subject to a response deadline — please act promptly.`,
+  absent: {
+    subject: 'Interview Absence Recorded — Vitrox Academy',
+    badge:   { bg: '#ffedd5', text: '#c2410c', label: 'Absent' },
+    message: `You have been recorded as absent for your scheduled interview.
+              If this is an error or you were unable to attend due to an emergency,
+              please contact our admissions team immediately.`,
   },
-  rejected_review: {
+  passed: {
+    subject: 'Interview Passed — Offer of Admission',
+    badge:   { bg: '#dcfce7', text: '#15803d', label: 'Passed' },
+    message: `Congratulations! We are delighted to inform you that you have passed
+              the interview evaluation. Please log in to the portal to accept or decline
+              this offer. Note that the offer is subject to a response deadline —
+              please act promptly.`,
+  },
+  failed: {
     subject: 'Application Outcome — Vitrox Academy',
-    badge:   { bg: '#fce4e4', text: '#b91c1c', label: 'Unsuccessful' },
-    message: `After careful consideration, we regret to inform you that your application
-              has been unsuccessful at the review stage. We appreciate your interest in
-              Vitrox Academy and encourage you to apply again in a future intake.`,
-  },
-  rejected_interview: {
-    subject: 'Application Outcome — Vitrox Academy',
-    badge:   { bg: '#fce4e4', text: '#b91c1c', label: 'Unsuccessful' },
+    badge:   { bg: '#fee2e2', text: '#b91c1c', label: 'Failed' },
     message: `Thank you for attending the interview. After careful deliberation, we regret
               to inform you that we are unable to offer you a place in this intake.
-              We appreciate the time you invested and wish you well in your future endeavours.`,
+              We appreciate the time you invested and encourage you to apply again
+              in a future intake.`,
   },
+
+  // ── Applicant action ───────────────────────────────────
   accepted: {
     subject: 'Enrolment Confirmed — Welcome to Vitrox Academy',
-    badge:   { bg: '#e8f5e9', text: '#1b5e20', label: 'Enrolled' },
-    message: `Your enrolment has been confirmed. Welcome to Vitrox Academy! Further details
-              regarding your programme, orientation, and student portal access will be
-              sent to you shortly.`,
+    badge:   { bg: '#dcfce7', text: '#15803d', label: 'Enrolled' },
+    message: `Your enrolment has been confirmed. Welcome to Vitrox Academy!
+              Further details regarding your programme, orientation, and student
+              portal access will be sent to you shortly.`,
   },
-  withdraw: {
-    subject: 'Application Withdrawal Confirmed',
-    badge:   { bg: '#f3f4f6', text: '#374151', label: 'Withdrawn' },
-    message: `We have received and processed your withdrawal request. Your application
-              has been closed. If this was done in error, please contact our admissions
-              team as soon as possible.`,
+  declined: {
+    subject: 'Application Declined — Vitrox Academy',
+    badge:   { bg: '#f3f4f6', text: '#374151', label: 'Declined' },
+    message: `We have received and processed your decision to decline the offer.
+              Your application has been closed. If this was done in error, please
+              contact our admissions team as soon as possible.`,
   },
 };
 
@@ -203,9 +213,9 @@ exports.sendBulkActivationEmail = (toEmail, toName, tempPassword, activationToke
 
 
 // ─── 2. Application Status Email ─────────────────────────
-// Sent when an admin updates an applicant's application status.
-// interviewDetails = { datetime, venue, interviewer_name, remarks } | null
-exports.sendApplicationStatusEmail = (toEmail, applicantName, status, interviewDetails = null) => {
+// Sent on status changes for both admin actions and applicant actions.
+// details = { slotDatetime } | { matricNumber, intakeName } | null
+exports.sendApplicationStatusEmail = (toEmail, applicantName, status, details = null) => {
   const config = STATUS_CONFIG[status];
   if (!config) {
     console.warn(`[adminEmail] No email config for status: "${status}". Email not sent.`);
@@ -229,11 +239,14 @@ exports.sendApplicationStatusEmail = (toEmail, applicantName, status, interviewD
     ">${badge.label}</span>
   `;
 
-  // ── Interview Details Block (only for 'interview' status) ──
-  let interviewBlock = '';
-  if (status === 'interview' && interviewDetails) {
-    const { datetime, venue, interviewer_name, remarks } = interviewDetails;
-    interviewBlock = `
+  // ── Details Block — varies by status ─────────────────────
+  let detailsBlock = '';
+
+  // submitted → show reserved interview slot
+  if (status === 'submitted' && details?.slotDatetime) {
+    const slotFormatted = new Date(details.slotDatetime)
+      .toLocaleString('en-MY', { dateStyle: 'full', timeStyle: 'short' });
+    detailsBlock = `
       <table cellpadding="0" cellspacing="0"
              style="background-color:#f4f7fb; border:1px solid #d8e4f0;
                     border-radius:3px; padding:16px 20px; margin:20px 0 0 0; width:100%;">
@@ -241,13 +254,30 @@ exports.sendApplicationStatusEmail = (toEmail, applicantName, status, interviewD
           <td colspan="2" style="padding-bottom:10px; font-size:13px;
                                   font-weight:bold; color:#1a3c5e; text-transform:uppercase;
                                   letter-spacing:0.5px; border-bottom:1px solid #d8e4f0;">
-            Interview Details
+            Your Interview Slot
           </td>
         </tr>
-        ${datetime        ? infoRow('Date &amp; Time', new Date(datetime).toLocaleString('en-MY', { dateStyle: 'long', timeStyle: 'short' })) : ''}
-        ${venue           ? infoRow('Venue',           venue)           : ''}
-        ${interviewer_name ? infoRow('Interviewer',    interviewer_name) : ''}
-        ${remarks         ? infoRow('Remarks',         remarks)         : ''}
+        ${infoRow('Date &amp; Time', slotFormatted)}
+      </table>
+    `;
+  }
+
+  // accepted → show matric number + intake
+  if (status === 'accepted' && details?.matricNumber) {
+    const { matricNumber, intakeName } = details;
+    detailsBlock = `
+      <table cellpadding="0" cellspacing="0"
+             style="background-color:#f4f7fb; border:1px solid #d8e4f0;
+                    border-radius:3px; padding:16px 20px; margin:20px 0 0 0; width:100%;">
+        <tr>
+          <td colspan="2" style="padding-bottom:10px; font-size:13px;
+                                  font-weight:bold; color:#1a3c5e; text-transform:uppercase;
+                                  letter-spacing:0.5px; border-bottom:1px solid #d8e4f0;">
+            Enrolment Details
+          </td>
+        </tr>
+        ${infoRow('Matric Number', `<span style="font-family:monospace; font-size:15px;">${matricNumber}</span>`)}
+        ${intakeName ? infoRow('Intake', intakeName) : ''}
       </table>
     `;
   }
@@ -263,7 +293,7 @@ exports.sendApplicationStatusEmail = (toEmail, applicantName, status, interviewD
       ${message}
     </p>
 
-    ${interviewBlock}
+    ${detailsBlock}
   `;
 
   transporter.sendMail({

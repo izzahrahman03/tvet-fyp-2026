@@ -180,22 +180,23 @@
 }
 .act-eye-btn:hover { color: #475569; }
 
-/* ── Alert banner ── */
+/* ── Alert banner (matches auth-alert in login.css) ── */
 .act-alert {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  border-radius: 10px;
-  padding: 12px 14px;
-  font-size: .83rem;
-  font-weight: 500;
+  gap: 10px;
+  border-radius: 2px;
+  padding: 11px 15px;
+  font-size: 15px;
+  font-weight: 600;
   line-height: 1.55;
   margin-bottom: 1.2rem;
+  border-left: 4px solid;
 }
 .act-alert.error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #b91c1c;
+  background: #fdf0ef;
+  border-color: #c0392b;
+  color: #922b21;
 }
 
 /* ── Field hints ── */
@@ -204,7 +205,7 @@
   font-size: .78rem;
   margin-top: .35rem;
 }
-.act-hint.error   { color: #ef4444; }
+.act-hint.error   { color: #c0392b; font-weight: 600; }
 .act-hint.success { color: #10b981; }
 
 /* ── Password strength ── */

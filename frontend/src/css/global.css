@@ -150,12 +150,10 @@ body {
   border: none;
   cursor: pointer;
   transition: all .22s;
-  box-shadow: 0 4px 18px rgba(26, 86, 219, .35);
 }
 .btn-primary:hover {
   background: #1648C0;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(26, 86, 219, .4);
 }
 
 .btn-secondary {
@@ -179,6 +177,15 @@ body {
   transform: translateY(-1px);
 }
 
+.nav-hamburger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  padding: 4px;
+}
+
 @keyframes toastSlideUp {
   from {
     opacity:   0;
@@ -190,7 +197,36 @@ body {
   }
 }
 
-/* ── Responsive ── */
-@media (max-width: 600px) {
-  .nav-links .nav-link { display: none; }
+@media (max-width: 768px) {
+  .nav-hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Hide links by default on mobile */
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;          /* drops below the navbar */
+    left: 0;
+    right: 0;
+    background: #fff;
+    padding: 16px;
+    gap: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    z-index: 999;
+  }
+
+  /* Shown when hamburger is clicked */
+  .nav-links--open {
+    display: flex;
+  }
+
+  /* Make sure nav is positioned so dropdown works */
+  .nav {
+    position: relative;
+  }
 }
+

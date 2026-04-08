@@ -4,10 +4,9 @@ import "../../css/dashboard/applicantDashboard.css";
 import "../../css/applicationManagement/applicationForm.css";
 import "../../css/applicationManagement/myApplication.css";
 import Layout from '../../components/dashboard/Layout';
-// import FormSeparator from '../../pages/applicationManagement/ApplicationForm';
 
-const API       = process.env.REACT_APP_API_URL;
-const getToken  = () => localStorage.getItem('token');
+const API      = process.env.REACT_APP_API_URL;
+const getToken = () => localStorage.getItem('token');
 
 function Icon({ d, size = 14, color = 'currentColor', sw = 2 }) {
   return (
@@ -18,26 +17,38 @@ function Icon({ d, size = 14, color = 'currentColor', sw = 2 }) {
   );
 }
 
+// ── Status map — clean flow + backward-compat old values ──
 const STATUS_MAP = {
-  pending:            { label: 'Pending',              bg: '#fef9c3', color: '#854d0e', dot: '#eab308' },
-  under_review:       { label: 'Under Review',         bg: '#dbeafe', color: '#1e40af', dot: '#3b82f6' },
-  interview:          { label: 'Interview',            bg: '#f3e8ff', color: '#6b21a8', dot: '#8b5cf6' },
-  approved:           { label: 'Approved',             bg: '#dcfce7', color: '#166534', dot: '#22c55e' },
-  accepted:           { label: 'Accepted',             bg: '#dcfce7', color: '#166534', dot: '#22c55e' },
-  rejected_review:    { label: 'Rejected',    bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
-  rejected_interview: { label: 'Rejected', bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
-  withdraw:           { label: 'Withdrawn',            bg: '#f1f5f9', color: '#475569', dot: '#94a3b8' },
+draft:     { label: 'Draft',     bg: '#e2e8f0', color: '#1e293b' },
+submitted: { label: 'Submitted', bg: '#bfdbfe', color: '#1e3a8a' },
+attended:  { label: 'Attended',  bg: '#bae6fd', color: '#0c4a6e' },
+absent:    { label: 'Absent',    bg: '#fed7aa', color: '#7c2d12' },
+passed:    { label: 'Passed',    bg: '#bbf7d0', color: '#14532d' },
+failed:    { label: 'Failed',    bg: '#fecaca', color: '#7f1d1d' },
+accepted:  { label: 'Accepted',  bg: '#86efac', color: '#14532d' },
+declined:  { label: 'Declined',  bg: '#fca5a5', color: '#7f1d1d',},
+};
+
+// ── "How did you hear about us" label map ─────────────────
+const HEAR_ABOUT_MAP = {
+  social_tiktok:    'Social Media – TikTok',
+  social_instagram: 'Social Media – Instagram',
+  social_facebook:  'Social Media – Facebook',
+  friends_family:   'Friends / Family Recommendation',
+  school_teacher:   'School Teacher / Counsellor Recommendation',
+  vitrox_website:   "ViTrox TVET's Website",
+  events:           'Events (Education / Career Fair, School Visit)',
 };
 
 function StatusBadge({ status }) {
-  const key = status?.toLowerCase();
-  const s   = STATUS_MAP[key] || STATUS_MAP.pending;
+  const key = (status || '').toLowerCase();
+  const s   = STATUS_MAP[key] || STATUS_MAP.submitted;
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: '5px',
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',gap: '0',
       background: s.bg, color: s.color,
       fontSize: '18px', fontWeight: '700', padding: '13px 18px',
-      borderRadius: '20px', letterSpacing: '0.3px',
+      borderRadius: '2px', letterSpacing: '0.3px',
     }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0 }} />
       {s.label}
@@ -54,54 +65,64 @@ function ReadField({ label, value, fullWidth = false }) {
   );
 }
 
-function ProficiencyPill({ level }) {
-  const map = {
-    Beginner:     'ma-pill-beginner',
-    Intermediate: 'ma-pill-intermediate',
-    Advanced:     'ma-pill-advanced',
-    Expert:       'ma-pill-expert',
-  };
-  if (!level) return <span className="ma-empty-val">—</span>;
-  return <span className={`ma-pill ${map[level] || ''}`}>{level}</span>;
+function FormSeparator({ title }) {
+  return (
+    <div className="af-form-separator af-col-full">
+      <span className="af-form-separator-label">{title}</span>
+      <div className="af-form-separator-line" />
+    </div>
+  );
 }
 
+// ── Status-aware notice banners ───────────────────────────
 function StatusNotice({ status }) {
-  const key = status?.toLowerCase();
+  const key = (status || '').toLowerCase();
+
   const notices = {
-    approved: {
+     draft: {
+      type: 'info',
+      icon: 'M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8',
+      msg:  'Your application is saved as a draft. Complete and submit it when you are ready.',
+    },
+    submitted: {
+      type: 'info',
+      icon: 'M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 6v4l3 3',
+      msg:  'Your application has been received and your interview slot is reserved. Please attend on the scheduled date.',
+    },
+    attended: {
+      type: 'info',
+      icon: 'M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+      msg:  'Thank you for attending your interview. Our team is evaluating your performance — results will be announced soon.',
+    },
+    absent: {
+      type: 'warning',
+      icon: 'M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z',
+      msg:  'You were recorded as absent for your interview. Please contact us immediately if you believe this is an error.',
+    },
+    passed: {
       type: 'success',
       icon: 'M20 6L9 17l-5-5',
-      msg:  'Congratulations! Your application has been approved. Please confirm your decision below.',
+      msg:  'Congratulations! You have passed the interview evaluation. Please accept or decline the offer below.',
+    },
+    failed: {
+      type: 'error',
+      icon: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
+      msg:  'Thank you for attending the interview. Unfortunately you did not pass the evaluation at this time.',
     },
     accepted: {
       type: 'success',
       icon: 'M20 6L9 17l-5-5',
-      msg:  'You have accepted the offer. Welcome aboard! Our team will be in touch shortly.',
+      msg:  'You have accepted the offer and will be enrolled as a student. Welcome aboard! Our team will be in touch shortly.',
     },
-    interview: {
-      type: 'info',
-      icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z',
-      msg:  'You have been invited for an interview. Please check the interview details below.',
-    },
-    under_review: {
-      type: 'info',
-      icon: 'M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 6v4l3 3',
-      msg:  'Your application is currently under review. We will notify you once a decision has been made.',
-    },
-    rejected_review: {
+    rejected: {
       type: 'error',
       icon: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
-      msg:  'Unfortunately your application was unsuccessful at the review stage. Please contact us if you have any questions.',
+      msg:  'Your application was unsuccessful at this time. Please contact us if you have any questions.',
     },
-    rejected_interview: {
-      type: 'error',
-      icon: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
-      msg:  'Thank you for attending the interview. Unfortunately your application was unsuccessful at this stage.',
-    },
-    withdraw: {
+    declined: {
       type: 'warning',
       icon: 'M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z',
-      msg:  'Your application has been withdrawn. Contact us if you believe this was done in error.',
+      msg:  'Your application has been declined. Contact us if you believe this was done in error.',
     },
   };
 
@@ -129,53 +150,9 @@ function StatusNotice({ status }) {
   );
 }
 
-// ── Accept / Decline buttons ───────────────────────────────
-function OfferActions({ onAccept, onWithdraw, loading }) {
-  return (
-    <div style={{
-      background: '#f0fdf4', border: '1px solid #bbf7d0',
-      borderRadius: '12px', padding: '20px', marginBottom: '20px',
-    }}>
-      <p style={{ fontSize: '15px', fontWeight: '700', color: '#166534', margin: '0 0 4px' }}>
-        Action Required
-      </p>
-      <p style={{ fontSize: '14px', color: '#15803d', margin: '0 0 16px' }}>
-        Accepting will upgrade your account to Student and you will need to log in again to access the student portal.
-      </p>
-      <div style={{ display: 'flex', gap: '12px' }}>
-        <button
-          onClick={onAccept}
-          disabled={!!loading}
-          style={{
-            flex: 1, padding: '11px 16px', borderRadius: '8px', border: 'none',
-            background: '#16a34a', color: 'white',
-            fontSize: '14px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-          }}
-        >
-          <Icon d="M20 6L9 17l-5-5" size={13} color="white" />
-          {loading === 'accept' ? 'Processing…' : 'Accept Offer'}
-        </button>
-        <button
-          onClick={onWithdraw}
-          disabled={!!loading}
-          style={{
-            flex: 1, padding: '11px 16px', borderRadius: '8px',
-            border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626',
-            fontSize: '14px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-          }}
-        >
-          <Icon d="M18 6L6 18M6 6l12 12" size={13} color="#dc2626" />
-          {loading === 'withdraw' ? 'Processing…' : 'Decline Offer'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
+// ── Interview details card ─────────────────────────────────
 function InterviewDetails({ application }) {
-  const showStatuses = ['interview', 'rejected_interview', 'approved', 'accepted', 'withdraw'];
+  const showStatuses = ['attended', 'no_show', 'passed', 'failed', 'accepted', 'rejected', 'withdrawn',];
   if (!showStatuses.includes(application.status?.toLowerCase())) return null;
   if (!application.interviewDatetime) return null;
 
@@ -188,7 +165,7 @@ function InterviewDetails({ application }) {
       <div className="af-card-header ma-section-card-header">
         <div className="ma-section-heading">
           <div className="ma-section-icon">
-            <Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" size={15} color="#7c3aed" />
+            <Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 2 2z" size={15} color="#7c3aed" />
           </div>
           <div>
             <p className="af-card-title">Interview Details</p>
@@ -208,14 +185,31 @@ function InterviewDetails({ application }) {
   );
 }
 
-function FormSeparator({ title }) {
+// ── Selected slot card ─────────────────────────────────────
+function SelectedSlotCard({ datetime, capacity }) {
+  if (!datetime) return null;
+  const fmt = (d) => new Date(d).toLocaleString('en-MY', { dateStyle: 'full', timeStyle: 'short' });
   return (
-    <div className="af-form-separator af-col-full">
-      <span className="af-form-separator-label">{title}</span>
-      <div className="af-form-separator-line" />
+    <div style={{
+      background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px',
+      padding: '14px 18px', display: 'flex', alignItems: 'flex-start', gap: '10px',
+    }}>
+      <Icon d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 2 2z" size={14} color="#1d4ed8" />
+      <div>
+        <p style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1e40af' }}>
+          Preferred Interview Slot
+        </p>
+        <p style={{ margin: '3px 0 0', fontSize: '15px', color: '#1e3a8a' }}>{fmt(datetime)}</p>
+        {capacity && (
+          <p style={{ margin: '2px 0 0', fontSize: '15px', color: '#1d4ed8' }}>
+            Capacity: {capacity} applicants
+          </p>
+        )}
+      </div>
     </div>
   );
 }
+
 
 // ══════════════════════════════════════════════════════════
 // Main Component
@@ -223,10 +217,9 @@ function FormSeparator({ title }) {
 export default function MyApplication() {
   const navigate = useNavigate();
 
-  const [application, setApplication] = useState(null);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState(null);
-  const [offerLoading, setOfferLoading] = useState(null);
+  const [application,  setApplication]  = useState(null);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState(null);
 
   useEffect(() => {
     const fetchApplication = async () => {
@@ -243,6 +236,7 @@ export default function MyApplication() {
           setApplication({
             status:             a.status,
             submittedAt:        a.created_at,
+            updatedAt:          a.updated_at,
             fullName:           a.name,
             icNumber:           a.ic_number,
             dob:                a.date_of_birth,
@@ -254,20 +248,22 @@ export default function MyApplication() {
             fullAddress:        a.full_address,
             postalCode:         a.postal_code,
             state:              a.state,
+            hearAboutUs:        a.hear_about_us,
             interviewDatetime:  a.interview_datetime,
             venue:              a.venue,
             interviewerName:    a.interviewer_name,
             remarks:            a.remarks,
+            selectedSlotDatetime: a.selected_slot_datetime,
+            selectedSlotCapacity: a.selected_slot_capacity,
             education: (a.education || []).map((e) => ({
               institute:     e.institute_name,
               qualification: e.qualification,
-              major:         e.major,
               startDate:     e.start_date,
               endDate:       e.end_date,
             })),
           });
         }
-      } catch (err) {
+      } catch {
         setError('Network error. Please check your connection.');
       } finally {
         setLoading(false);
@@ -276,53 +272,13 @@ export default function MyApplication() {
     fetchApplication();
   }, []);
 
-  const handleAccept = async () => {
-    if (!window.confirm('Accept this offer? Your account will be upgraded to Student and you will need to log in again.')) return;
-    setOfferLoading('accept');
-    try {
-      const res  = await fetch(`${API}/my-application/accept`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-
-      alert(data.message);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      navigate('/login');
-    } catch (err) {
-      alert(err.message || 'Failed to accept offer.');
-    } finally {
-      setOfferLoading(null);
-    }
-  };
-
-  const handleWithdraw = async () => {
-    if (!window.confirm('Are you sure you want to decline this offer? This cannot be undone.')) return;
-    setOfferLoading('withdraw');
-    try {
-      const res  = await fetch(`${API}/my-application/withdraw`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-
-      setApplication((prev) => ({ ...prev, status: 'withdraw' }));
-    } catch (err) {
-      alert(err.message || 'Failed to withdraw.');
-    } finally {
-      setOfferLoading(null);
-    }
-  };
-
   const fmt = (dateStr) => {
     if (!dateStr) return '—';
     const d = new Date(dateStr);
     return isNaN(d) ? dateStr : d.toLocaleDateString('en-MY', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
+  // ── Loading ──────────────────────────────────────────────
   if (loading) {
     return (
       <Layout activePage="my-application">
@@ -333,6 +289,7 @@ export default function MyApplication() {
     );
   }
 
+  // ── Error ────────────────────────────────────────────────
   if (error) {
     return (
       <Layout activePage="my-application">
@@ -344,26 +301,53 @@ export default function MyApplication() {
     );
   }
 
+  // ── No application ───────────────────────────────────────
   if (!application) {
     return (
       <Layout activePage="my-application">
-        <div className="af-content"><div className="af-card"><div className="ma-empty-state">
-          <p className="ma-empty-title">No Application Found</p>
-          <p className="ma-empty-text">You haven't submitted an application yet.</p>
-        </div></div></div>
+        <div className="af-content">
+          <div className="af-card">
+            <div className="ma-empty-state">
+              <p className="ma-empty-title">No Application Found</p>
+              <p className="ma-empty-text">You haven't started an application yet. Click below to begin.</p>
+              <button
+                className="af-btn-next"
+                style={{ marginTop: '24px' }}
+                onClick={() => navigate('/application-form')}
+              >
+                Start Application
+                <Icon d="M5 12h14M12 5l7 7-7 7" size={14} color="white" />
+              </button>
+            </div>
+          </div>
+        </div>
       </Layout>
     );
   }
 
   const {
-    status, submittedAt,
-    fullName, icNumber, dob, gender, race, maritalStatus,
+    status, submittedAt, updatedAt,
+    fullName, dob, gender,
     email, phone, fullAddress, postalCode, state,
-    education = [],
+    hearAboutUs, education = [],
+    selectedSlotDatetime,
   } = application;
 
-  const isPending    = status?.toLowerCase() === 'pending';
-  const isApproved   = status?.toLowerCase() === 'approved';
+  // const {
+  //   status, submittedAt, updatedAt,
+  //   fullName, icNumber, dob, gender, race, maritalStatus,
+  //   email, phone, fullAddress, postalCode, state,
+  //   hearAboutUs, education = [],
+  //   selectedSlotDatetime,
+  // } = application;
+
+  const isDraft    = status?.toLowerCase() === 'draft';
+
+  const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+
+  const subLabel = isDraft
+    ? `Draft — last saved ${updatedAt ? fmt(updatedAt) : '—'}`
+    : `Submitted ${submittedAt ? fmt(submittedAt) : '—'}`;
 
   return (
     <Layout activePage="my-application">
@@ -373,17 +357,18 @@ export default function MyApplication() {
         <div className="ma-page-header">
           <div>
             <h1 className="ma-page-title">My Application</h1>
-            <p className="ma-page-sub">Submitted {submittedAt ? fmt(submittedAt) : '—'}</p>
+            <p className="ma-page-sub">{subLabel}</p>
           </div>
           <div className="ma-header-right">
             <StatusBadge status={status} />
+
           </div>
         </div>
 
         {/* ── Status notice ── */}
         <StatusNotice status={status} />
 
-        {/* ── Interview details ── */}
+         {/* ── Interview Details (admin-assigned) — below Education ── */}
         <InterviewDetails application={application} />
 
         {/* ── Personal Information ── */}
@@ -402,19 +387,22 @@ export default function MyApplication() {
           <div className="af-card-body">
             <div className="af-form-grid">
               <FormSeparator title="Basic Information" />
-              <ReadField label="Full Name"      value={fullName}      fullWidth />
-              <ReadField label="IC Number"      value={icNumber}      fullWidth />
+              <ReadField label="Full Name"      value={fullName}   fullWidth />
+              {/* <ReadField label="IC Number"      value={icNumber}   fullWidth /> */}
               <ReadField label="Date of Birth"  value={fmt(dob)} />
-              <FormSeparator title="Demographic Information" />
-              <ReadField label="Gender"         value={gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : ''} />
-              <ReadField label="Race"           value={race   ? race.charAt(0).toUpperCase()   + race.slice(1)   : ''} />
-              <ReadField label="Marital Status" value={maritalStatus ? maritalStatus.charAt(0).toUpperCase() + maritalStatus.slice(1) : ''} />
+
+              {/* <FormSeparator title="Demographic Information" /> */}
+              <ReadField label="Gender"         value={capitalize(gender)} />
+              {/* <ReadField label="Race"           value={capitalize(race)} />
+              <ReadField label="Marital Status" value={capitalize(maritalStatus)} /> */}
+
               <FormSeparator title="Contact & Address" />
               <ReadField label="Email Address"  value={email} />
               <ReadField label="Phone Number"   value={phone} />
-              <ReadField label="Full Address" value={fullAddress} fullWidth />
+              <ReadField label="Full Address"   value={fullAddress} fullWidth />
               <ReadField label="Postal Code"    value={postalCode} />
               <ReadField label="State"          value={state} />
+
             </div>
           </div>
         </div>
@@ -436,7 +424,12 @@ export default function MyApplication() {
             <div className="af-table-wrap" style={{ borderRadius: 0, border: 'none' }}>
               <table className="af-table">
                 <thead>
-                  <tr><th>Institute Name</th><th>Qualification</th><th>Start Date</th><th>End Date</th></tr>
+                  <tr>
+                    <th>Institute Name</th>
+                    <th>Qualification</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {education.length === 0
@@ -456,27 +449,57 @@ export default function MyApplication() {
           </div>
         </div>
 
-        {isPending && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+        {/* ── Additional Information ── */}
+        {(selectedSlotDatetime || hearAboutUs) && (
+          <div className="af-card ma-section-card">
+            <div className="af-card-header ma-section-card-header">
+              <div className="ma-section-heading">
+                <div className="ma-section-icon">
+                  <Icon d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" size={15} color="#1a56db" />
+                </div>
+                <div>
+                  <p className="af-card-title">Interview & Additional Information</p>
+                  <p className="af-card-subtitle">Your preferred interview slot and additional details</p>
+                </div>
+              </div>
+            </div>
+            <div className="af-card-body">
+              <div className="af-form-grid">
+                <FormSeparator title="Interview Slot" />
+                {selectedSlotDatetime && (
+                  <div className="af-col-full">
+                    <SelectedSlotCard
+                      datetime={selectedSlotDatetime}
+                    />
+                  </div>
+                )}
+                <FormSeparator title="Additional Information" />
+                {hearAboutUs && (
+                  <ReadField
+                    label="How Did You Hear About Us"
+                    value={HEAR_ABOUT_MAP[hearAboutUs] || hearAboutUs}
+                    fullWidth
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Edit button — right-aligned, directly below Education ── */}
+        {isDraft && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
             <button
-              className="af-btn-next"
+              className="af-btn-next ma-edit-btn"
               onClick={() => navigate('/application-form')}
               type="button"
             >
               <Icon d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" size={14} color="white" />
-              Edit Application
+              Continue Editing
             </button>
           </div>
         )}
 
-        {/* ── Accept / Decline buttons — only shown when approved ── */}
-        {isApproved && (
-          <OfferActions
-            onAccept={handleAccept}
-            onWithdraw={handleWithdraw}
-            loading={offerLoading}
-          />
-        )}
       </div>
     </Layout>
   );

@@ -1,11 +1,14 @@
 // Navbar.jsx — EduLearn
 // Styles: globals.css
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
-  const navigate = useNavigate();
+  const navigate   = useNavigate();
+  const [open, setOpen] = useState(false);
 
   const scrollTo = (id) => {
+    setOpen(false);
     if (window.location.pathname !== "/") {
       navigate("/");
       setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }), 100);
@@ -24,20 +27,40 @@ const Navbar = () => {
         /> ViTrox Academy
       </div>
 
-      <div className="nav-links">
+      {/* ── Hamburger button (visible on mobile only) ── */}
+      <button
+        className="nav-hamburger"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-label="Toggle menu"
+      >
+        {open ? (
+          // X icon
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        ) : (
+          // Hamburger icon
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        )}
+      </button>
+
+      {/* ── Nav links — desktop always visible, mobile toggled ── */}
+      <div className={`nav-links ${open ? "nav-links--open" : ""}`}>
         <button className="nav-link" onClick={() => scrollTo("announcements")}>Announcements</button>
         <button className="nav-link" onClick={() => scrollTo("background")}>Background</button>
         <button className="nav-link" onClick={() => scrollTo("components")}>Programme Components</button>
         <button className="nav-link" onClick={() => scrollTo("application")}>Application Process</button>
         <button
           className="nav-btn nav-btn-outline"
-          onClick={() => navigate("login")}
+          onClick={() => { setOpen(false); navigate("login"); }}
         >
           Log in
         </button>
         <button
           className="nav-btn nav-btn-solid"
-          onClick={() => navigate("signup")}
+          onClick={() => { setOpen(false); navigate("signup"); }}
         >
           Register
         </button>

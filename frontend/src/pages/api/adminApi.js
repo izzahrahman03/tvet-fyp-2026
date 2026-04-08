@@ -61,33 +61,6 @@ export const resendActivation = async (userId) => {
 };
 
 // ══════════════════════════════════════════════════════════
-// APPLICATIONS
-// ══════════════════════════════════════════════════════════
-
-export const fetchApplications = async (search = "", status = "") => {
-  const params = new URLSearchParams();
-  if (search) params.set("search", search);
-  if (status) params.set("status", status);
-  const query = params.toString() ? `?${params}` : "";
-  const data  = await apiFetch(`/admin/applications${query}`);
-  return data.applications || [];
-};
-
-// ── FIX: was using api.put() (Axios) — replaced with apiFetch (native fetch)
-//         to match the rest of this file.
-export const updateApplicationStatus = async (id, payload) => {
-  const data = await apiFetch(`/admin/applications/${id}/status`, {
-    method: "PUT",
-    body:   JSON.stringify(payload),
-  });
-  return data;
-};
-
-export const deleteApplication = async (id) => {
-  return apiFetch(`/admin/applications/${id}`, { method: "DELETE" });
-};
-
-// ══════════════════════════════════════════════════════════
 // MISC
 // ══════════════════════════════════════════════════════════
 
@@ -103,35 +76,7 @@ export const fetchPartners = async (search = "") => {
 };
 
 export const fetchApplicationById = async (id) => {
-  const data = await apiFetch(`/admin/applications/${id}`);
+  const data = await apiFetch(`/applications/${id}`);
   return data.application;  // GET /admin/applications/:id
 };
 
-// ══════════════════════════════════════════════════════════
-// INTAKES  — add these to adminApi.js
-// ══════════════════════════════════════════════════════════
-
-export const fetchIntakes = async () => {
-  const data = await apiFetch("/admin/intakes");
-  return data.intakes || [];
-};
-
-export const createIntake = async (payload) => {
-  const data = await apiFetch("/admin/intakes", {
-    method: "POST",
-    body:   JSON.stringify(payload),
-  });
-  return data.intake;
-};
-
-export const updateIntake = async (id, payload) => {
-  const data = await apiFetch(`/admin/intakes/${id}`, {
-    method: "PUT",
-    body:   JSON.stringify(payload),
-  });
-  return data.intake;
-};
-
-export const deleteIntake = async (id) => {
-  return apiFetch(`/admin/intakes/${id}`, { method: "DELETE" });
-};

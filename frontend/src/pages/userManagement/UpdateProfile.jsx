@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../components/dashboard/Layout";
+import useToast                from "../userManagement/userTable/useToast";
+import "../../css/userManagement/userTable.css";
 
 const API = process.env.REACT_APP_API_URL;
 
@@ -21,33 +23,6 @@ const getStrength = (pw) => {
 const STRENGTH_LABELS = ["", "Weak", "Fair", "Good", "Strong"];
 const STRENGTH_COLORS = ["", "#ef4444", "#f59e0b", "#3b82f6", "#10b981"];
 
-// ── Toast ──────────────────────────────────────────────────
-function Toast({ msg, kind, onClose }) {
-  if (!msg) return null;
-  const styles = {
-    success: { bg: "#f0fdf4", border: "#bbf7d0", color: "#15803d", icon: "✓" },
-    error:   { bg: "#fef2f2", border: "#fecaca", color: "#b91c1c", icon: "✕" },
-    info:    { bg: "#eff6ff", border: "#bfdbfe", color: "#1d4ed8", icon: "ℹ" },
-  };
-  const s = styles[kind] || styles.info;
-  return (
-    <div style={{
-      position: "fixed", top: "24px", right: "24px", zIndex: 9999,
-      background: s.bg, border: `1px solid ${s.border}`, color: s.color,
-      borderRadius: "12px", padding: "14px 18px",
-      display: "flex", alignItems: "center", gap: "10px",
-      fontSize: "15.5px", fontWeight: "600",
-      boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-      animation: "slideIn 0.3s ease",
-      maxWidth: "340px",
-    }}>
-      <span style={{ fontSize: "18px" }}>{s.icon}</span>
-      <span style={{ flex: 1 }}>{msg}</span>
-      <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", fontSize: "16px", lineHeight: 1, padding: 0, opacity: 0.6 }}>×</button>
-    </div>
-  );
-}
-
 // ── Input Field ────────────────────────────────────────────
 function Field({ label, hint, error, children }) {
   return (
@@ -67,7 +42,7 @@ function Input({ icon, rightEl, error, ...props }) {
     <div style={{
       display: "flex", alignItems: "center", gap: "9px",
       border: `1.5px solid ${error ? "#ef4444" : "#e2e8f0"}`,
-      borderRadius: "10px", padding: "0 13px",
+      borderRadius: "2px", padding: "0 13px",
       background: error ? "#fff5f5" : "#f8fafc",
       transition: "border-color 0.15s, box-shadow 0.15s",
       boxShadow: error ? "0 0 0 3px rgba(239,68,68,0.08)" : "none",
@@ -89,7 +64,7 @@ function Input({ icon, rightEl, error, ...props }) {
 function Card({ title, subtitle, children }) {
   return (
     <div style={{
-      background: "white", borderRadius: "16px", overflow: "hidden",
+      background: "white", borderRadius: "5px", overflow: "hidden",
       boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
       border: "1px solid #f1f5f9",
     }}>
@@ -113,6 +88,7 @@ export default function UpdateProfile() {
   // ── Load user from localStorage ───────────────────────────
   const stored   = JSON.parse(localStorage.getItem("user") || "{}");
   const userRole = stored?.role || "applicant";
+  const userMatric = stored?.matricNumber || "";
 
   // ── Profile form ──────────────────────────────────────────
   const [name,      setName]      = useState(stored?.name  || "");
@@ -132,11 +108,7 @@ export default function UpdateProfile() {
   const [savingPw,   setSavingPw]   = useState(false);
 
   // ── Toast ─────────────────────────────────────────────────
-  const [toast, setToast] = useState(null);
-  const showToast = (msg, kind = "success") => {
-    setToast({ msg, kind });
-    setTimeout(() => setToast(null), 3500);
-  };
+  const { toast, show } = useToast();
 
   const strength    = getStrength(newPw);
   const strengthPct = (strength / 4) * 100;
@@ -147,6 +119,7 @@ export default function UpdateProfile() {
     { label: "At least 8 characters",      met: newPw.length >= 8 },
     { label: "One uppercase letter (A–Z)",  met: /[A-Z]/.test(newPw) },
     { label: "One number (0–9)",            met: /[0-9]/.test(newPw) },
+    { label: "One special character (!@#$%^&*()-+)", met: /[^A-Za-z0-9]/.test(newPw) },
   ];
 
   // ── Save profile ──────────────────────────────────────────
@@ -167,14 +140,14 @@ export default function UpdateProfile() {
         body:    JSON.stringify({ name, email }),
       });
       const data = await res.json();
-      if (!res.ok) { showToast(data.message || "Failed to update profile.", "error"); return; }
+      if (!res.ok) { show(data.message || "Failed to update profile.", "error"); return; }
 
       // Update localStorage
       const updated = { ...stored, name, email };
       localStorage.setItem("user", JSON.stringify(updated));
-      showToast("Profile updated successfully!");
+      show("Profile updated successfully!");
     } catch {
-      showToast("Network error. Please try again.", "error");
+      show("Network error. Please try again.", "error");
     } finally {
       setSavingProfile(false);
     }
@@ -199,20 +172,20 @@ export default function UpdateProfile() {
       if (!res.ok) { setPwErr(data.message || "Failed to update password."); return; }
 
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
-      showToast("Password changed successfully!");
+      show("Password changed successfully!");
     } catch {
-      showToast("Network error. Please try again.", "error");
+      show("Network error. Please try again.", "error");
     } finally {
       setSavingPw(false);
     }
   };
 
   // ── Eye button ─────────────────────────────────────────────
-  const EyeBtn = ({ show, onToggle }) => (
+  const EyeBtn = ({ show: showPw, onToggle }) => (
     <button type="button" onClick={onToggle}
       style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, display: "flex", alignItems: "center", flexShrink: 0 }}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        {show
+        {showPw
           ? <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22" />
           : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
         }
@@ -226,6 +199,7 @@ export default function UpdateProfile() {
     student:             "Student",
     industry_partner:    "Industry Partner",
     industry_supervisor: "Industry Supervisor",
+    manager:             "Manager", 
   };
 
   return (
@@ -240,7 +214,15 @@ export default function UpdateProfile() {
         .save-btn:active:not(:disabled) { transform: translateY(0); }
       `}</style>
 
-      <Toast msg={toast?.msg} kind={toast?.kind} onClose={() => setToast(null)} />
+      {toast && (
+        <div className={`ut-toast ${toast.kind}`}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d={toast.kind === 'error' ? 'M18 6L6 18M6 6l12 12' : 'M20 6L9 17l-5-5'} />
+          </svg>
+          {toast.msg}
+        </div>
+      )}
 
       <DashboardLayout title="My Profile">
         <div style={{ maxWidth: "680px", margin: "0 auto", padding: "28px 24px", display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -282,14 +264,28 @@ export default function UpdateProfile() {
                 <Field label="Role">
                   <div style={{
                     display: "flex", alignItems: "center", gap: "9px",
-                    border: "1.5px solid #e2e8f0", borderRadius: "10px",
-                    padding: "11px 13px", background: "#f1f5f9", // greyed out
-                    fontSize: "16px", color: "#64748b",           // muted color
+                    border: "1.5px solid #e2e8f0", borderRadius: "2px",
+                    padding: "11px 13px", background: "#f1f5f9",
+                    fontSize: "16px", color: "#64748b",
                     cursor: "not-allowed",
                   }}>
                     {roleLabels[userRole] || userRole}
                   </div>
                 </Field>
+
+                {userRole === "student" && (
+                  <Field label="Matric Number">
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: "9px",
+                      border: "1.5px solid #e2e8f0", borderRadius: "2px",
+                      padding: "11px 13px", background: "#f1f5f9",
+                      fontSize: "16px", color: "#64748b",
+                      cursor: "not-allowed",
+                    }}>
+                      {userMatric || "Not provided"}
+                    </div>
+                  </Field>
+                )}
 
                 <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "4px" }}>
                   <button className="save-btn" onClick={handleSaveProfile} disabled={savingProfile}
@@ -300,8 +296,7 @@ export default function UpdateProfile() {
                       cursor: savingProfile ? "not-allowed" : "pointer",
                       opacity: savingProfile ? 0.7 : 1,
                       display: "flex", alignItems: "center", gap: "7px",
-                      boxShadow: "0 4px 14px rgba(26,86,219,0.3)",
-                      transition: "transform 0.1s, box-shadow 0.15s",
+                      transition: "transform 0.1s",
                       fontFamily: "inherit",
                     }}>
                     {savingProfile ? (
@@ -341,7 +336,7 @@ export default function UpdateProfile() {
                         <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                       </svg>
                     }
-                    rightEl={<EyeBtn show={showCur} onToggle={() => setShowCur(v => !v)} />}
+                    rightEl={<EyeBtn showPw={showCur} onToggle={() => setShowCur(v => !v)} />}
                   />
                 </Field>
 
@@ -357,7 +352,7 @@ export default function UpdateProfile() {
                         <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                       </svg>
                     }
-                    rightEl={<EyeBtn show={showNew} onToggle={() => setShowNew(v => !v)} />}
+                    rightEl={<EyeBtn showPw={showNew} onToggle={() => setShowNew(v => !v)} />}
                   />
 
                   {/* Strength bar */}
@@ -369,8 +364,8 @@ export default function UpdateProfile() {
                           {STRENGTH_LABELS[strength]}
                         </span>
                       </div>
-                      <div style={{ background: "#f1f5f9", borderRadius: "999px", height: "5px", overflow: "hidden" }}>
-                        <div style={{ height: "100%", borderRadius: "999px", width: `${strengthPct}%`, background: STRENGTH_COLORS[strength], transition: "width 0.35s ease, background 0.35s ease" }} />
+                      <div style={{ background: "#f1f5f9", borderRadius: "2px", height: "5px", overflow: "hidden" }}>
+                        <div style={{ height: "100%", borderRadius: "2px", width: `${strengthPct}%`, background: STRENGTH_COLORS[strength], transition: "width 0.35s ease, background 0.35s ease" }} />
                       </div>
                     </div>
                   )}
@@ -401,7 +396,7 @@ export default function UpdateProfile() {
                         <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                       </svg>
                     }
-                    rightEl={<EyeBtn show={showConf} onToggle={() => setShowConf(v => !v)} />}
+                    rightEl={<EyeBtn showPw={showConf} onToggle={() => setShowConf(v => !v)} />}
                   />
                   {pwMismatch && <span style={{ fontSize: "13.5px", color: "#ef4444", fontWeight: "600" }}>✕ Passwords do not match</span>}
                   {pwMatch    && <span style={{ fontSize: "13.5px", color: "#10b981", fontWeight: "600" }}>✓ Passwords match</span>}
@@ -409,7 +404,7 @@ export default function UpdateProfile() {
 
                 {/* Error */}
                 {pwErr && (
-                  <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "9px", padding: "10px 14px", fontSize: "15px", color: "#b91c1c", fontWeight: "500" }}>
+                  <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "2px", padding: "10px 14px", fontSize: "15px", color: "#b91c1c", fontWeight: "500" }}>
                     {pwErr}
                   </div>
                 )}
@@ -424,8 +419,7 @@ export default function UpdateProfile() {
                       cursor: (savingPw || pwMismatch || !currentPw || !newPw || !confirmPw) ? "not-allowed" : "pointer",
                       opacity: (savingPw || pwMismatch || !currentPw || !newPw || !confirmPw || !requirements.every(r => r.met)) ? 0.55 : 1,
                       display: "flex", alignItems: "center", gap: "7px",
-                      boxShadow: "0 4px 14px rgba(26,86,219,0.3)",
-                      transition: "transform 0.1s, box-shadow 0.15s",
+                      transition: "transform 0.1s",
                       fontFamily: "inherit",
                     }}>
                     {savingPw ? (

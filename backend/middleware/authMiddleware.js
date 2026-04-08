@@ -37,3 +37,51 @@ exports.requireAdmin = async (req, res, next) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// middleware/authMiddleware.js
+
+exports.requireManager = async (req, res, next) => {
+  try {
+    const [rows] = await db.query('SELECT role FROM users WHERE user_id = ?', [req.user.id]);
+    if (!rows.length) return res.status(404).json({ message: 'User not found.' });
+    if (rows[0].role !== 'manager')
+      return res.status(403).json({ message: 'Manager access required.' });
+    next();
+  } catch (err) {
+    console.error('requireManager error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.requireAdminOrManager = async (req, res, next) => {
+  try {
+    const [rows] = await db.query('SELECT role FROM users WHERE user_id = ?', [req.user.id]);
+    if (!rows.length) return res.status(404).json({ message: 'User not found.' });
+    if (!['admin', 'manager'].includes(rows[0].role))
+      return res.status(403).json({ message: 'Access denied.' });
+    next();
+  } catch (err) {
+    console.error('requireAdminOrManager error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ── Require partner role ─────────────────────────────────────
+exports.requirePartner = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const [rows] = await db.query('SELECT role FROM users WHERE user_id = ?', [userId]);
+
+    if (!rows.length) return res.status(404).json({ message: 'User not found.' });
+
+    if (rows[0].role !== 'industry_partner')
+      return res.status(403).json({ message: 'Access denied. Partners only.' });
+
+    next();
+  } catch (err) {
+    console.error('requirePartner error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+

@@ -14,138 +14,116 @@
   font-family: 'Roboto', sans-serif;
 }
 
-/* ── Sidebar ── */
+/* ══════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════ */
 .db-sidebar {
   width: 220px;
   flex-shrink: 0;
   background: white;
   display: flex;
   flex-direction: column;
-  padding: 28px 16px;
+  padding: 20px 12px;
   border-right: 1px solid #e2e8f0;
   position: fixed;
   top: 0;
   left: 0;
   height: 100vh;
   z-index: 200;
-  transition: transform 0.25s ease;
+  overflow: hidden;
+  transition: width 0.25s ease, padding 0.25s ease;
 }
 
+/* ── Open state ── */
 .db-sidebar.open {
-  transform: translateX(0);
+  width: 220px;
+  padding: 20px 12px;
 }
 
-/* ── Main ── */
+/* ── Closed / icon-only state ── */
+.db-sidebar.closed {
+  width: 60px;
+  padding: 20px 10px;
+}
+
+/* ── Toggle button inside sidebar ── */
+.db-sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 2px;
+  color: #64748b;
+  margin-bottom: 16px;
+  align-self: flex-end;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.db-sidebar-toggle:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+/* ══════════════════════════════════════
+   MAIN CONTENT
+══════════════════════════════════════ */
 .db-main {
-  margin-left: 220px;
   flex: 1;
   padding: 28px 32px;
+  transition: margin-left 0.25s ease;
 }
 
-/* ── Mobile Hamburger ── */
-.db-hamburger {
-  display: none;
+.db-main.sidebar-open {
+  margin-left: 220px;
 }
 
-.db-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  z-index: 199;
+.db-main.sidebar-closed {
+  margin-left: 60px;
 }
 
-.db-overlay.visible {
-  display: block;
-}
-
-/* ── Illustration ── */
-.db-illustration {
-  display: flex;
-}
-
-.db-username {
-  font-size: 18px;
-  color: #475569;
-  font-weight: 550;
-  white-space: nowrap;
-}
-
-/* ── Responsive ── */
-@media (max-width: 768px) {
-  .db-sidebar {
-    transform: translateX(-100%);
-  }
-  .db-main {
-    margin-left: 0;
-    padding: 20px 16px;
-  }
-  .db-hamburger {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 8px;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-  .db-illustration {
-    display: none;
-  }
-  .db-username {
-    display: none;
-  }
-  .db-welcome-title {
-    font-size: 18px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .db-status-card {
-    max-width: 100% !important;
-  }
-}
-
-/* ════════════════════════════════════════════════════════
-   NEW — Logo, Nav, Topbar, Search, User chip
-   (added to support ApplicantSidebar + ApplicantTopbar)
-════════════════════════════════════════════════════════ */
-
-/* ── Logo ── */
+/* ══════════════════════════════════════
+   LOGO
+══════════════════════════════════════ */
 .db-logo {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 40px;
+  margin-bottom: 28px;
   flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-.db-logo-icon {
-  width: 36px;
-  height: 36px;
-  background: #1a56db;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.nav-logo-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
   flex-shrink: 0;
 }
 
 .db-logo-text {
-  font-weight: 550;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 13px;
   color: #1e293b;
-  line-height: 1.1;
+  line-height: 1.2;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-/* ── Nav ── */
+/* ══════════════════════════════════════
+   NAV
+══════════════════════════════════════ */
 .db-nav {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .db-nav-btn {
@@ -154,16 +132,25 @@
   gap: 10px;
   width: 100%;
   text-align: left;
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: 12px;
+  padding: 10px 10px;
+  border-radius: 2px;
+  border: none;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 550;
   font-family: inherit;
-  transition: all 0.15s ease;
+  transition: background 0.15s, color 0.15s;
   background: transparent;
   color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Icon-only layout when closed */
+.db-sidebar.closed .db-nav-btn {
+  justify-content: center;
+  padding: 10px 0;
+  gap: 0;
 }
 
 .db-nav-btn:hover {
@@ -186,7 +173,26 @@
   flex-shrink: 0;
 }
 
-/* ── Sign out button ── */
+.db-nav-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.db-subnav {
+  padding-top: 2px;
+  padding-left: 8px;
+}
+
+.db-subnav-btn {
+  font-size: 13px;
+  font-weight: 500;
+  padding-left: 12px;
+}
+
+/* ══════════════════════════════════════
+   SIGN OUT
+══════════════════════════════════════ */
 .db-signout-btn {
   display: flex;
   align-items: center;
@@ -195,17 +201,30 @@
   border: none;
   cursor: pointer;
   color: #ef4444;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   font-family: inherit;
-  padding: 8px 4px;
-  transition: opacity 0.15s;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: background 0.15s, opacity 0.15s;
   flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
-.db-signout-btn:hover { opacity: 0.75; }
+.db-sidebar.closed .db-signout-btn {
+  justify-content: center;
+  padding: 8px 0;
+}
 
-/* ── Topbar row ── */
+.db-signout-btn:hover {
+  background: #fef2f2;
+  opacity: 0.9;
+}
+
+/* ══════════════════════════════════════
+   TOPBAR
+══════════════════════════════════════ */
 .db-topbar {
   display: flex;
   align-items: center;
@@ -213,41 +232,35 @@
   margin-bottom: 24px;
 }
 
-/* ── Page title (mobile) ── */
 .db-topbar-title {
-  display: none;
   font-size: 15px;
   font-weight: 700;
   color: #1e293b;
   white-space: nowrap;
+  display: none;
 }
 
-/* ── Search bar ── */
-.db-search-wrap {
-  flex: 1;
-  display: flex;
+/* ── Hamburger — mobile only ── */
+.db-hamburger {
+  display: none;
   align-items: center;
-  gap: 10px;
-  background: white;
-  border-radius: 10px;
-  padding: 10px 16px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  border: 1px solid #e2e8f0;
-}
-
-.db-search-input {
-  border: none;
-  outline: none;
+  justify-content: center;
   background: none;
-  font-size: 14px;
-  color: #475569;
-  font-family: inherit;
-  width: 100%;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: background 0.15s;
 }
 
-.db-search-input::placeholder { color: #94a3b8; }
+.db-hamburger:hover {
+  background: #f1f5f9;
+}
 
-/* ── User chip ── */
+/* ══════════════════════════════════════
+   USER CHIP
+══════════════════════════════════════ */
 .db-user-chip {
   display: flex;
   align-items: center;
@@ -257,7 +270,7 @@
   border: none;
   cursor: pointer;
   font-family: inherit;
-  padding: 4px;
+  padding: 4px 8px;
   border-radius: 8px;
   transition: background 0.15s;
 }
@@ -279,9 +292,75 @@
   flex-shrink: 0;
 }
 
-/* ── Mobile topbar adjustments ── */
+.db-username {
+  font-size: 14px;
+  color: #475569;
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════════
+   OVERLAY
+══════════════════════════════════════ */
+.db-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 199;
+}
+
+/* ══════════════════════════════════════
+   MOBILE  (≤ 768px)
+══════════════════════════════════════ */
 @media (max-width: 768px) {
-  .db-topbar-title { display: block; }
-  .db-search-wrap  { display: none; }
-  .db-username     { display: none; } /* already set above, kept for clarity */
+
+  /* Sidebar slides in/out on mobile */
+  .db-sidebar {
+    width: 220px !important;
+    padding: 20px 12px !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+
+  .db-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .db-sidebar.closed {
+    transform: translateX(-100%);
+  }
+
+  /* Main always full width on mobile */
+  .db-main,
+  .db-main.sidebar-open,
+  .db-main.sidebar-closed {
+    margin-left: 0 !important;
+    padding: 16px;
+  }
+
+  /* Show hamburger on mobile (topbar) */
+  .db-hamburger {
+    display: flex;
+  }
+
+  /* Show overlay when sidebar open */
+  .db-overlay.visible {
+    display: block;
+  }
+
+  /* Show page title on mobile */
+  .db-topbar-title {
+    display: block;
+  }
+
+  /* Hide username text on mobile */
+  .db-username {
+    display: none;
+  }
+
+  /* Hide sidebar's own toggle on mobile */
+  .db-sidebar-toggle {
+    display: none;
+  }
 }

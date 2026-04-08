@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../utils/axios';
 import { useNavigate } from 'react-router-dom';
 import "../css/pages/login.css";
 import "../css/pages/signup.css";
-import { GoogleIcon } from "../components/Icons";
+// import { GoogleIcon } from "../components/Icons";
 import PasswordFields, { getStrength } from "../components/PasswordFields";
 
 const BENEFITS = [
@@ -18,16 +18,15 @@ const Signup = () => {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    name:       "",
-    email:      "",
-    password:   "",
-    confirm:    "",
-    topic:      "",
-    newsletter: true,
-    terms:      false,
+    name:     "",
+    email:    "",
+    password: "",
+    confirm:  "",
+    // terms:    false,
   });
 
-  const [alert, setAlert] = useState(null); // { type: "error" | "success", text: string }
+  const [alert,  setAlert]  = useState(null);
+  const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -35,25 +34,46 @@ const Signup = () => {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-    // Clear error alert as user starts correcting the form
+    setErrors(prev => ({ ...prev, [name]: '' }));
     if (alert?.type === "error") setAlert(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (form.password !== form.confirm) {
-      setAlert({ type: "error", text: "Passwords do not match." });
-      return;
-    }
-    if (getStrength(form.password) < 2) {
-      setAlert({ type: "error", text: "Please choose a stronger password." });
+    const errs = {};
+
+    if (!form.name.trim())
+      errs.name = "Please enter your full name.";
+
+    if (!form.email.trim())
+      errs.email = "Please enter your email address.";
+
+    if (!form.password)
+      errs.password = "Please enter a password.";
+    else if (getStrength(form.password) < 4)
+      errs.password = "Please choose a stronger password.";
+
+    if (!form.confirm)
+      errs.confirm = "Please confirm your password.";
+    else if (form.password && form.password !== form.confirm)
+      errs.confirm = "Passwords do not match.";
+
+    // if (!form.terms)
+    //   errs.terms = "Please agree to the Terms of Service and Privacy Policy.";
+
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      setAlert({ type: "error", text: "Please fix the errors above before continuing." });
       return;
     }
 
+    setErrors({});
+    setAlert(null);
+
     try {
-      await axios.post("http://localhost:5001/api/signup", form);
-      setAlert({ type: "success", text: "Signup successful. Redirecting to login..." });
+      await api.post("http://localhost:5001/api/signup", form);
+      setAlert({ type: "success", text: "Signup successful. Redirecting to login." });
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
       const msg = err.response?.data?.message || "Signup failed. Please try again.";
@@ -115,7 +135,7 @@ const Signup = () => {
           or sign up with email
         </div> */}
 
-        {/* ── Alert banner (error or success) ── */}
+        {/* ── Banner alert ── */}
         {alert && (
           <div className={`auth-alert ${alert.type}`}>
             <svg
@@ -141,64 +161,76 @@ const Signup = () => {
 
           {/* Full name */}
           <div className="form-group anim-fade-up delay-3" style={{ marginTop: "1.2rem" }}>
-            <label className="form-label" htmlFor="signup-name">Full name</label>
+            <label className="form-label" htmlFor="signup-name">
+              Full Name <span style={{ color: "red" }}>*</span>
+            </label>
             <input
               id="signup-name"
-              className="form-input"
+              className={`form-input ${errors.name ? 'input-error' : ''}`}
               type="text"
-              placeholder="Jane"
+              placeholder="Full name"
               name="name"
               value={form.name}
               onChange={handleChange}
-              required
             />
+            {errors.name && <p className="auth-field-error">{errors.name}</p>}
           </div>
 
           {/* Email */}
-          <div className="form-group anim-fade-up delay-3" style={{ marginTop: "1.2rem" }}>
-            <label className="form-label" htmlFor="signup-email">Email address</label>
+          <div className="form-group anim-fade-up delay-3">
+            <label className="form-label" htmlFor="signup-email">
+              Email address <span style={{ color: "red" }}>*</span>
+            </label>
             <input
               id="signup-email"
-              className="form-input"
+              className={`form-input ${errors.email ? 'input-error' : ''}`}
               type="email"
-              placeholder="you@example.com"
+              placeholder="Email address"
               name="email"
               value={form.email}
               onChange={handleChange}
-              required
             />
+            {errors.email && <p className="auth-field-error">{errors.email}</p>}
           </div>
 
           {/* Password + confirm + requirements */}
-          <div className="anim-fade-up delay-3">
+          <div className="form-group anim-fade-up delay-3">
             <PasswordFields
               password={form.password}
-              onPasswordChange={(val) => setForm(prev => ({ ...prev, password: val }))}
+              onPasswordChange={(val) => {
+                setForm(prev => ({ ...prev, password: val }));
+                setErrors(prev => ({ ...prev, password: '' }));
+                if (alert?.type === "error") setAlert(null);
+              }}
               confirm={form.confirm}
-              onConfirmChange={(val) => setForm(prev => ({ ...prev, confirm: val }))}
+              onConfirmChange={(val) => {
+                setForm(prev => ({ ...prev, confirm: val }));
+                setErrors(prev => ({ ...prev, confirm: '' }));
+                if (alert?.type === "error") setAlert(null);
+              }}
+              errors={errors}
             />
           </div>
 
           {/* Terms */}
-          <div className="form-check anim-fade-up delay-4">
+          {/* <div className="form-check anim-fade-up delay-4">
             <input
               type="checkbox"
               id="terms"
               name="terms"
               checked={form.terms}
               onChange={handleChange}
-              required
             />
             <label htmlFor="terms">
               I agree to the <span>Terms of Service</span> and{" "}
               <span>Privacy Policy</span>
             </label>
           </div>
+          {errors.terms && <p className="auth-field-error" style={{ marginTop: '-0.5rem', marginBottom: '0.8rem' }}>{errors.terms}</p>} */}
 
           <button
             type="submit"
             className="btn-auth anim-fade-up delay-5"
-            disabled={form.password !== form.confirm || !form.confirm}
           >
             Create free account
           </button>
