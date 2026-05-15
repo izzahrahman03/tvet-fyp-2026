@@ -68,6 +68,12 @@ export default function ExportModal({ rows, selected, columns, type, onClose }) 
       industry_supervisor: "Industry_Supervisors",
       application:         "Applications",
       manager:              "Managers",
+      internship_evaluation:  "Internship_Evaluations",
+      internship_placement:   "Internship_Placements",
+      internship_termination: "Internship_Terminations",
+      leave_requests:     "Leave_Requests",
+      attendance_records: "Attendance_Records",
+      overtime_requests:  "Overtime_Requests",
     }[type] || "Records";
 
     const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD

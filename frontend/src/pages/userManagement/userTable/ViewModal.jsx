@@ -16,7 +16,6 @@ const miniThStyle    = {
 };
 const miniTdStyle = { padding: "7px 10px", color: "#1e293b", borderBottom: "1px solid #f1f5f9" };
 
-// ── Reusable components ───────────────────────────────────
 function Section({ title, children }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -60,7 +59,6 @@ function StatusField({ status }) {
   );
 }
 
-// ── Slot display card (matches MyApplication's SelectedSlotCard) ──
 function SlotCard({ datetime, capacity }) {
   if (!datetime) return null;
   const fmt = (d) => new Date(d).toLocaleString("en-MY", { dateStyle: "full", timeStyle: "short" });
@@ -88,23 +86,21 @@ function SlotCard({ datetime, capacity }) {
   );
 }
 
-// ── Application view — mirrors MyApplication section layout ──
 function ApplicationView({ row, fmt, fmtDateTime }) {
   const education = row.education || [];
   const hearAbout = HEAR_ABOUT_LABEL[row.hear_about_us] || row.hear_about_us || null;
   const capitalize = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : "—";
 
+  // FIX: use application_status instead of status
   const showInterview = (
-    ["interview", "rejected_interview", "rejected", "approved", "accepted", "declined", "withdraw", "attended", "absent", "passed", "failed"].includes(row.status?.toLowerCase())
+    ["interview", "rejected_interview", "rejected", "approved", "accepted", "declined", "withdraw", "attended", "absent", "passed", "failed"].includes(row.application_status?.toLowerCase())
     && row.interview_datetime
   );
 
   return (
     <>
-      {/* ── 1. Personal Information ───────────────────────── */}
       <Section title="Personal Information">
         <Grid>
-          {/* Basic Information */}
           <div style={{ gridColumn: "1 / -1", paddingBottom: "6px", marginBottom: "2px", borderBottom: "1.5px solid #e2e8f0" }}>
             <span style={{ fontSize: "12px", fontWeight: "800", color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.1em" }}>
               Basic Information
@@ -112,13 +108,9 @@ function ApplicationView({ row, fmt, fmtDateTime }) {
           </div>
 
           <Field label="Full Name"     value={row.name}               wide />
-          {/* <Field label="IC Number"  value={row.ic_number}           wide /> */}
           <Field label="Date of Birth" value={fmt(row.date_of_birth)} />
           <Field label="Gender"        value={capitalize(row.gender)} />
-          {/* <Field label="Race"          value={capitalize(row.race)} />
-          <Field label="Marital Status" value={capitalize(row.marital_status)} /> */}
 
-          {/* Contact & Address */}
           <div style={{ gridColumn: "1 / -1", paddingBottom: "6px", marginBottom: "2px", borderBottom: "1.5px solid #e2e8f0", marginTop: "8px" }}>
             <span style={{ fontSize: "12px", fontWeight: "800", color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.1em" }}>
               Contact & Address
@@ -131,19 +123,18 @@ function ApplicationView({ row, fmt, fmtDateTime }) {
           <Field label="Postal Code"   value={row.postal_code} />
           <Field label="State"         value={row.state} />
 
-          {/* Account */}
           <div style={{ gridColumn: "1 / -1", paddingBottom: "6px", marginBottom: "2px", borderBottom: "1.5px solid #e2e8f0", marginTop: "8px" }}>
             <span style={{ fontSize: "12px", fontWeight: "800", color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.1em" }}>
               Account
             </span>
           </div>
 
-          <StatusField status={row.status} />
+          {/* FIX: use application_status instead of status */}
+          <StatusField status={row.application_status} />
           <Field label="Last Updated" value={fmt(row.updated_at)} />
         </Grid>
       </Section>
 
-      {/* ── 2. Education ──────────────────────────────────── */}
       <Section title="Education">
         {education.length === 0 ? (
           <p style={{ fontSize: "13px", color: "#94a3b8", margin: 0 }}>No education records.</p>
@@ -171,11 +162,9 @@ function ApplicationView({ row, fmt, fmtDateTime }) {
         )}
       </Section>
 
-      {/* ── 3. Interview Slot & Additional Info ───────────── */}
       {(row.selected_slot_datetime || hearAbout) && (
         <Section title="Interview & Additional Information">
           <Grid>
-            {/* Interview Slot */}
             <div style={{ gridColumn: "1 / -1", paddingBottom: "6px", marginBottom: "2px", borderBottom: "1.5px solid #e2e8f0" }}>
               <span style={{ fontSize: "12px", fontWeight: "800", color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.1em" }}>
                 Interview Slot
@@ -187,7 +176,6 @@ function ApplicationView({ row, fmt, fmtDateTime }) {
               capacity={row.selected_slot_capacity}
             />
 
-            {/* Additional Information */}
             {hearAbout && (
               <>
                 <div style={{ gridColumn: "1 / -1", paddingBottom: "6px", marginBottom: "2px", borderBottom: "1.5px solid #e2e8f0", marginTop: "8px" }}>
@@ -202,7 +190,6 @@ function ApplicationView({ row, fmt, fmtDateTime }) {
         </Section>
       )}
 
-      {/* ── 4. Interview Details (admin-assigned) ─────────── */}
       {showInterview && (
         <Section title="Interview Details">
           <Grid>
@@ -217,7 +204,6 @@ function ApplicationView({ row, fmt, fmtDateTime }) {
   );
 }
 
-// ── Role-specific views ───────────────────────────────────
 function ApplicantView({ row, fmt }) {
   return (
     <Section title="Applicant Information">
@@ -301,7 +287,20 @@ function ManagerView({ row, fmt }) {
   );
 }
 
-// ── Loading / Error states ────────────────────────────────
+function InterviewerView({ row, fmt }) {
+  return (
+    <Section title="Interviewer Information">
+      <Grid>
+        <Field label="Name"         value={row.name}  wide />
+        <Field label="Email"        value={row.email} wide />
+        <Field label="Phone Number" value={row.phone} />
+        <StatusField status={row.status} />
+        <Field label="Joined"       value={fmt(row.date)} />
+      </Grid>
+    </Section>
+  );
+}
+
 function LoadingState() {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px", gap: "16px" }}>
@@ -320,7 +319,6 @@ function ErrorState({ message }) {
   );
 }
 
-// ── Main ViewModal ────────────────────────────────────────
 export default function ViewModal({ row, type, onClose }) {
   const [fullRow,    setFullRow]    = useState(type !== "application" ? row : null);
   const [fetching,   setFetching]   = useState(type === "application");
@@ -358,6 +356,7 @@ export default function ViewModal({ row, type, onClose }) {
       case "industry_partner":    return <IndustryPartnerView    row={data} fmt={fmt} />;
       case "industry_supervisor": return <IndustrySupervisorView row={data} fmt={fmt} />;
       case "manager":             return <ManagerView            row={data} fmt={fmt} />;
+      case "interviewer":         return <InterviewerView        row={data} fmt={fmt} />;
       case "applicant":
       default:                    return <ApplicantView          row={data} fmt={fmt} />;
     }

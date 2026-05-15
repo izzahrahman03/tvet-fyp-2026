@@ -48,10 +48,10 @@ const Navbar = () => {
 
       {/* ── Nav links — desktop always visible, mobile toggled ── */}
       <div className={`nav-links ${open ? "nav-links--open" : ""}`}>
-        <button className="nav-link" onClick={() => scrollTo("announcements")}>Announcements</button>
-        <button className="nav-link" onClick={() => scrollTo("background")}>Background</button>
-        <button className="nav-link" onClick={() => scrollTo("components")}>Programme Components</button>
-        <button className="nav-link" onClick={() => scrollTo("application")}>Application Process</button>
+        <button className="nav-link" onClick={() => scrollTo("tvet")}>Programme</button>
+        <button className="nav-link" onClick={() => scrollTo("benefits")}>Benefits</button>
+        <button className="nav-link" onClick={() => scrollTo("impact")}>Impact</button>
+        <button className="nav-link" onClick={() => scrollTo("journey")}>Journey</button>
         <button
           className="nav-btn nav-btn-outline"
           onClick={() => { setOpen(false); navigate("login"); }}

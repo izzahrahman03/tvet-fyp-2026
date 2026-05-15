@@ -47,7 +47,7 @@ function StatusBadge({ status }) {
     <span style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',gap: '0',
       background: s.bg, color: s.color,
-      fontSize: '18px', fontWeight: '700', padding: '13px 18px',
+      fontSize: '15px', fontWeight: '700', padding: '13px 18px',
       borderRadius: '2px', letterSpacing: '0.3px',
     }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, flexShrink: 0 }} />
@@ -114,11 +114,6 @@ function StatusNotice({ status }) {
       icon: 'M20 6L9 17l-5-5',
       msg:  'You have accepted the offer and will be enrolled as a student. Welcome aboard! Our team will be in touch shortly.',
     },
-    rejected: {
-      type: 'error',
-      icon: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
-      msg:  'Your application was unsuccessful at this time. Please contact us if you have any questions.',
-    },
     declined: {
       type: 'warning',
       icon: 'M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z',
@@ -152,7 +147,7 @@ function StatusNotice({ status }) {
 
 // ── Interview details card ─────────────────────────────────
 function InterviewDetails({ application }) {
-  const showStatuses = ['attended', 'no_show', 'passed', 'failed', 'accepted', 'rejected', 'withdrawn',];
+  const showStatuses = ['attended', 'no_show', 'passed', 'failed', 'accepted', 'withdrawn',];
   if (!showStatuses.includes(application.status?.toLowerCase())) return null;
   if (!application.interviewDatetime) return null;
 
@@ -217,24 +212,28 @@ function SelectedSlotCard({ datetime, capacity }) {
 export default function MyApplication() {
   const navigate = useNavigate();
 
-  const [application,  setApplication]  = useState(null);
-  const [loading,      setLoading]      = useState(true);
-  const [error,        setError]        = useState(null);
+  const [application, setApplication] = useState(null);
+  const [windowOpen,  setWindowOpen]  = useState(null); // null = loading, true/false = resolved
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState(null);
 
   useEffect(() => {
-    const fetchApplication = async () => {
+    const load = async () => {
       try {
-        const res  = await fetch(`${API}/my-application`, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
-        const data = await res.json();
+        const [appRes, windowRes] = await Promise.all([
+          fetch(`${API}/my-application`, { headers: { Authorization: `Bearer ${getToken()}` } }),
+          fetch(`${API}/intake/window`,  { headers: { Authorization: `Bearer ${getToken()}` } }),
+        ]);
 
-        if (!res.ok) { setError(data.message || 'Failed to load application.'); return; }
+        const appData    = await appRes.json();
+        const windowData = await windowRes.json();
 
-        if (data.application) {
-          const a = data.application;
+        if (!appRes.ok) {
+          setError(appData.message || 'Failed to load application.');
+        } else if (appData.application) {
+          const a = appData.application;
           setApplication({
-            status:             a.status,
+            status:             a.application_status,
             submittedAt:        a.created_at,
             updatedAt:          a.updated_at,
             fullName:           a.name,
@@ -263,13 +262,16 @@ export default function MyApplication() {
             })),
           });
         }
+
+        setWindowOpen(windowRes.ok ? (windowData.open ?? false) : false);
       } catch {
         setError('Network error. Please check your connection.');
+        setWindowOpen(false);
       } finally {
         setLoading(false);
       }
     };
-    fetchApplication();
+    load();
   }, []);
 
   const fmt = (dateStr) => {
@@ -303,13 +305,41 @@ export default function MyApplication() {
 
   // ── No application ───────────────────────────────────────
   if (!application) {
+    // Window is closed — applications are not accepting at this time
+    if (windowOpen === false) {
+      return (
+        <Layout activePage="my-application">
+          <div className="af-content">
+            <div className="af-card">
+              <div className="ma-empty-state">
+                <div style={{
+                  width: 56, height: 56, borderRadius: '50%', margin: '0 auto 16px',
+                  background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                </div>
+                <p className="ma-empty-title">Applications Not Currently Open</p>
+                <p className="ma-empty-text">
+                  There are no applications open at this time. Please check back later or contact the programme coordinator for information on upcoming intake schedules.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Layout>
+      );
+    }
+
+    // Window is open — prompt the user to start an application
     return (
       <Layout activePage="my-application">
         <div className="af-content">
           <div className="af-card">
             <div className="ma-empty-state">
               <p className="ma-empty-title">No Application Found</p>
-              <p className="ma-empty-text">You haven't started an application yet. Click below to begin.</p>
+              <p className="ma-empty-text">You have not started an application yet. Click below to begin.</p>
               <button
                 className="af-btn-next"
                 style={{ marginTop: '24px' }}
@@ -327,19 +357,11 @@ export default function MyApplication() {
 
   const {
     status, submittedAt, updatedAt,
-    fullName, dob, gender,
+    fullName, icNumber, dob, gender,
     email, phone, fullAddress, postalCode, state,
     hearAboutUs, education = [],
     selectedSlotDatetime,
   } = application;
-
-  // const {
-  //   status, submittedAt, updatedAt,
-  //   fullName, icNumber, dob, gender, race, maritalStatus,
-  //   email, phone, fullAddress, postalCode, state,
-  //   hearAboutUs, education = [],
-  //   selectedSlotDatetime,
-  // } = application;
 
   const isDraft    = status?.toLowerCase() === 'draft';
 
@@ -388,13 +410,9 @@ export default function MyApplication() {
             <div className="af-form-grid">
               <FormSeparator title="Basic Information" />
               <ReadField label="Full Name"      value={fullName}   fullWidth />
-              {/* <ReadField label="IC Number"      value={icNumber}   fullWidth /> */}
+              <ReadField label="IC Number"      value={icNumber}   fullWidth />
               <ReadField label="Date of Birth"  value={fmt(dob)} />
-
-              {/* <FormSeparator title="Demographic Information" /> */}
               <ReadField label="Gender"         value={capitalize(gender)} />
-              {/* <ReadField label="Race"           value={capitalize(race)} />
-              <ReadField label="Marital Status" value={capitalize(maritalStatus)} /> */}
 
               <FormSeparator title="Contact & Address" />
               <ReadField label="Email Address"  value={email} />
@@ -402,6 +420,15 @@ export default function MyApplication() {
               <ReadField label="Full Address"   value={fullAddress} fullWidth />
               <ReadField label="Postal Code"    value={postalCode} />
               <ReadField label="State"          value={state} />
+
+              <FormSeparator title="Additional Information" />
+                {hearAboutUs && (
+                  <ReadField
+                    label="How Did You Hear About Us"
+                    value={HEAR_ABOUT_MAP[hearAboutUs] || hearAboutUs}
+                    fullWidth
+                  />
+                )}
 
             </div>
           </div>
@@ -449,8 +476,7 @@ export default function MyApplication() {
           </div>
         </div>
 
-        {/* ── Additional Information ── */}
-        {(selectedSlotDatetime || hearAboutUs) && (
+        {(selectedSlotDatetime) && (
           <div className="af-card ma-section-card">
             <div className="af-card-header ma-section-card-header">
               <div className="ma-section-heading">
@@ -458,8 +484,8 @@ export default function MyApplication() {
                   <Icon d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" size={15} color="#1a56db" />
                 </div>
                 <div>
-                  <p className="af-card-title">Interview & Additional Information</p>
-                  <p className="af-card-subtitle">Your preferred interview slot and additional details</p>
+                  <p className="af-card-title">Interview Slot</p>
+                  <p className="af-card-subtitle">Your preferred interview slot</p>
                 </div>
               </div>
             </div>
@@ -472,14 +498,6 @@ export default function MyApplication() {
                       datetime={selectedSlotDatetime}
                     />
                   </div>
-                )}
-                <FormSeparator title="Additional Information" />
-                {hearAboutUs && (
-                  <ReadField
-                    label="How Did You Hear About Us"
-                    value={HEAR_ABOUT_MAP[hearAboutUs] || hearAboutUs}
-                    fullWidth
-                  />
                 )}
               </div>
             </div>

@@ -2,14 +2,14 @@
 import { useState, useEffect } from "react";
 import {
   fetchUsers,
-  deleteUser,
+  // deleteUser,
   importUsers,
   updateUser,
 } from "../api/adminApi";
 import {
   fetchApplications,
   updateApplicationStatus,
-  deleteApplication,
+  // deleteApplication,
 } from "../api/applicationApi";
 import ImportModal  from "./userTable/ImportModal";
 import ExportModal  from "./userTable/ExportModal";
@@ -21,8 +21,12 @@ import useToast     from "./userTable/useToast";
 import { COLUMNS, COL_LABEL } from "./userTable/tableConfig";
 import "../../css/userManagement/userTable.css";
 
+const API      = process.env.REACT_APP_API_URL;
+const getToken = () => localStorage.getItem("token");
+
 export default function UserTable({ type }) {
   const [rows, setRows]               = useState([]);
+  const [intakeFilter, setIntakeFilter] = useState("All");
   const [loading, setLoading]         = useState(true);
   const [search, setSearch]           = useState("");
   const [sortKey, setSortKey]         = useState("name");
@@ -31,16 +35,23 @@ export default function UserTable({ type }) {
   const [showAdd, setShowAdd]         = useState(false);
   const [showImport, setImport]       = useState(false);
   const [showExport, setExport]       = useState(false);
-  const [flagged, setFlagged]         = useState(new Set());
   const [viewRow, setViewRow]         = useState(null);
   const [editRow, setEditRow]         = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null); // { ids: [], names: [] } | null
   const [selected, setSelected]           = useState(new Set());
   const [bulkStatus, setBulkStatus]       = useState("");
   const { toast, show }               = useToast();
+  const [intakes,         setIntakes]         = useState([]);
 
   // ── Reset selection when type changes ────────────────────
-  useEffect(() => { setSelected(new Set()); setBulkStatus(""); }, [type]);
+  useEffect(() => { setSelected(new Set()); setBulkStatus(""); setIntakeFilter("All"); }, [type]);
+
+  useEffect(() => {
+  fetch(`${API}/intakes`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    .then((r) => r.json())
+    .then((d) => setIntakes(d.intakes ?? []))
+    .catch(() => {});
+}, []);
 
   const columns = COLUMNS[type] || ["name", "email", "status"];
   const nameKey = type === "industry_partner" ? "company_name" : "name";
@@ -51,10 +62,9 @@ export default function UserTable({ type }) {
     const load = type === "application"
       ? fetchApplications()
       : fetchUsers(type);
-      
 
     load
-      .then(setRows)
+      .then((d) => setRows(d))           // ← this was accidentally removed
       .catch((err) => {
         console.error("fetch error:", err);
         show("Failed to load records.", "error");
@@ -69,14 +79,39 @@ export default function UserTable({ type }) {
 
   const allStatuses = ["All", ...new Set(rows.filter(Boolean).map((r) => r.status).filter(Boolean))];
 
+  const showIntakeFilter = ["student", "application"].includes(type);
+
+  const selectedIntake = intakeFilter !== "All"
+  ? intakes.find((i) => i.intake_name === intakeFilter)
+  : null;
+
   const filtered = rows
     .filter((r) => {
       const q    = search.toLowerCase();
       const flat = { ...r };
       delete flat.education;
       delete flat.skills;
+
+      let intakeMatch = true;
+      if (showIntakeFilter && intakeFilter !== "All") {
+        if (type === "application" && selectedIntake) {
+          const createdAt = new Date(r.created_at);
+          const start     = selectedIntake.application_start_date
+            ? new Date(selectedIntake.application_start_date)
+            : null;
+          const end       = selectedIntake.application_end_date
+            ? new Date(selectedIntake.application_end_date)
+            : null;
+          intakeMatch = (!start || createdAt >= start) && (!end || createdAt <= end);
+        } else {
+          // Student table — match by intake_name field on the row
+          intakeMatch = r.intake_name === intakeFilter;
+        }
+      }
+
       return (
         (statusFilter === "All" || r.status === statusFilter) &&
+        intakeMatch &&
         Object.values(flat).some((v) => String(v ?? "").toLowerCase().includes(q))
       );
     })
@@ -102,17 +137,16 @@ export default function UserTable({ type }) {
   const toggleAll  = ()   => setSelected(selected.size === filtered.length ? new Set() : new Set(filtered.map((r) => r.id)));
   const allChecked = filtered.length > 0 && selected.size === filtered.length;
   const someChecked = selected.size > 0 && selected.size < filtered.length;
-  const toggleFlag = (id) => setFlagged((p) => { const s = new Set(p); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
   const handleDelete = (id, name) => {
     setConfirmDialog({ ids: [id], names: [name] });
   };
 
-  const handleBulkDelete = () => {
-    const ids   = [...selected];
-    const names = filtered.filter((r) => selected.has(r.id)).map((r) => r[nameKey] || r.name || "—");
-    setConfirmDialog({ ids, names });
-  };
+  // const handleBulkDelete = () => {
+  //   const ids   = [...selected];
+  //   const names = filtered.filter((r) => selected.has(r.id)).map((r) => r[nameKey] || r.name || "None");
+  //   setConfirmDialog({ ids, names });
+  // };
 
   // ── Bulk status options (mirrors EditModal) ───────────────
   const bulkStatusOptions = type === "application"
@@ -146,21 +180,21 @@ export default function UserTable({ type }) {
     }
   };
 
-  const confirmDelete = async () => {
-    const { ids, names } = confirmDialog;
-    setConfirmDialog(null);
-    try {
-      await Promise.all(ids.map((id) =>
-        type === "application" ? deleteApplication(id) : deleteUser(type, id)
-      ));
-      setRows((p) => p.filter((r) => !ids.includes(r.id)));
-      setSelected(new Set());
-      show(ids.length === 1 ? `"${names[0]}" deleted.` : `${ids.length} records deleted.`, "error");
-    } catch (err) {
-      console.error("delete error:", err);
-      show("Failed to delete record(s).", "error");
-    }
-  };
+  // const confirmDelete = async () => {
+  //   const { ids, names } = confirmDialog;
+  //   setConfirmDialog(null);
+  //   try {
+  //     await Promise.all(ids.map((id) =>
+  //       type === "application" ? deleteApplication(id) : deleteUser(type, id)
+  //     ));
+  //     setRows((p) => p.filter((r) => !ids.includes(r.id)));
+  //     setSelected(new Set());
+  //     show(ids.length === 1 ? `"${names[0]}" deleted.` : `${ids.length} records deleted.`, "error");
+  //   } catch (err) {
+  //     console.error("delete error:", err);
+  //     show("Failed to delete record(s).", "error");
+  //   }
+  // };
 
   const SortIcon = ({ col }) => {
     if (sortKey !== col) return (
@@ -275,7 +309,7 @@ export default function UserTable({ type }) {
               >
                 Cancel
               </button>
-              <button
+              {/* <button
                 onClick={confirmDelete}
                 style={{
                   flex:         1,
@@ -293,7 +327,7 @@ export default function UserTable({ type }) {
                 onMouseLeave={(e) => e.currentTarget.style.background = "#ef4444"}
               >
                 Yes, Delete
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
@@ -308,51 +342,107 @@ export default function UserTable({ type }) {
 
       {/* ── Table ───────────────────────────────────────────── */}
       <div className="table-wrapper">
-        <div className="table-toolbar">
-          <div className="ut-table-search-wrap">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
-              <path d="M21 21l-4.35-4.35 M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-            </svg>
-            <input
-              className="ut-table-search-input"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search records…"
-            />
-            {search && (
-              <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", lineHeight: 1, padding: 0 }}>
-                ×
+        <div className="table-toolbar" style={showIntakeFilter ? { flexDirection: "column", alignItems: "stretch", gap: "8px" } : {}}>
+
+          {/* Row 1 — Intake filter (student and application only) */}
+          {showIntakeFilter && (
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <label style={{ fontSize: "12.5px", fontWeight: "600", color: "#64748b", whiteSpace: "nowrap", width: "110px", flexShrink: 0 }}>
+                Filter by Intake
+              </label>
+              <select
+              className="ut-table-filter-select"
+              style={{ flex: 1 }}
+              value={intakeFilter}
+              onChange={(e) => setIntakeFilter(e.target.value)}
+            >
+              <option value="All">All Intakes</option>
+              {intakes.map((i) => (
+                <option key={i.intake_id} value={i.intake_name}>{i.intake_name}</option>
+              ))}
+            </select>
+            </div>
+          )}
+
+          {/* Intake + Search rows — only for student / applicant / application */}
+          {showIntakeFilter ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <label style={{ fontSize: "12.5px", fontWeight: "600", color: "#64748b", whiteSpace: "nowrap", width: "110px", flexShrink: 0 }}>
+                  Search
+                </label>
+                <div className="ut-table-search-wrap" style={{ flex: 1 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
+                    <path d="M21 21l-4.35-4.35 M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                  </svg>
+                  <input className="ut-table-search-input" value={search}
+                    onChange={(e) => setSearch(e.target.value)} placeholder="Search records…" />
+                  {search && (
+                    <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", lineHeight: 1, padding: 0 }}>×</button>
+                  )}
+                </div>
+                <select className="ut-table-filter-select" value={statusFilter} onChange={(e) => setStatus(e.target.value)}>
+                  {allStatuses.map((s) => <option key={s} value={s}>{STATUS_LABEL[s] || s}</option>)}
+                </select>
+                <button className="ut-btn-secondary" onClick={() => setImport(true)}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3" />
+                  </svg>
+                  Import Excel
+                </button>
+                <button className="ut-btn-secondary" onClick={() => setExport(true)}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12" />
+                  </svg>
+                  Export
+                </button>
+                {(type === "industry_partner" || type === "industry_supervisor" || type === "manager" || type === "interviewer") && (
+                  <button className="ut-btn-primary" onClick={() => setShowAdd(true)}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                      <path d="M12 5v14 M5 12h14" />
+                    </svg>
+                    Add New
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            /* Original single-row toolbar for all other types */
+            <>
+              <div className="ut-table-search-wrap">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
+                  <path d="M21 21l-4.35-4.35 M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+                <input className="ut-table-search-input" value={search}
+                  onChange={(e) => setSearch(e.target.value)} placeholder="Search records…" />
+                {search && (
+                  <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", lineHeight: 1, padding: 0 }}>×</button>
+                )}
+              </div>
+              <select className="ut-table-filter-select" value={statusFilter} onChange={(e) => setStatus(e.target.value)}>
+                {allStatuses.map((s) => <option key={s} value={s}>{STATUS_LABEL[s] || s}</option>)}
+              </select>
+              <button className="ut-btn-secondary" onClick={() => setImport(true)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3" />
+                </svg>
+                Import Excel
               </button>
-            )}
-          </div>
-
-          <select className="ut-table-filter-select" value={statusFilter} onChange={(e) => setStatus(e.target.value)}>
-            {allStatuses.map((s) => (
-              <option key={s} value={s}>{STATUS_LABEL[s] || s}</option>
-            ))}
-          </select>
-
-            <button className="ut-btn-secondary" onClick={() => setImport(true)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3" />
-              </svg>
-              Import Excel
-            </button>
-
-          <button className="ut-btn-secondary" onClick={() => setExport(true)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12" />
-            </svg>
-            Export
-          </button>
-
-          {(type === "industry_partner" || type === "industry_supervisor" || type === "manager") && (
-            <button className="ut-btn-primary" onClick={() => setShowAdd(true)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                <path d="M12 5v14 M5 12h14" />
-              </svg>
-              Add New
-            </button>
+              <button className="ut-btn-secondary" onClick={() => setExport(true)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12" />
+                </svg>
+                Export
+              </button>
+              {(type === "industry_partner" || type === "industry_supervisor" || type === "manager" || type === "interviewer") && (
+                <button className="ut-btn-primary" onClick={() => setShowAdd(true)}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                    <path d="M12 5v14 M5 12h14" />
+                  </svg>
+                  Add New
+                </button>
+              )}
+            </>
           )}
         </div>
 
@@ -409,7 +499,7 @@ export default function UserTable({ type }) {
               Apply
             </button>
 
-            <div style={{ width: "1px", height: "24px", background: "#bfdbfe" }} />
+            {/* <div style={{ width: "1px", height: "24px", background: "#bfdbfe" }} />
             <button
               onClick={handleBulkDelete}
               style={{
@@ -423,7 +513,7 @@ export default function UserTable({ type }) {
                 <path d="M3 6h18 M8 6V4h8v2 M19 6l-1 14H6L5 6" />
               </svg>
               Delete Selected
-            </button>
+            </button> */}
             <button
               onClick={() => setSelected(new Set())}
               style={{
@@ -473,16 +563,14 @@ export default function UserTable({ type }) {
                   <tr>
                     <td colSpan={columns.length + 3}>
                       <div className="empty-state">
-                        <div className="empty-state-icon">🔍</div>
                         <p className="empty-state-text">No records found.</p>
                       </div>
                     </td>
                   </tr>
                 ) : filtered.map((row, idx) => (
-                  <tr key={row.id} style={{
+                  <tr key={`${row.id ?? idx}-${idx}`} style={{
                     background: selected.has(row.id) ? "#eff6ff" : undefined,
-                    borderLeft: flagged.has(row.id) ? "3px solid #16a34a" : "3px solid transparent",
-                    transition: "border-left 0.15s",
+                    transition: "background 0.15s",
                   }}>
                     <td style={{ textAlign: "center", width: "40px" }}>
                       <input
@@ -497,37 +585,30 @@ export default function UserTable({ type }) {
                     </td>
                     {columns.map((col) => (
                       <td key={col}>
-                        {col === "status" ? (
+                        {col === "status" || col === "application_status" || col === "applicant_response" ? (
                           <StatusBadge status={row[col]} />
                         ) : col === "name" || col === "company" || col === "company_name" ? (
-                          <span className="cell-name">{row[col] ?? "—"}</span>
+                          <span className="cell-name">{row[col] ?? "None"}</span>
                         ) : col === "date" || col === "updated_at" || col === "created_at" ? (
                           <span className="cell-muted">
-                            {row[col] ? new Date(row[col]).toLocaleDateString("en-MY") : "—"}
+                            {row[col] ? new Date(row[col]).toLocaleDateString("en-MY") : "None"}
                           </span>
+                        ) : col === "total_score" ? (
+                          row[col] != null ? (
+                            <span style={{
+                              fontWeight: 700,
+                              color: row[col] >= 75 ? "#16a34a" : row[col] >= 50 ? "#f59e0b" : "#dc2626",
+                            }}>
+                              {row[col]}%
+                            </span>
+                          ) : <span style={{ color: "#cbd5e1" }}>None</span> 
                         ) : (
-                          <span>{row[col] ?? "—"}</span>
+                          <span>{row[col] ?? "None"}</span>
                         )}
                       </td>
                     ))}
                     <td>
                       <div className="ut-action-btn-wrap">
-                        {/* Flag button */}
-                        <button
-                          title={flagged.has(row.id) ? "Unflag" : "Flag"}
-                          className="ut-action-btn ut-action-btn-flag"
-                          onClick={() => toggleFlag(row.id)}
-                        >
-                          <svg width="13" height="13" viewBox="0 0 24 24"
-                            fill={flagged.has(row.id) ? "white" : "none"}
-                            stroke="white" strokeWidth="2.5"
-                            strokeLinecap="round" strokeLinejoin="round"
-                            style={{ flexShrink: 0, display: 'block' }}>
-                            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                            <line x1="4" y1="22" x2="4" y2="15" />
-                          </svg>
-                        </button>
-
                         {/* View — icon + text */}
                         <button
                           title="View"
@@ -544,10 +625,15 @@ export default function UserTable({ type }) {
                         </button>
 
                         {/* Edit — icon + text */}
+                        {(() => {
+                          const editLocked = type === 'application' &&
+                            ['passed', 'failed', 'absent', 'accepted', 'declined'].includes(row.application_status?.toLowerCase());
+                          return (
                         <button
-                          title="Edit"
+                          title={editLocked ? 'This application is locked and cannot be edited' : 'Edit'}
                           className="ut-action-btn ut-action-btn-edit"
-                          onClick={() => setEditRow(row)}
+                          onClick={() => !editLocked && setEditRow(row)}
+                          style={{ opacity: editLocked ? 0.4 : 1, cursor: editLocked ? 'not-allowed' : 'pointer' }}
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
                             stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -557,8 +643,10 @@ export default function UserTable({ type }) {
                           </svg>
                           Edit
                         </button>
+                          );
+                        })()}
 
-                        {/* Delete — icon only, red background */}
+                        {/* Delete — icon only, red background
                         <button
                           title="Delete"
                           className="ut-action-btn ut-action-btn-delete"
@@ -568,7 +656,7 @@ export default function UserTable({ type }) {
                             stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
                           </svg>
-                        </button>
+                        </button> */}
 
                       </div>
                     </td>

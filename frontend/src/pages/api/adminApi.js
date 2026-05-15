@@ -75,8 +75,12 @@ export const fetchPartners = async (search = "") => {
   return data.partners || [];
 };
 
+export const fetchInterviewers = async () => {
+  const data = await apiFetch("/admin/interviewers");
+  return data.interviewers || [];
+};
+
 export const fetchApplicationById = async (id) => {
   const data = await apiFetch(`/applications/${id}`);
   return data.application;  // GET /admin/applications/:id
 };
-

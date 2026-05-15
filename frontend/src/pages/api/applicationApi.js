@@ -54,9 +54,23 @@ export const fetchInterviewSlots = async () => {
   return data.slots || [];
 };
 
+// Admin/manager view — all slots (past + future) with interviewers
+export const fetchAdminInterviewSlots = async () => {
+  const data = await apiFetch("/admin/interview-slots");
+  return data.slots || [];
+};
+
 export const createInterviewSlot = async (payload) => {
   const data = await apiFetch("/interview-slots", {
     method: "POST",
+    body:   JSON.stringify(payload),
+  });
+  return data.slot;
+};
+
+export const updateInterviewSlot = async (id, payload) => {
+  const data = await apiFetch(`/interview-slots/${id}`, {
+    method: "PUT",
     body:   JSON.stringify(payload),
   });
   return data.slot;

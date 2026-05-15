@@ -7,6 +7,16 @@ import "../../css/userManagement/userTable.css";
 import "../../css/internshipManagement/internship.css";
 import { Tag, Icons } from "./InternshipVacanciesList";
 
+// Derive a single display status from two columns.
+// If the student has responded (accepted/declined/withdrawn), show that.
+// Otherwise show the partner's application_status.
+const effectiveStatus = (app) => {
+  const r = app.internship_applicant_response?.toLowerCase();
+  if (r && r !== "none") return r;
+  return app.application_status?.toLowerCase() ?? "";
+};
+
+
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
@@ -31,7 +41,7 @@ function ConfirmDialog({ title, message, warning, confirmLabel, confirmColor = "
       <div className="modal-box" style={{ maxWidth: "420px" }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <p className="modal-title">{title}</p>
-          <button className="modal-close-btn" onClick={onCancel}>
+          <button className="ut-modal-close-btn" onClick={onCancel}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M18 6L6 18 M6 6l12 12" />
             </svg>
@@ -54,7 +64,7 @@ function ConfirmDialog({ title, message, warning, confirmLabel, confirmColor = "
           )}
         </div>
         <div className="modal-footer">
-          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="ut-btn-secondary" onClick={onCancel}>Cancel</button>
           <button
             onClick={onConfirm}
             style={{
@@ -75,10 +85,11 @@ function ApplicationCard({ app, onStatusChange, hasAccepted, onError }) {
   const [confirm, setConfirm] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const status      = app.status?.toLowerCase();
-  const isPassed    = status === "passed";
-  const isAccepted  = status === "accepted";
-  const isInterview = status === "interview";
+  const effStatus   = effectiveStatus(app);
+  const isPassed    = app.application_status?.toLowerCase() === "passed"
+                      && (!app.internship_applicant_response || app.internship_applicant_response === "none");
+  const isAccepted  = app.internship_applicant_response?.toLowerCase() === "accepted";
+  const isInterview = app.application_status?.toLowerCase() === "interview";
 
   const durationWeeks = () => {
     if (!app.start_date || !app.end_date) return null;
@@ -163,7 +174,7 @@ function ApplicationCard({ app, onStatusChange, hasAccepted, onError }) {
               {app.company_name}
             </p>
           </div>
-          <StatusBadge status={app.status} />
+          <StatusBadge status={effStatus} />
         </div>
 
         {/* ── Tags ─────────────────────────────────────── */}
@@ -317,20 +328,24 @@ export default function MyInternshipApplications() {
   }, []);
 
   const hasAccepted = applications.some((a) =>
-    ["accepted", "withdrawn_requested"].includes(a.status?.toLowerCase())
+    ["accepted", "withdrawn_requested"].includes(a.internship_applicant_response?.toLowerCase())
   );
 
   const handleStatusChange = (id, newStatus) => {
     setApplications((prev) =>
-      prev.map((a) => a.internship_application_id === id ? { ...a, status: newStatus } : a)
+      prev.map((a) =>
+        a.internship_application_id === id
+          ? { ...a, internship_applicant_response: newStatus }
+          : a
+      )
     );
   };
 
-  const allStatuses = ["All", ...new Set(applications.map((a) => a.status).filter(Boolean))];
+  const allStatuses = ["All", ...new Set(applications.map((a) => effectiveStatus(a)).filter(Boolean))];
 
   const filtered = filter === "All"
     ? applications
-    : applications.filter((a) => a.status?.toLowerCase() === filter.toLowerCase());
+    : applications.filter((a) => effectiveStatus(a) === filter.toLowerCase());
 
   return (
     <div>
@@ -404,7 +419,7 @@ export default function MyInternshipApplications() {
                 key={app.internship_application_id}
                 app={app}
                 onStatusChange={handleStatusChange}
-                hasAccepted={hasAccepted && app.status?.toLowerCase() !== "accepted"}
+                hasAccepted={hasAccepted && app.internship_applicant_response?.toLowerCase() !== "accepted"}
                 onError={(msg) => show(msg, "error")}
               />
             ))}

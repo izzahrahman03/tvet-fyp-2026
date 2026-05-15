@@ -1,6 +1,8 @@
 // components/VacancyTable.jsx
 import { useState, useEffect } from "react";
-import { fetchVacancies, deleteVacancy, updateVacancy } from "../api/vacancyApi";
+import { fetchVacancies, 
+        //  deleteVacancy, 
+         updateVacancy } from "../api/vacancyApi";
 import StatusBadge             from "../userManagement/userTable/StatusBadge";
 import ExportModal             from "../userManagement/userTable/ExportModal";
 import useToast                from "../userManagement/userTable/useToast";
@@ -79,26 +81,26 @@ export default function VacancyTable() {
     show("Vacancy updated.");
   };
 
-  const handleDelete = (id, name) => setConfirmDialog({ ids: [id], names: [name] });
+  // const handleDelete = (id, name) => setConfirmDialog({ ids: [id], names: [name] });
 
-  const handleBulkDelete = () => {
-    const ids   = [...selected];
-    const names = filtered.filter((r) => selected.has(r.id)).map((r) => r.position_name || "—");
-    setConfirmDialog({ ids, names });
-  };
+  // const handleBulkDelete = () => {
+  //   const ids   = [...selected];
+  //   const names = filtered.filter((r) => selected.has(r.id)).map((r) => r.position_name || "—");
+  //   setConfirmDialog({ ids, names });
+  // };
 
-  const confirmDelete = async () => {
-    const { ids, names } = confirmDialog;
-    setConfirmDialog(null);
-    try {
-      await Promise.all(ids.map((id) => deleteVacancy(id)));
-      setRows((p) => p.filter((r) => !ids.includes(r.id)));
-      setSelected(new Set());
-      show(ids.length === 1 ? `"${names[0]}" deleted.` : `${ids.length} vacancies deleted.`, "error");
-    } catch {
-      show("Failed to delete.", "error");
-    }
-  };
+  // const confirmDelete = async () => {
+  //   const { ids, names } = confirmDialog;
+  //   setConfirmDialog(null);
+  //   try {
+  //     await Promise.all(ids.map((id) => deleteVacancy(id)));
+  //     setRows((p) => p.filter((r) => !ids.includes(r.id)));
+  //     setSelected(new Set());
+  //     show(ids.length === 1 ? `"${names[0]}" deleted.` : `${ids.length} vacancies deleted.`, "error");
+  //   } catch {
+  //     show("Failed to delete.", "error");
+  //   }
+  // };
 
   const handleBulkStatusUpdate = async () => {
     if (!bulkStatus) return;
@@ -147,7 +149,7 @@ export default function VacancyTable() {
         </div>
       )}
 
-      {/* ── Delete confirm dialog ─────────────────────────── */}
+      {/* ── Delete confirm dialog ───────────────────────────
       {confirmDialog && (
         <div style={{
           position: "fixed", inset: 0, zIndex: 9999,
@@ -213,7 +215,7 @@ export default function VacancyTable() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* ── Modals ───────────────────────────────────────── */}
       {showAdd  && <AddVacancyModal  onClose={() => setShowAdd(false)}  onSave={handleAdd} />}
@@ -255,7 +257,7 @@ export default function VacancyTable() {
 
           {/* Status filter */}
           <select
-            className="table-filter-select"
+            className="ut-table-filter-select"
             value={statusFilter}
             onChange={(e) => setStatus(e.target.value)}
           >
@@ -291,7 +293,7 @@ export default function VacancyTable() {
           <div style={{
             display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap",
             background: "#eff6ff", border: "1px solid #bfdbfe",
-            borderRadius: "10px", padding: "10px 16px", margin: "0px 10px 10px 20px",
+            borderRadius: "2px", padding: "10px 16px", margin: "0px 10px 10px 20px",
           }}>
             <span style={{ fontSize: "13.5px", fontWeight: "600", color: "#1d4ed8" }}>
               {selected.size} selected
@@ -330,7 +332,7 @@ export default function VacancyTable() {
             </button>
 
             <div style={{ width: "1px", height: "24px", background: "#bfdbfe" }} />
-            <button
+            {/* <button
               onClick={handleBulkDelete}
               style={{
                 display: "flex", alignItems: "center", gap: "6px",
@@ -353,7 +355,7 @@ export default function VacancyTable() {
               }}
             >
               Clear
-            </button>
+            </button> */}
           </div>
         )}
 
@@ -482,7 +484,7 @@ export default function VacancyTable() {
                           Edit
                         </button>
 
-                        <button
+                        {/* <button
                           title="Delete"
                           className="ut-action-btn ut-action-btn-delete"
                           onClick={() => handleDelete(row.id, row.position_name)}
@@ -491,7 +493,7 @@ export default function VacancyTable() {
                             stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
                           </svg>
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>

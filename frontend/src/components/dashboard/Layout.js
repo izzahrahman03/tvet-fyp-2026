@@ -5,6 +5,7 @@ import StudentSidebar from "./StudentSidebar";
 import PartnerSidebar from "./PartnerSidebar";
 import SupervisorSidebar from "./SupervisorSidebar";
 import ManagerSidebar from "./ManagerSidebar";
+import InterviewerSidebar from "./InterviewerSidebar";
 import Topbar  from "./Topbar";
 import "../../css/dashboard/applicantDashboard.css"; // ← your existing CSS file
 
@@ -34,6 +35,7 @@ export default function Layout({ children, title }) {
     case "industry_partner":    return <PartnerSidebar    {...props} />;
     case "industry_supervisor": return <SupervisorSidebar {...props} />;
     case "manager":  return <ManagerSidebar  {...props} />;
+    case "interviewer": return <InterviewerSidebar {...props} />;
     default:         return <ApplicantSidebar {...props} />;
   }
 };

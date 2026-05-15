@@ -57,6 +57,7 @@ const Login = () => {
           case "industry_partner":    navigate("/partner-dashboard");    break;
           case "industry_supervisor": navigate("/supervisor-dashboard"); break;
           case "manager":             navigate("/manager-dashboard");    break;
+          case "interviewer":         navigate("/interviewer-dashboard"); break;
           default:                    navigate("/");
         }
       }
@@ -81,7 +82,7 @@ const Login = () => {
         <div className="auth-side-content">
           <div className="auth-side-logo" onClick={() => navigate("/")}>
             <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#60A5FA" }} />
-            K-Youth Development Programme
+            Vitrox Academy
           </div>
 
           <h2 className="auth-side-title anim-fade-up">Welcome back!</h2>

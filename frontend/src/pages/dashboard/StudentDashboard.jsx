@@ -13,6 +13,13 @@ import { Tag, Icons } from "../internshipManagement/InternshipVacanciesList";
 import StatusBadge from "../userManagement/userTable/StatusBadge";
 import useToast from "../userManagement/userTable/useToast";
 
+// Derive a single display status from two columns.
+const effectiveStatus = (app) => {
+  const r = app.internship_applicant_response?.toLowerCase();
+  if (r && r !== "none") return r;
+  return app.application_status?.toLowerCase() ?? "";
+};
+
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
@@ -30,19 +37,23 @@ const STATUS_LABEL = {
   withdrawn:           "Withdrawn",
 };
 
-// ── Stat card ──────────────────────────────────────────────
-function StatCard({ label, value, sub, color, icon }) {
+// ── Stat card (matches Interviewer style) ──────────────────
+function StatCard({ label, value, sublabel, accent, icon }) {
   return (
-    <div className="stat-card" style={{ borderLeft: `4px solid ${color}` }}>
-      <div className="stat-card-icon" style={{ background: `${color}18` }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d={icon} />
-        </svg>
+    <div style={{
+      background: "#fff", border: "1px solid #dce6f0",
+      borderTop: `3px solid ${accent}`, borderRadius: 2,
+      padding: "20px 22px", display: "flex", flexDirection: "column", gap: 6,
+      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+          {label}
+        </p>
+        <span style={{ fontSize: 18, lineHeight: 1 }}>{icon}</span>
       </div>
-      <p className="stat-card-label">{label}</p>
-      <p className="stat-card-value" style={{ color }}>{value ?? "—"}</p>
-      {sub && <p className="stat-card-footer">{sub}</p>}
+      <p style={{ margin: 0, fontSize: 32, fontWeight: 800, color: accent, lineHeight: 1 }}>{value ?? "—"}</p>
+      {sublabel && <p style={{ margin: 0, fontSize: 11, color: "#94a3b8" }}>{sublabel}</p>}
     </div>
   );
 }
@@ -94,15 +105,91 @@ function ConfirmDialog({ title, message, warning, confirmLabel, confirmColor = "
   );
 }
 
+// ── Supervisor info block ──────────────────────────────────
+function SupervisorBlock({ app }) {
+  const appStatus  = app.application_status?.toLowerCase();
+  const appResp    = app.internship_applicant_response?.toLowerCase();
+  const isAccepted = appResp === "accepted";
+  if (!["passed", "failed"].includes(appStatus) && !isAccepted) return null;
+  if (appStatus !== "passed" && !isAccepted) return null;
+  if (!app.supervisor_name) return null;
+
+  return (
+    <div style={{
+      background: isAccepted ? "#f0fdf4" : "#f8fafc",
+      border: `1px solid ${isAccepted ? "#bbf7d0" : "#e2e8f0"}`,
+      borderRadius: "2px",
+      padding: "12px 16px",
+      display: "flex", flexDirection: "column", gap: "8px",
+    }}>
+      <p style={{
+        margin: 0, fontSize: "10px", fontWeight: "800",
+        color: isAccepted ? "#15803d" : "#1b3a6b",
+        textTransform: "uppercase", letterSpacing: "0.1em",
+      }}>
+        Your Industry Supervisor
+      </p>
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+        <div style={{
+          width: "38px", height: "38px", borderRadius: "50%",
+          background: isAccepted ? "#dcfce7" : "#dce6f0",
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke={isAccepted ? "#15803d" : "#1b3a6b"} strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: "0 0 1px", fontSize: "14px", fontWeight: "700", color: "#0f172a" }}>
+            {app.supervisor_name}
+          </p>
+          {app.supervisor_position && (
+            <p style={{ margin: 0, fontSize: "12.5px", color: "#475569" }}>{app.supervisor_position}</p>
+          )}
+        </div>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", paddingTop: "4px" }}>
+        {app.supervisor_email && (
+          <a href={`mailto:${app.supervisor_email}`} style={{
+            display: "flex", alignItems: "center", gap: "5px",
+            fontSize: "12.5px", color: "#1b3a6b", fontWeight: "600", textDecoration: "none",
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+            {app.supervisor_email}
+          </a>
+        )}
+        {app.supervisor_phone && (
+          <a href={`tel:${app.supervisor_phone}`} style={{
+            display: "flex", alignItems: "center", gap: "5px",
+            fontSize: "12.5px", color: "#1b3a6b", fontWeight: "600", textDecoration: "none",
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.77 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+            {app.supervisor_phone}
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Application card ───────────────────────────────────────
 function ApplicationCard({ app, onStatusChange, hasAccepted, onError }) {
   const [confirm, setConfirm] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const status      = app.status?.toLowerCase();
-  const isPassed    = status === "passed";
-  const isAccepted  = status === "accepted";
-  const isInterview = status === "interview";
+  const effStatus   = effectiveStatus(app);
+  const isPassed    = app.application_status?.toLowerCase() === "passed"
+                      && (!app.internship_applicant_response || app.internship_applicant_response === "none");
+  const isAccepted  = app.internship_applicant_response?.toLowerCase() === "accepted";
+  const isInterview = app.application_status?.toLowerCase() === "interview";
 
   const durationWeeks = () => {
     if (!app.start_date || !app.end_date) return null;
@@ -118,12 +205,10 @@ function ApplicationCard({ app, onStatusChange, hasAccepted, onError }) {
       if (action === "accept")    await acceptInternshipOffer(app.internship_application_id);
       if (action === "decline")   await declineInternshipOffer(app.internship_application_id);
       if (action === "withdrawn") await requestInternshipWithdraw(app.internship_application_id);
-
       const newStatus =
         action === "accept"    ? "accepted"
         : action === "decline" ? "declined"
         :                        "withdrawn_requested";
-
       onStatusChange(app.internship_application_id, newStatus);
     } catch (err) {
       onError(err.message || "Action failed. Please try again.");
@@ -167,14 +252,16 @@ function ApplicationCard({ app, onStatusChange, hasAccepted, onError }) {
         />
       )}
 
-      <div style={{
+      {/* ── Card shell — matches Interviewer slot-row aesthetic ── */}
+      <div className="app-card" style={{
         background: "white",
-        border: `1.5px solid ${isPassed ? "#bbf7d0" : isInterview ? "#ddd6fe" : "#c8d5e8"}`,
-        borderRadius: "2px",
+        border: `1.5px solid ${isPassed ? "#bbf7d0" : isInterview ? "#ddd6fe" : "#dce6f0"}`,
+        borderLeft: `3px solid ${isPassed ? "#16a34a" : isInterview ? "#7c3aed" : "#1b3a6b"}`,
+        borderRadius: 2,
         padding: "18px 20px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "12px",
+        display: "flex", flexDirection: "column", gap: "12px",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+        transition: "box-shadow 0.15s",
       }}>
 
         {/* ── Top row ── */}
@@ -187,7 +274,7 @@ function ApplicationCard({ app, onStatusChange, hasAccepted, onError }) {
               {app.company_name}
             </p>
           </div>
-          <StatusBadge status={app.status} />
+          <StatusBadge status={effStatus} />
         </div>
 
         {/* ── Tags ── */}
@@ -282,6 +369,9 @@ function ApplicationCard({ app, onStatusChange, hasAccepted, onError }) {
           </div>
         )}
 
+        {/* ── Supervisor block ── */}
+        <SupervisorBlock app={app} />
+
         {/* ── Accepted — withdraw ── */}
         {isAccepted && (
           <div style={{
@@ -323,6 +413,7 @@ function ApplicationCard({ app, onStatusChange, hasAccepted, onError }) {
 export default function StudentDashboard() {
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const userName   = storedUser?.name || "Guest";
+  const navigate   = useNavigate();
 
   const [vacancies,    setVacancies]    = useState([]);
   const [vacLoading,   setVacLoading]   = useState(true);
@@ -341,17 +432,21 @@ export default function StudentDashboard() {
   useEffect(() => {
     fetchMyApplications()
       .then(setApplications)
-      .catch((err) => {
-        console.error(err);
-        show("Failed to load applications.", "error");
-      })
+      .catch((err) => { console.error(err); show("Failed to load applications.", "error"); })
       .finally(() => setAppLoading(false));
   }, []);
 
   // ── Stat helpers ─────────────────────────────────────────
   const applied = vacancies.filter((v) => v.already_applied === 1);
   const vCount  = (...ss) =>
-    applied.filter((v) => ss.includes(v.my_application_status?.toLowerCase())).length;
+    applied.filter((v) => {
+      const effS = (() => {
+        const r = v.my_applicant_response?.toLowerCase();
+        if (r && r !== "none") return r;
+        return v.my_application_status?.toLowerCase() ?? "";
+      })();
+      return ss.includes(effS);
+    }).length;
 
   const iconPaths = {
     applied:   "M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 0 2-2h2a2 2 0 0 0 2 2",
@@ -361,20 +456,53 @@ export default function StudentDashboard() {
   };
 
   // ── Application list helpers ──────────────────────────────
-  const hasAccepted = applications.some((a) => a.status?.toLowerCase() === "accepted");
-  const allStatuses = ["All", ...new Set(applications.map((a) => a.status).filter(Boolean))];
-  const filtered    = filter === "All"
+  const hasAccepted   = applications.some((a) =>
+    ["accepted", "withdrawn_requested"].includes(a.internship_applicant_response?.toLowerCase())
+  );
+  const allStatuses   = ["All", ...new Set(applications.map((a) => effectiveStatus(a)).filter(Boolean))];
+  const filtered      = filter === "All"
     ? applications
-    : applications.filter((a) => a.status?.toLowerCase() === filter.toLowerCase());
+    : applications.filter((a) => effectiveStatus(a) === filter.toLowerCase());
 
   const handleStatusChange = (id, newStatus) => {
     setApplications((prev) =>
-      prev.map((a) => a.internship_application_id === id ? { ...a, status: newStatus } : a)
+      prev.map((a) =>
+        a.internship_application_id === id
+          ? { ...a, internship_applicant_response: newStatus }
+          : a
+      )
     );
   };
 
+  // ── Greeting ──────────────────────────────────────────────
+  const now = new Date();
+  const greeting = () => {
+    const h = now.getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  };
+
+  const pendingCount   = vCount("pending", "submitted");
+  const interviewCount = vCount("interview", "attended");
+  const passedCount    = vCount("passed", "accepted");
+
   return (
     <StudentLayout title="Dashboard">
+
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .dash-card { animation: fadeUp 0.35s ease both; }
+        .dash-card:nth-child(1) { animation-delay: 0.05s; }
+        .dash-card:nth-child(2) { animation-delay: 0.10s; }
+        .dash-card:nth-child(3) { animation-delay: 0.15s; }
+        .dash-card:nth-child(4) { animation-delay: 0.20s; }
+        .app-card:hover { box-shadow: 0 4px 16px rgba(27,58,107,0.10) !important; }
+        .filter-pill:hover { opacity: 0.85; }
+      `}</style>
 
       {/* ── Toast ────────────────────────────────────────── */}
       {toast && (
@@ -387,117 +515,159 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* ── Welcome banner ───────────────────────────────── */}
+      {/* ── Welcome banner (matches Interviewer style) ────── */}
       <div style={{
-        background: "#1b3a6b",
-        borderRadius: "5px", padding: "28px 32px", marginBottom: "28px",
+        background: "linear-gradient(120deg, #1b3a6b 60%, #2563eb)",
+        borderRadius: 2, padding: "28px 32px", marginBottom: 28,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexWrap: "wrap", gap: 16,
+        boxShadow: "0 4px 20px rgba(27,58,107,0.2)",
+        position: "relative", overflow: "hidden",
       }}>
-        <h1 style={{ color: "white", fontSize: "22px", fontWeight: "700", margin: 0 }}>
-          Welcome back, {userName}
-        </h1>
+        {/* decorative circles */}
+        <div style={{ position: "absolute", right: -40, top: -40, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+        <div style={{ position: "absolute", right: 60, bottom: -60, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+
+        <div style={{ position: "relative" }}>
+          <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            {greeting()}
+          </p>
+          <h1 style={{ color: "#fff", fontSize: 24, fontWeight: 800, margin: "0 0 6px", letterSpacing: "-0.02em" }}>
+            {userName}
+          </h1>
+          <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
+            {passedCount > 0
+              ? `You have ${passedCount} offer${passedCount !== 1 ? "s" : ""} awaiting your response!`
+              : interviewCount > 0
+              ? `${interviewCount} interview${interviewCount !== 1 ? "s" : ""} scheduled or attended.`
+              : `${vacancies.length} internship vacanc${vacancies.length !== 1 ? "ies" : "y"} currently open.`}
+          </p>
+        </div>
       </div>
 
-      {/* ── Stat cards ───────────────────────────────────── */}
-      <div className="stat-cards-grid">
+      {/* ── Stat cards (4-up, matches Interviewer layout) ─── */}
+      <div
+        className="dash-card"
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14, marginBottom: 28 }}
+      >
         <StatCard
           label="Applied"
-          value={vacLoading ? "—" : applied.length}
-          sub={`${vacancies.length} vacancies open`}
-          color="#1b3a6b"
-          icon={iconPaths.applied}
+          value={vacLoading ? "…" : applied.length}
+          sublabel={`${vacancies.length} vacanc${vacancies.length !== 1 ? "ies" : "y"} open`}
+          accent="#1b3a6b"
+          icon={
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b3a6b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d={iconPaths.applied} />
+            </svg>
+          }
         />
         <StatCard
           label="Pending"
-          value={vacLoading ? "—" : vCount("pending", "submitted")}
-          sub="Awaiting response"
-          color="#b45309"
-          icon={iconPaths.pending}
+          value={vacLoading ? "…" : pendingCount}
+          sublabel="Awaiting response"
+          accent="#b45309"
+          icon={
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d={iconPaths.pending} />
+            </svg>
+          }
         />
         <StatCard
           label="Interviews"
-          value={vacLoading ? "—" : vCount("interview", "attended")}
-          sub="Scheduled or completed"
-          color="#6d28d9"
-          icon={iconPaths.interview}
+          value={vacLoading ? "…" : interviewCount}
+          sublabel="Scheduled or completed"
+          accent="#6d28d9"
+          icon={
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d28d9" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d={iconPaths.interview} />
+            </svg>
+          }
         />
         <StatCard
           label="Passed"
-          value={vacLoading ? "—" : vCount("passed", "accepted")}
-          sub={vCount("passed") > 0 ? "Offer extended — respond!" : "Keep going!"}
-          color="#15803d"
-          icon={iconPaths.passed}
+          value={vacLoading ? "…" : passedCount}
+          sublabel={passedCount > 0 ? "Offer extended — respond!" : "Keep going!"}
+          accent="#15803d"
+          icon={
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d={iconPaths.passed} />
+            </svg>
+          }
         />
       </div>
 
-      {/* ── My Applications list ──────────────────────────── */}
-      <div className="table-wrapper" style={{ padding: "24px 28px" }}>
+      {/* ── My Applications section ───────────────────────── */}
+      <div style={{ background: "#fff", border: "1px solid #dce6f0", borderRadius: 2, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
 
-        {/* Header */}
-        <div style={{ marginBottom: "20px" }}>
-          <h2 style={{ margin: "0 0 4px", fontSize: "18px", fontWeight: "800", color: "#0f172a", letterSpacing: "-0.3px" }}>
-            My Applications
-          </h2>
-          <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>
-            {appLoading
-              ? "Loading…"
-              : `${applications.length} application${applications.length !== 1 ? "s" : ""} submitted`}
-          </p>
+        {/* Section header */}
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <p style={{ margin: "0 0 2px", fontSize: 12, fontWeight: 700, color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+              My Applications
+            </p>
+            <p style={{ margin: 0, fontSize: 12, color: "#94a3b8" }}>
+              {appLoading ? "Loading…" : `${applications.length} application${applications.length !== 1 ? "s" : ""} submitted`}
+            </p>
+          </div>
+
+          {/* Filter pills (matching Interviewer quick-btn aesthetic) */}
+          {!appLoading && applications.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {allStatuses.map((s) => {
+                const active = filter === s;
+                return (
+                  <button
+                    key={s}
+                    className="filter-pill"
+                    onClick={() => setFilter(s)}
+                    style={{
+                      padding: "5px 14px", borderRadius: 2,
+                      border: `1.5px solid ${active ? "#1b3a6b" : "#dce6f0"}`,
+                      background: active ? "#1b3a6b" : "#fff",
+                      color: active ? "white" : "#475569",
+                      fontSize: 12, fontWeight: 600,
+                      cursor: "pointer", transition: "all 0.15s",
+                    }}
+                  >
+                    {s === "All"
+                      ? `All (${applications.length})`
+                      : STATUS_LABEL[s.toLowerCase()] || s}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Filter pills */}
-        {!appLoading && applications.length > 0 && (
-         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "20px", justifyContent: "flex-end" }}>
-            {allStatuses.map((s) => {
-              const active = filter === s;
-              return (
-                <button
-                  key={s}
-                  onClick={() => setFilter(s)}
-                  style={{
-                    padding: "6px 16px", borderRadius: "2px",
-                    border: `1.5px solid ${active ? "#1b3a6b" : "#e2e8f0"}`,
-                    background: active ? "#1b3a6b" : "white",
-                    color: active ? "white" : "#475569",
-                    fontSize: "12.5px", fontWeight: "600",
-                    cursor: "pointer", transition: "all 0.15s",
-                  }}
-                >
-                  {s === "All"
-                    ? `All (${applications.length})`
-                    : STATUS_LABEL[s.toLowerCase()] || s}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Content */}
-        {appLoading ? (
-          <div className="loading-container">
-            <div className="loading-spinner" />
-            <p className="loading-text">Loading applications…</p>
-          </div>
-        ) : applications.length === 0 ? (
-          <div className="empty-state" style={{ marginTop: "48px" }}>
-            <p className="empty-state-text">You haven't applied to any internships yet.</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="empty-state" style={{ marginTop: "48px" }}>
-            <p className="empty-state-text">No applications with this status.</p>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {filtered.map((app) => (
-              <ApplicationCard
-                key={app.internship_application_id}
-                app={app}
-                onStatusChange={handleStatusChange}
-                hasAccepted={hasAccepted && app.status?.toLowerCase() !== "accepted"}
-                onError={(msg) => show(msg, "error")}
-              />
-            ))}
-          </div>
-        )}
+        {/* Content area */}
+        <div style={{ padding: "16px 20px" }}>
+          {appLoading ? (
+            <div className="loading-container">
+              <div className="loading-spinner" />
+              <p className="loading-text">Loading applications…</p>
+            </div>
+          ) : applications.length === 0 ? (
+            <div className="empty-state" style={{ marginTop: 32, marginBottom: 32 }}>
+              <p className="empty-state-text">You haven't applied to any internships yet.</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="empty-state" style={{ marginTop: 32, marginBottom: 32 }}>
+              <p className="empty-state-text">No applications with this status.</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {filtered.map((app) => (
+                <ApplicationCard
+                  key={app.internship_application_id}
+                  app={app}
+                  onStatusChange={handleStatusChange}
+                  hasAccepted={hasAccepted && app.internship_applicant_response?.toLowerCase() !== "accepted"}
+                  onError={(msg) => show(msg, "error")}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
       </div>
 

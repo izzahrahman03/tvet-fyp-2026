@@ -70,10 +70,11 @@ exports.listVacancies = async (req, res) => {
         ip.industry_sector,
         ip.location,
         ip.contact_person_phone,
-        u.name AS contact_person_name,
+        u.name  AS contact_person_name,
         u.email AS contact_person_email,
         CASE WHEN ia.internship_application_id IS NOT NULL THEN 1 ELSE 0 END AS already_applied,
-        ia.internship_application_status AS my_application_status
+        ia.internship_application_status  AS my_application_status,
+        ia.internship_applicant_response  AS my_applicant_response
       FROM vacancies v
       JOIN industry_partners ip ON ip.partner_id = v.partner_id
       JOIN users             u  ON u.user_id      = ip.user_id
@@ -139,8 +140,8 @@ exports.applyVacancy = async (req, res) => {
     await db.query(
       `INSERT INTO internship_applications
          (student_id, partner_id, vacancy_id, resume_path, cover_letter_path,
-          internship_application_status, internship_application_date)
-       VALUES (?, ?, ?, ?, ?, 'pending', CURDATE())`,
+          internship_application_status, internship_applicant_response, internship_application_date)
+       VALUES (?, ?, ?, ?, ?, 'pending', 'none', CURDATE())`,
       [studentId, partnerId, vacancy_id, resumePath, coverLetterPath]
     );
 
@@ -165,8 +166,13 @@ exports.myApplications = async (req, res) => {
       `SELECT
          ia.internship_application_id,
          ia.vacancy_id,
-         ia.internship_application_status AS status,
-         ia.internship_application_date   AS applied_date,
+         ia.internship_application_status  AS application_status,
+         ia.internship_applicant_response,
+         ia.internship_application_date    AS applied_date,
+         sup_u.name AS supervisor_name,
+         sup.position AS supervisor_position,
+         sup.phone    AS supervisor_phone,
+         sup_u.email  AS supervisor_email,
          v.position_name,
          v.start_date,
          v.end_date,
@@ -174,7 +180,7 @@ exports.myApplications = async (req, res) => {
          ip.industry_sector,
          ip.location,
          ip.contact_person_phone,
-         u.name AS contact_person_name,
+         u.name  AS contact_person_name,
          u.email AS contact_person_email,
          ii.interview_datetime,
          ii.interview_location
@@ -184,6 +190,10 @@ exports.myApplications = async (req, res) => {
        JOIN users             u  ON u.user_id      = ip.user_id
        LEFT JOIN internship_interviews ii
          ON ii.internship_application_id = ia.internship_application_id
+       LEFT JOIN industry_supervisors sup
+         ON sup.supervisor_id = ia.supervisor_id
+       LEFT JOIN users sup_u
+         ON sup_u.user_id = sup.user_id
        WHERE ia.student_id = ?
        ORDER BY ia.created_at DESC`,
       [studentId]
@@ -201,8 +211,6 @@ exports.myApplications = async (req, res) => {
 
 // ══════════════════════════════════════════════════════════
 // ACCEPT OFFER   POST /api/student/internship-accept/:id
-// Student accepts a "passed" application.
-// A student can only have ONE accepted internship at a time.
 // ══════════════════════════════════════════════════════════
 exports.acceptOffer = async (req, res) => {
   const conn = await db.getConnection();
@@ -212,12 +220,12 @@ exports.acceptOffer = async (req, res) => {
     const studentId = await getStudentId(req.user.id);
     const { id }    = req.params;
 
-    // Confirm this application belongs to student and is passed
     const [appRows] = await conn.query(
       `SELECT
          ia.internship_application_id,
          ia.vacancy_id,
-         ia.internship_application_status AS status,
+         ia.internship_application_status  AS application_status,
+         ia.internship_applicant_response,
          v.position_name,
          v.capacity,
          COALESCE(ip.company_name, cu.name) AS company_name,
@@ -238,9 +246,14 @@ exports.acceptOffer = async (req, res) => {
       return res.status(404).json({ message: 'Application not found.' });
     }
 
-    if (appRows[0].status !== 'passed') {
+    // Must be passed by partner, and no response yet
+    if (appRows[0].application_status !== 'passed') {
       await conn.rollback();
       return res.status(400).json({ message: 'You can only accept an offer with status "passed".' });
+    }
+    if (appRows[0].internship_applicant_response !== 'none') {
+      await conn.rollback();
+      return res.status(400).json({ message: 'You have already responded to this offer.' });
     }
 
     if (appRows[0].capacity <= 0) {
@@ -248,10 +261,11 @@ exports.acceptOffer = async (req, res) => {
       return res.status(409).json({ message: 'No slots remaining for this vacancy.' });
     }
 
-    // Check student doesn't already have an accepted application
+    // Check student doesn't already have an active internship
     const [alreadyAccepted] = await conn.query(
       `SELECT internship_application_id FROM internship_applications
-       WHERE student_id = ? AND internship_application_status IN ('accepted', 'withdrawn_requested')`,
+       WHERE student_id = ?
+         AND internship_applicant_response IN ('accepted', 'withdrawn_requested')`,
       [studentId]
     );
     if (alreadyAccepted.length > 0) {
@@ -261,14 +275,14 @@ exports.acceptOffer = async (req, res) => {
       });
     }
 
+    // FIX: write to internship_applicant_response, not internship_application_status
     await conn.query(
       `UPDATE internship_applications
-       SET internship_application_status = 'accepted'
+       SET internship_applicant_response = 'accepted'
        WHERE internship_application_id = ?`,
       [id]
     );
 
-    // Decrement capacity by 1 when a student accepts
     await conn.query(
       `UPDATE vacancies SET capacity = capacity - 1 WHERE vacancy_id = ? AND capacity > 0`,
       [appRows[0].vacancy_id]
@@ -298,7 +312,6 @@ exports.acceptOffer = async (req, res) => {
 
 // ══════════════════════════════════════════════════════════
 // DECLINE OFFER   POST /api/student/internship-decline/:id
-// Student declines a "passed" application.
 // ══════════════════════════════════════════════════════════
 exports.declineOffer = async (req, res) => {
   try {
@@ -306,7 +319,9 @@ exports.declineOffer = async (req, res) => {
     const { id }    = req.params;
 
     const [appRows] = await db.query(
-      `SELECT ia.internship_application_status AS status
+      `SELECT
+         ia.internship_application_status AS application_status,
+         ia.internship_applicant_response
        FROM internship_applications ia
        WHERE ia.internship_application_id = ? AND ia.student_id = ?`,
       [id, studentId]
@@ -314,12 +329,15 @@ exports.declineOffer = async (req, res) => {
 
     if (appRows.length === 0)
       return res.status(404).json({ message: 'Application not found.' });
-    if (appRows[0].status !== 'passed')
+    if (appRows[0].application_status !== 'passed')
       return res.status(400).json({ message: 'You can only decline an offer with status "passed".' });
+    if (appRows[0].internship_applicant_response !== 'none')
+      return res.status(400).json({ message: 'You have already responded to this offer.' });
 
+    // FIX: write to internship_applicant_response, not internship_application_status
     await db.query(
       `UPDATE internship_applications
-       SET internship_application_status = 'declined'
+       SET internship_applicant_response = 'declined'
        WHERE internship_application_id = ?`,
       [id]
     );
@@ -336,8 +354,6 @@ exports.declineOffer = async (req, res) => {
 
 // ══════════════════════════════════════════════════════════
 // REQUEST WITHDRAW   POST /api/student/internship-withdraw/:id
-// Student requests withdrawal of an "accepted" application.
-// Sets status to "withdraw_requested" — partner must approve.
 // ══════════════════════════════════════════════════════════
 exports.requestWithdraw = async (req, res) => {
   try {
@@ -345,7 +361,9 @@ exports.requestWithdraw = async (req, res) => {
     const { id }    = req.params;
 
     const [appRows] = await db.query(
-      `SELECT ia.internship_application_status AS status
+      `SELECT
+         ia.internship_application_status AS application_status,
+         ia.internship_applicant_response
        FROM internship_applications ia
        WHERE ia.internship_application_id = ? AND ia.student_id = ?`,
       [id, studentId]
@@ -353,12 +371,15 @@ exports.requestWithdraw = async (req, res) => {
 
     if (appRows.length === 0)
       return res.status(404).json({ message: 'Application not found.' });
-    if (appRows[0].status !== 'accepted')
+
+    // Must have accepted the offer first
+    if (appRows[0].internship_applicant_response !== 'accepted')
       return res.status(400).json({ message: 'You can only withdraw an accepted application.' });
 
+    // FIX: write to internship_applicant_response, not internship_application_status
     await db.query(
       `UPDATE internship_applications
-       SET internship_application_status = 'withdrawn_requested'
+       SET internship_applicant_response = 'withdrawn_requested'
        WHERE internship_application_id = ?`,
       [id]
     );

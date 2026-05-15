@@ -4,7 +4,7 @@ import {
   fetchIntakes,
   createIntake,
   updateIntake,
-  deleteIntake,
+  // deleteIntake,
 } from "../api/applicationApi";
 import useToast from "./userTable/useToast";
 import "../../css/userManagement/userTable.css";
@@ -36,6 +36,34 @@ const toInputDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : "");
 function IntakeBadge({ status }) {
   const label = { active: "Active", upcoming: "Upcoming", ended: "Ended" }[status] || "Ended";
   return <span className={`status-badge ${status || "ended"}`}>{label}</span>;
+}
+
+// ── Application window badge ──────────────────────────────
+function ApplicationWindowBadge({ appStartDate, appEndDate }) {
+  if (!appStartDate || !appEndDate) {
+    return <span style={{ fontSize: "12px", color: "#94a3b8" }}>Not set</span>;
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(appStartDate);
+  const end   = new Date(appEndDate);
+  const isOpen = today >= start && today <= end;
+
+  return (
+    <div>
+      <span style={{
+        display: "inline-block", fontSize: "11px", fontWeight: 700,
+        padding: "2px 8px", borderRadius: "2px", marginBottom: 4,
+        background: isOpen ? "#dcfce7" : "#f1f5f9",
+        color:      isOpen ? "#166534" : "#64748b",
+      }}>
+        {isOpen ? "Open" : "Closed"}
+      </span>
+      <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
+        {fmt(appStartDate)} — {fmt(appEndDate)}
+      </p>
+    </div>
+  );
 }
 
 // ── Capacity bar ──────────────────────────────────────────
@@ -82,9 +110,37 @@ function FieldError({ msg }) {
   );
 }
 
+// ── Section divider inside modal ──────────────────────────
+function ModalDivider({ label }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "8px 0 4px" }}>
+      <span style={{ fontSize: "11px", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+        {label}
+      </span>
+      <div style={{ flex: 1, height: 1, background: "#e2e8f0" }} />
+    </div>
+  );
+}
+
 // ── Intake Form Modal ─────────────────────────────────────
-const EMPTY_FORM   = { intake_name: "", start_date: "", end_date: "", max_capacity: "" };
-const EMPTY_ERRORS = { intake_name: "", start_date: "", end_date: "", max_capacity: "" };
+// Field order: Application Window first, then Intake Period
+const EMPTY_FORM = {
+  intake_name:            "",
+  application_start_date: "",
+  application_end_date:   "",
+  intake_start_date:      "",
+  intake_end_date:        "",
+  max_capacity:           "",
+};
+
+const EMPTY_ERRORS = {
+  intake_name:            "",
+  application_start_date: "",
+  application_end_date:   "",
+  intake_start_date:      "",
+  intake_end_date:        "",
+  max_capacity:           "",
+};
 
 function IntakeModal({ initial, onClose, onSave }) {
   const isEdit = !!initial;
@@ -102,14 +158,54 @@ function IntakeModal({ initial, onClose, onSave }) {
   const validate = () => {
     const e = { ...EMPTY_ERRORS };
     let ok = true;
+
+    // ── Intake name ────────────────────────────────────────
     if (!form.intake_name.trim()) { e.intake_name = "Intake name is required."; ok = false; }
-    if (!form.start_date)         { e.start_date  = "Start date is required.";  ok = false; }
-    if (!form.end_date)           { e.end_date    = "End date is required.";     ok = false; }
-    if (form.start_date && form.end_date && new Date(form.start_date) >= new Date(form.end_date)) {
-      e.end_date = "End date must be after start date."; ok = false;
+
+    // ── Application window (required) ──────────────────────
+    if (!form.application_start_date) {
+      e.application_start_date = "Application start date is required.";
+      ok = false;
     }
-    if (!form.max_capacity)               { e.max_capacity = "Capacity is required.";          ok = false; }
-    else if (parseInt(form.max_capacity) < 1) { e.max_capacity = "Capacity must be at least 1."; ok = false; }
+
+    if (!form.application_end_date) {
+      e.application_end_date = "Application end date is required.";
+      ok = false;
+    }
+
+    if (
+      form.application_start_date &&
+      form.application_end_date &&
+      new Date(form.application_start_date) >=
+        new Date(form.application_end_date)
+    ) {
+      e.application_end_date =
+        "Application end date must be after start date.";
+      ok = false;
+    }
+
+    // ── Intake period ──────────────────────────────────────
+    if (!form.intake_start_date) { e.intake_start_date = "Intake start date is required."; ok = false; }
+    if (!form.intake_end_date)   { e.intake_end_date   = "Intake end date is required.";   ok = false; }
+    if (form.intake_start_date && form.intake_end_date &&
+        new Date(form.intake_start_date) >= new Date(form.intake_end_date)) {
+      e.intake_end_date = "Intake end date must be after start date."; ok = false;
+    }
+
+    // ── Application window must sit within intake period ───
+    if (form.application_start_date && form.intake_start_date &&
+        new Date(form.application_start_date) >= new Date(form.intake_start_date)) {
+      e.application_start_date = "Application start date must be earlier than the intake start date."; ok = false;
+    }
+    if (form.application_end_date && form.intake_end_date &&
+        new Date(form.application_end_date) > new Date(form.intake_end_date)) {
+      e.application_end_date = "Application end date cannot be later than the intake end date."; ok = false;
+    }
+
+    // ── Capacity ───────────────────────────────────────────
+    if (!form.max_capacity)                   { e.max_capacity = "Capacity is required.";          ok = false; }
+    else if (parseInt(form.max_capacity) < 1) { e.max_capacity = "Capacity must be at least 1.";  ok = false; }
+
     setErrors(e);
     return ok;
   };
@@ -147,6 +243,7 @@ function IntakeModal({ initial, onClose, onSave }) {
           {success && <div className="form-success"><CheckIcon />Intake {isEdit ? "updated" : "created"} successfully!</div>}
           {apiErr  && <div className="form-error"><ErrorIcon />{apiErr}</div>}
 
+          {/* ── Intake Name ── */}
           <div className="form-field">
             <label>Intake Name <span style={{ color: "#ef4444" }}>*</span></label>
             <input className={`form-input${errors.intake_name ? " input-error" : ""}`}
@@ -155,18 +252,51 @@ function IntakeModal({ initial, onClose, onSave }) {
             <FieldError msg={errors.intake_name} />
           </div>
 
+          {/* ── Application Window ── */}
+          <ModalDivider label="Application Window" />
+          <p style={{ margin: "0 0 12px", fontSize: "12px", color: "#94a3b8", lineHeight: 1.6 }}>
+            The period during which applicants may submit their applications.
+            Leave blank if the window has not yet been determined.
+          </p>
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div className="form-field">
-              <label>Start Date <span style={{ color: "#ef4444" }}>*</span></label>
-              <input type="date" className={`form-input${errors.start_date ? " input-error" : ""}`}
-                value={form.start_date} onChange={(e) => set("start_date", e.target.value)} />
-              <FieldError msg={errors.start_date} />
+              <label>
+                Application Start
+                <span style={{ color: "#ef4444" }}>*</span>
+              </label>
+              <input type="date" className={`form-input${errors.application_start_date ? " input-error" : ""}`}
+                value={form.application_start_date}
+                onChange={(e) => set("application_start_date", e.target.value)} />
+              <FieldError msg={errors.application_start_date} />
             </div>
             <div className="form-field">
-              <label>End Date <span style={{ color: "#ef4444" }}>*</span></label>
-              <input type="date" className={`form-input${errors.end_date ? " input-error" : ""}`}
-                value={form.end_date} onChange={(e) => set("end_date", e.target.value)} />
-              <FieldError msg={errors.end_date} />
+              <label>
+                Application End
+                <span style={{ color: "#ef4444" }}>*</span>
+              </label>
+              <input type="date" className={`form-input${errors.application_end_date ? " input-error" : ""}`}
+                value={form.application_end_date}
+                onChange={(e) => set("application_end_date", e.target.value)} />
+              <FieldError msg={errors.application_end_date} />
+            </div>
+          </div>
+
+          {/* ── Intake Period ── */}
+          <ModalDivider label="Intake Period" />
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div className="form-field">
+              <label>Intake Start <span style={{ color: "#ef4444" }}>*</span></label>
+              <input type="date" className={`form-input${errors.intake_start_date ? " input-error" : ""}`}
+                value={form.intake_start_date} onChange={(e) => set("intake_start_date", e.target.value)} />
+              <FieldError msg={errors.intake_start_date} />
+            </div>
+            <div className="form-field">
+              <label>Intake End <span style={{ color: "#ef4444" }}>*</span></label>
+              <input type="date" className={`form-input${errors.intake_end_date ? " input-error" : ""}`}
+                value={form.intake_end_date} onChange={(e) => set("intake_end_date", e.target.value)} />
+              <FieldError msg={errors.intake_end_date} />
             </div>
           </div>
 
@@ -201,7 +331,7 @@ export default function IntakePage() {
   const [sortDir,      setSortDir]      = useState("asc");
   const [showCreate,   setShowCreate]   = useState(false);
   const [editRow,      setEditRow]      = useState(null);
-  const [confirmId,    setConfirmId]    = useState(null); // { id, name } | { ids[], names[] }
+  const [confirmId,    setConfirmId]    = useState(null); // { ids[], names[] }
   const [selected,     setSelected]     = useState(new Set());
 
   const { toast, show } = useToast();
@@ -249,34 +379,34 @@ export default function IntakePage() {
     show(`Intake "${intake.intake_name}" ${wasEdit ? "updated" : "created"} successfully!`);
   };
 
-  // Single delete
-  const handleDeleteOne = (id, name) => setConfirmId({ ids: [id], names: [name] });
+  // const handleDeleteOne = (id, name) => setConfirmId({ ids: [id], names: [name] });
 
-  // Bulk delete
-  const handleBulkDelete = () => {
-    const ids   = [...selected];
-    const names = filtered.filter((r) => selected.has(r.intake_id)).map((r) => r.intake_name);
-    setConfirmId({ ids, names });
-  };
+  // const handleBulkDelete = () => {
+  //   const ids   = [...selected];
+  //   const names = filtered.filter((r) => selected.has(r.intake_id)).map((r) => r.intake_name);
+  //   setConfirmId({ ids, names });
+  // };
 
-  const confirmDelete = async () => {
-    const { ids, names } = confirmId;
-    setConfirmId(null);
-    try {
-      await Promise.all(ids.map((id) => deleteIntake(id)));
-      setIntakes((prev) => prev.filter((i) => !ids.includes(i.intake_id)));
-      setSelected(new Set());
-      show(ids.length === 1 ? `"${names[0]}" deleted.` : `${ids.length} intakes deleted.`, "error");
-    } catch (err) {
-      show(err.message || "Failed to delete intake.", "error");
-    }
-  };
+  // const confirmDelete = async () => {
+  //   const { ids, names } = confirmId;
+  //   setConfirmId(null);
+  //   try {
+  //     await Promise.all(ids.map((id) => deleteIntake(id)));
+  //     setIntakes((prev) => prev.filter((i) => !ids.includes(i.intake_id)));
+  //     setSelected(new Set());
+  //     show(ids.length === 1 ? `"${names[0]}" deleted.` : `${ids.length} intakes deleted.`, "error");
+  //   } catch (err) {
+  //     show(err.message || "Failed to delete intake.", "error");
+  //   }
+  // };
 
+  // Column order: Application Window first, then Intake Period
   const COLUMNS = [
-    { key: "intake_name",   label: "Intake Name" },
-    { key: "start_date",    label: "Date Range"  },
-    { key: "max_capacity",  label: "Capacity"    },
-    { key: "intake_status", label: "Status"      },
+    { key: "intake_name",            label: "Intake Name"         },
+    { key: "application_start_date", label: "Application Window"  },
+    { key: "intake_start_date",      label: "Intake Period"       },
+    { key: "max_capacity",           label: "Capacity"            },
+    { key: "intake_status",          label: "Status"              },
   ];
 
   return (
@@ -285,13 +415,19 @@ export default function IntakePage() {
       {showCreate && <IntakeModal onClose={() => setShowCreate(false)} onSave={handleSaved} />}
       {editRow && (
         <IntakeModal
-          initial={{ ...editRow, start_date: toInputDate(editRow.start_date), end_date: toInputDate(editRow.end_date) }}
+          initial={{
+            ...editRow,
+            application_start_date: toInputDate(editRow.application_start_date),
+            application_end_date:   toInputDate(editRow.application_end_date),
+            intake_start_date:      toInputDate(editRow.intake_start_date),
+            intake_end_date:        toInputDate(editRow.intake_end_date),
+          }}
           onClose={() => setEditRow(null)}
           onSave={handleSaved}
         />
       )}
 
-      {/* ── Delete Confirm ───────────────────────────────────── */}
+      {/* ── Delete Confirm ─────────────────────────────────────
       {confirmId && (
         <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ background: "#fff", borderRadius: "2px", padding: "36px 32px", maxWidth: "420px", width: "90%", boxShadow: "0 24px 64px rgba(0,0,0,0.18)", textAlign: "center" }}>
@@ -324,7 +460,7 @@ export default function IntakePage() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* ── Toast ───────────────────────────────────────────── */}
       {toast && <div className={`ut-toast ${toast.kind}`}>{toast.msg}</div>}
@@ -368,13 +504,13 @@ export default function IntakePage() {
               {selected.size} intake{selected.size > 1 ? "s" : ""} selected
             </span>
             <div style={{ flex: 1 }} />
-            <button onClick={handleBulkDelete}
+            {/* <button onClick={handleBulkDelete}
               style={{ display: "flex", alignItems: "center", gap: "6px", background: "#b91c1c", border: "1px solid #b91c1c", borderRadius: "2px", padding: "7px 14px", fontSize: "13.5px", fontWeight: "600", color: "#fff", cursor: "pointer" }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 6h18 M8 6V4h8v2 M19 6l-1 14H6L5 6" />
               </svg>
               Delete Selected
-            </button>
+            </button> */}
             <button onClick={() => setSelected(new Set())}
               style={{ background: "none", border: "1px solid #cbd5e1", borderRadius: "2px", padding: "7px 12px", fontSize: "13px", color: "#64748b", cursor: "pointer" }}>
               Clear
@@ -427,8 +563,15 @@ export default function IntakePage() {
                           style={{ cursor: "pointer", accentColor: "#1a56db" }} />
                       </td>
                       <td style={{ textAlign: "center", color: "#94a3b8", fontSize: "13px", width: "48px" }}>{idx + 1}</td>
+                      {/* Column order matches COLUMNS: Application Window → Intake Period */}
                       <td><span className="cell-name">{row.intake_name}</span></td>
-                      <td><span className="cell-muted">{fmt(row.start_date)} — {fmt(row.end_date)}</span></td>
+                      <td>
+                        <ApplicationWindowBadge
+                          appStartDate={row.application_start_date}
+                          appEndDate={row.application_end_date}
+                        />
+                      </td>
+                      <td><span className="cell-muted">{fmt(row.intake_start_date)} — {fmt(row.intake_end_date)}</span></td>
                       <td><CapacityBar current={row.current_count} max={row.max_capacity} /></td>
                       <td><IntakeBadge status={row.intake_status} /></td>
                       <td>
@@ -440,11 +583,11 @@ export default function IntakePage() {
                             </svg>
                             Edit
                           </button>
-                          <button title="Delete" className="ut-action-btn ut-action-btn-delete" onClick={() => handleDeleteOne(row.intake_id, row.intake_name)}>
+                          {/* <button title="Delete" className="ut-action-btn ut-action-btn-delete" onClick={() => handleDeleteOne(row.intake_id, row.intake_name)}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, display: "block" }}>
                               <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
                             </svg>
-                          </button>
+                          </button> */}
                         </div>
                       </td>
                     </tr>

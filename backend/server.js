@@ -16,17 +16,31 @@ const intakeRoutes     = require('./routes/intakeRoutes');
 const vacancyRoutes     = require('./routes/vacancyRoutes');
 const internshipRoutes  = require('./routes/internshipRoutes');
 const internshipApplicationRoutes = require('./routes/internshipApplicationRoutes');
+const evaluationRoutes   = require('./routes/evaluationRoutes');
+const terminationRoutes   = require('./routes/terminationRoutes');
+const interviewerApplicationsRoutes = require('./routes/interviewerApplicationsRoutes');
+const timeRoutes = require('./routes/timeRoutes');
+const adminDashboardRoutes = require('./routes/adminDashboardRoutes');
+
 const { profile } = require('console');
 
 const app  = express();
 const PORT = process.env.PORT;
 
 // ── CORS ───────────────────────────────────────────────────
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  process.env.FRONTEND_URL,          // add this to your .env
+].filter(Boolean);
+
 app.use(cors({
-  origin:         process.env.FRONTEND_URL,
-  methods:        ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials:    true,
+  origin: (origin, callback) => {
+    // allow requests with no origin (Postman, mobile apps, curl)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin "${origin}" not allowed`));
+  },
+  credentials: true,
 }));
 
 // ── Security & Performance ─────────────────────────────────
@@ -52,6 +66,12 @@ app.use('/api', intakeRoutes);
 app.use('/api', vacancyRoutes);
 app.use('/api', internshipRoutes);
 app.use('/api', internshipApplicationRoutes);
+app.use('/api', evaluationRoutes);
+app.use('/api', terminationRoutes);
+app.use('/api', interviewerApplicationsRoutes);
+app.use('/api', timeRoutes);
+app.use('/api', adminDashboardRoutes);
+
 
 app.use((err, req, res, next) => {
   console.error(`[${new Date().toISOString()}] ${err.stack}`);

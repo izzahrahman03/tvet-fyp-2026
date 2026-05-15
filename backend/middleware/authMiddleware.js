@@ -66,6 +66,19 @@ exports.requireAdminOrManager = async (req, res, next) => {
   }
 };
 
+exports.requireAdminOrManagerOrPartner = async (req, res, next) => {
+  try {
+    const [rows] = await db.query('SELECT role FROM users WHERE user_id = ?', [req.user.id]);
+    if (!rows.length) return res.status(404).json({ message: 'User not found.' });
+    if (!['admin', 'manager', 'industry_partner'].includes(rows[0].role))
+      return res.status(403).json({ message: 'Access denied.' });
+    next();
+  } catch (err) {
+    console.error('requireAdminOrManagerOrPartner error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // ── Require partner role ─────────────────────────────────────
 exports.requirePartner = async (req, res, next) => {
   try {
@@ -84,4 +97,62 @@ exports.requirePartner = async (req, res, next) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// ── Require supervisor role ─────────────────────────────────────
+exports.requireSupervisor = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const [rows] = await db.query('SELECT role FROM users WHERE user_id = ?', [userId]);
+
+    if (!rows.length) return res.status(404).json({ message: 'User not found.' });
+
+    if (rows[0].role !== 'industry_supervisor')
+      return res.status(403).json({ message: 'Access denied. Supervisors only.' });
+
+    next();
+  } catch (err) {
+    console.error('requireSupervisor error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ── Require interviewer role ─────────────────────────────────────
+exports.requireInterviewer = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const [rows] = await db.query('SELECT role FROM users WHERE user_id = ?', [userId]);
+
+    if (!rows.length) return res.status(404).json({ message: 'User not found.' });
+
+    if (rows[0].role !== 'interviewer')
+      return res.status(403).json({ message: 'Access denied. Interviewers only.' });
+
+    next();
+  } catch (err) {
+    console.error('requireInterviewer error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ── Require student role ─────────────────────────────────────
+exports.requireStudent = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const [rows] = await db.query('SELECT role FROM users WHERE user_id = ?', [userId]);
+
+    if (!rows.length) return res.status(404).json({ message: 'User not found.' });
+
+    if (rows[0].role !== 'student')
+      return res.status(403).json({ message: 'Access denied. Students only.' });
+
+    next();
+  } catch (err) {
+    console.error('requireStudent error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 

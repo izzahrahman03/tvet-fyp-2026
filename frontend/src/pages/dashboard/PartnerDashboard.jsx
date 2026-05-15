@@ -1,25 +1,25 @@
 // pages/partnerDashboard/PartnerDashboard.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import PartnerLayout from "../../components/dashboard/Layout";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
   LineChart, Line,
 } from "recharts";
-import { fetchVacancies }               from "../api/vacancyApi";
-import { fetchInternshipApplications }  from "../api/internshipApplicationApi";
+import { fetchVacancies }              from "../api/vacancyApi";
+import { fetchInternshipApplications } from "../api/internshipApplicationApi";
 
 // ── Custom tooltip ─────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: "#0f172a", borderRadius: "10px", padding: "10px 14px",
-      fontSize: "12.5px", color: "white", boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+      background: "#0f172a", borderRadius: 8, padding: "10px 14px",
+      fontSize: 12.5, color: "white", boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
     }}>
-      <p style={{ fontWeight: "700", marginBottom: "6px", color: "#94a3b8" }}>{label}</p>
+      <p style={{ fontWeight: 700, marginBottom: 6, color: "#94a3b8" }}>{label}</p>
       {payload.map((p) => (
-        <p key={p.name} style={{ color: p.fill || p.stroke, marginBottom: "2px" }}>
+        <p key={p.name} style={{ color: p.fill || p.stroke, marginBottom: 2 }}>
           {p.name}: <strong>{p.value}</strong>
         </p>
       ))}
@@ -28,36 +28,71 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 // ── Stat card ──────────────────────────────────────────────
-function StatCard({ label, value, sub, color, icon, onClick }) {
+function StatCard({ label, value, accent, icon, sublabel }) {
   return (
-    <div className="stat-card" onClick={onClick} style={{ borderLeft: `4px solid ${color}`, cursor: onClick ? "pointer" : "default" }}>
-      <div className="stat-card-icon" style={{ background: `${color}18` }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d={icon} />
-        </svg>
+    <div style={{
+      background: "#fff", border: "1px solid #dce6f0",
+      borderTop: `3px solid ${accent}`, borderRadius: 2,
+      padding: "20px 22px", display: "flex", flexDirection: "column", gap: 6,
+      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+          {label}
+        </p>
+        <span style={{ fontSize: 18, lineHeight: 1 }}>{icon}</span>
       </div>
-      <p className="stat-card-label">{label}</p>
-      <p className="stat-card-value" style={{ color }}>{value ?? "—"}</p>
-      {sub && <p className="stat-card-footer">{sub}</p>}
+      <p style={{ margin: 0, fontSize: 32, fontWeight: 800, color: accent, lineHeight: 1 }}>{value ?? "—"}</p>
+      {sublabel && <p style={{ margin: 0, fontSize: 11, color: "#94a3b8" }}>{sublabel}</p>}
     </div>
+  );
+}
+
+// ── Mini progress ring ─────────────────────────────────────
+function ProgressRing({ pct, color, size = 56, stroke = 5 }) {
+  const r    = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  return (
+    <svg width={size} height={size} style={{ transform: "rotate(-90deg)", flexShrink: 0 }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e2e8f0" strokeWidth={stroke} />
+      <circle
+        cx={size/2} cy={size/2} r={r} fill="none"
+        stroke={color} strokeWidth={stroke}
+        strokeDasharray={circ}
+        strokeDashoffset={circ * (1 - Math.min(pct, 1))}
+        strokeLinecap="round"
+        style={{ transition: "stroke-dashoffset 0.8s ease" }}
+      />
+    </svg>
   );
 }
 
 // ── Pie legend ─────────────────────────────────────────────
 function PieLegend({ data, colors }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "8px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
       {data.map((d, i) => (
-        <div key={d.name} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: colors[i], flexShrink: 0 }} />
-          <span style={{ fontSize: "12.5px", color: "#475569", flex: 1 }}>{d.name}</span>
-          <span style={{ fontSize: "13px", fontWeight: "700", color: "#1e293b" }}>{d.value}</span>
+        <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 10, height: 10, borderRadius: "50%", background: colors[i], flexShrink: 0 }} />
+          <span style={{ fontSize: 12.5, color: "#475569", flex: 1 }}>{d.name}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{d.value}</span>
         </div>
       ))}
     </div>
   );
 }
+
+// ── Shared dropdown style ──────────────────────────────────
+const selectStyle = {
+  border: "1.5px solid #dce6f0", borderRadius: 6,
+  padding: "5px 10px", fontSize: 12, fontWeight: 600,
+  color: "#1b3a6b", background: "#fff", cursor: "pointer",
+  outline: "none", appearance: "none",
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+  backgroundRepeat: "no-repeat",
+  backgroundPosition: "right 8px center",
+  paddingRight: 28,
+};
 
 // ══════════════════════════════════════════════════════════
 // Main Component
@@ -66,21 +101,104 @@ export default function PartnerDashboard() {
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const userName   = storedUser?.name || "Guest";
 
-  const [vacancies,     setVacancies]     = useState([]);
-  const [applications,  setApplications]  = useState([]);
-  const [loading,       setLoading]       = useState(true);
-  const [error,         setError]         = useState(false);
+  const [vacancies,    setVacancies]    = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState(false);
+
+  // ── Filter state ──────────────────────────────────────
+  const [vacancyFilter, setVacancyFilter] = useState("All");  // All | Open | Closed
+  const [monthRange,    setMonthRange]    = useState(6);      // 3 | 6 | 12
 
   useEffect(() => {
     Promise.all([fetchVacancies(), fetchInternshipApplications()])
-      .then(([vacs, apps]) => {
-        setVacancies(vacs);
-        setApplications(apps);
-      })
+      .then(([vacs, apps]) => { setVacancies(vacs); setApplications(apps); })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
+  // ── Normalised status helpers ──────────────────────────
+  const getStatus = (app) =>
+    (app.status || app.application_status || app.partner_status || "").toString().toLowerCase();
+
+  const getStudentStatus = (app) =>
+    (app.internship_applicant_response || app.applicant_status || app.applicant_response || "").toString().toLowerCase();
+
+  // ── Base stats ─────────────────────────────────────────
+  const totalVacancies  = vacancies.length;
+  const openVacancies   = vacancies.filter((v) => v.status?.toLowerCase() === "open").length;
+  const closedVacancies = vacancies.filter((v) => v.status?.toLowerCase() === "closed").length;
+  const totalApplicants = applications.length;
+
+  const pendingApps   = applications.filter((a) => ["pending", "reviewing"].includes(getStatus(a))).length;
+  const interviewApps = applications.filter((a) => ["interview", "interview_scheduled"].includes(getStatus(a))).length;
+  const passedApps    = applications.filter((a) => ["passed", "offer_sent"].includes(getStatus(a))).length;
+  const acceptedApps  = applications.filter((a) => getStudentStatus(a) === "accepted").length;
+  const failedApps    = applications.filter((a) => ["failed", "rejected", "declined", "absent"].includes(getStatus(a))).length;
+  const withdrawnApps = applications.filter((a) => ["withdrawn", "withdraw_requested"].includes(getStudentStatus(a))).length;
+  const terminatedApps = applications.filter((a) => ["terminated"].includes(getStatus(a))).length;
+  const acceptancePct = totalApplicants > 0 ? Math.round((acceptedApps / totalApplicants) * 100) : 0;
+
+  // ── Filtered vacancies ─────────────────────────────────
+  const filteredVacancies = useMemo(() => {
+    if (vacancyFilter === "All") return vacancies;
+    return vacancies.filter((v) => v.status?.toLowerCase() === vacancyFilter.toLowerCase());
+  }, [vacancies, vacancyFilter]);
+
+  // ── Monthly bar chart data ─────────────────────────────
+  const monthlyData = useMemo(() => {
+    const now = new Date();
+    const months = Array.from({ length: monthRange }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (monthRange - 1 - i), 1);
+      return {
+        month: d.toLocaleString("en-MY", { month: "short" }),
+        year:  d.getFullYear(),
+        mon:   d.getMonth(),
+        applications: 0,
+        accepted: 0,
+      };
+    });
+
+    applications.forEach((a) => {
+      const dateStr = a.created_at || a.applied_date || a.applied_at;
+      if (!dateStr) return;
+      const d   = new Date(dateStr);
+      if (isNaN(d)) return;
+      const idx = months.findIndex((m) => m.year === d.getFullYear() && m.mon === d.getMonth());
+      if (idx === -1) return;
+      months[idx].applications++;
+      if (getStudentStatus(a) === "accepted") months[idx].accepted++;
+    });
+
+    return months.map(({ month, applications, accepted }) => ({ month, applications, accepted }));
+  }, [applications, monthRange]);
+
+  // ── Vacancy postings line chart ────────────────────────
+  const vacPostingsData = useMemo(() => {
+    const now = new Date();
+    const months = Array.from({ length: monthRange }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (monthRange - 1 - i), 1);
+      return {
+        month: d.toLocaleString("en-MY", { month: "short" }),
+        year:  d.getFullYear(),
+        mon:   d.getMonth(),
+        vacancies: 0,
+      };
+    });
+
+    filteredVacancies.forEach((v) => {
+      const dateStr = v.created_at || v.start_date || v.posted_at;
+      if (!dateStr) return;
+      const d   = new Date(dateStr);
+      if (isNaN(d)) return;
+      const idx = months.findIndex((m) => m.year === d.getFullYear() && m.mon === d.getMonth());
+      if (idx !== -1) months[idx].vacancies++;
+    });
+
+    return months.map(({ month, vacancies }) => ({ month, vacancies }));
+  }, [filteredVacancies, monthRange]);
+
+  // ── Loading / error guards ─────────────────────────────
   if (loading) {
     return (
       <PartnerLayout title="Dashboard">
@@ -104,236 +222,309 @@ export default function PartnerDashboard() {
     );
   }
 
-  // ── Derived stats ──────────────────────────────────────
-  const totalVacancies  = vacancies.length;
-  const openVacancies   = vacancies.filter((v) => v.status?.toLowerCase() === "open").length;
-  const closedVacancies = vacancies.filter((v) => v.status?.toLowerCase() === "closed").length;
-  const totalApplicants = applications.length;
-
-  const appCount = (...ss) =>
-    applications.filter((a) => ss.includes(a.status?.toLowerCase())).length;
-
-  const pendingApps   = appCount("pending");
-  const interviewApps = appCount("interview");
-  const passedApps    = appCount("passed");
-  const acceptedApps  = appCount("accepted");
-  const failedApps    = appCount("failed", "absent", "declined");
-  const withdrawnApps = appCount("withdrawn", "withdrawn_requested");
-
-  // ── Monthly applications (last 6 months) ───────────────
-  const monthlyData = (() => {
-    const now    = new Date();
-    const months = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-      return {
-        month: d.toLocaleString("en-MY", { month: "short" }),
-        year:  d.getFullYear(),
-        mon:   d.getMonth(),
-        applications: 0,
-        accepted: 0,
-      };
-    });
-    applications.forEach((a) => {
-      const d   = new Date(a.applied_date);
-      const idx = months.findIndex((m) => m.year === d.getFullYear() && m.mon === d.getMonth());
-      if (idx !== -1) {
-        months[idx].applications++;
-        if (a.status?.toLowerCase() === "accepted") months[idx].accepted++;
-      }
-    });
-    return months.map(({ month, applications, accepted }) => ({ month, applications, accepted }));
-  })();
-
-  // ── Vacancy status pie data ────────────────────────────
-  const vacPieData   = [
+  // ── Pie chart data ─────────────────────────────────────
+  const vacPieData = [
     { name: "Open",   value: openVacancies   },
     { name: "Closed", value: closedVacancies },
   ];
   const VAC_COLORS = ["#10b981", "#ef4444"];
 
-  // ── Application status pie data ────────────────────────
   const appPieData = [
     { name: "Pending",   value: pendingApps   },
     { name: "Interview", value: interviewApps },
     { name: "Passed",    value: passedApps    },
     { name: "Accepted",  value: acceptedApps  },
     { name: "Failed",    value: failedApps    },
+    { name: "Withdrawn", value: withdrawnApps },
+    { name: "Terminated", value: terminatedApps },
   ];
-  const APP_COLORS = ["#f59e0b", "#6d28d9", "#0ea5e9", "#10b981", "#ef4444"];
+  const APP_COLORS = ["#f59e0b", "#6d28d9", "#0ea5e9", "#10b981", "#ef4444", "#ff7434", "#f71d00"];
 
-  // ── Distribution rows ──────────────────────────────────
-  const distRows = [
-    { label: "Pending",   count: pendingApps,   total: totalApplicants, color: "#f59e0b" },
-    { label: "Interview", count: interviewApps, total: totalApplicants, color: "#6d28d9" },
-    { label: "Passed",    count: passedApps,    total: totalApplicants, color: "#0ea5e9" },
-    { label: "Accepted",  count: acceptedApps,  total: totalApplicants, color: "#10b981" },
-    { label: "Failed",    count: failedApps,    total: totalApplicants, color: "#ef4444" },
-  ];
-  const safeTotal = totalApplicants || 1;
+  // ── Greeting ───────────────────────────────────────────
+  const now = new Date();
+  const greeting = () => {
+    const h = now.getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  };
 
   const iconPaths = {
-    vacancy:    "M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9zM3 9l2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9M12 3v6",
-    open:       "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 0 0 1.946-.806 3.42 3.42 0 0 1 4.438 0 3.42 3.42 0 0 0 1.946.806 3.42 3.42 0 0 1 3.138 3.138 3.42 3.42 0 0 0 .806 1.946 3.42 3.42 0 0 1 0 4.438 3.42 3.42 0 0 0-.806 1.946 3.42 3.42 0 0 1-3.138 3.138 3.42 3.42 0 0 0-1.946.806 3.42 3.42 0 0 1-4.438 0 3.42 3.42 0 0 0-1.946-.806 3.42 3.42 0 0 1-3.138-3.138 3.42 3.42 0 0 0-.806-1.946 3.42 3.42 0 0 1 0-4.438 3.42 3.42 0 0 0 .806-1.946 3.42 3.42 0 0 1 3.138-3.138z",
-    applicant:  "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
-    accepted:   "M22 10v6M2 10l10-5 10 5-10 5zM6 12v5c3 3 9 3 12 0v-5",
+    vacancy:   "M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9zM3 9l2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9M12 3v6",
+    open:      "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 0 0 1.946-.806 3.42 3.42 0 0 1 4.438 0 3.42 3.42 0 0 0 1.946.806 3.42 3.42 0 0 1 3.138 3.138 3.42 3.42 0 0 0 .806 1.946 3.42 3.42 0 0 1 0 4.438 3.42 3.42 0 0 0-.806 1.946 3.42 3.42 0 0 1-3.138 3.138 3.42 3.42 0 0 0-1.946.806 3.42 3.42 0 0 1-4.438 0 3.42 3.42 0 0 0-1.946-.806 3.42 3.42 0 0 1-3.138-3.138 3.42 3.42 0 0 0-.806-1.946 3.42 3.42 0 0 1 0-4.438 3.42 3.42 0 0 0 .806-1.946 3.42 3.42 0 0 1 3.138-3.138z",
+    applicant: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+    accepted:  "M22 10v6M2 10l10-5 10 5-10 5zM6 12v5c3 3 9 3 12 0v-5",
   };
 
   return (
     <PartnerLayout title="Dashboard">
 
-      {/* ── Welcome banner ──────────────────────────────── */}
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .dash-card { animation: fadeUp 0.35s ease both; }
+        .dash-card:nth-child(1) { animation-delay: 0.05s; }
+        .dash-card:nth-child(2) { animation-delay: 0.10s; }
+        .dash-card:nth-child(3) { animation-delay: 0.15s; }
+        .dash-card:nth-child(4) { animation-delay: 0.20s; }
+        .slot-row:hover { background: #f8fafc !important; }
+        .filter-select:focus { border-color: #1b3a6b; }
+      `}</style>
+
+      {/* ── Welcome banner ────────────────────────────────── */}
       <div style={{
-        background: "#1b3a6b",
-        borderRadius: "5px", padding: "28px 32px", marginBottom: "28px",
+        background: "linear-gradient(120deg, #1b3a6b 60%, #2563eb)",
+        borderRadius: 2, padding: "28px 32px", marginBottom: 20,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexWrap: "wrap", gap: 16,
+        boxShadow: "0 4px 20px rgba(27,58,107,0.2)",
+        position: "relative", overflow: "hidden",
       }}>
-        <h1 style={{ color: "white", fontSize: "22px", fontWeight: "700", margin: 0 }}>
-          Welcome back, {userName}
-        </h1>
+        <div style={{ position: "absolute", right: -40, top: -40, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+        <div style={{ position: "absolute", right: 60, bottom: -60, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+        <div style={{ position: "relative" }}>
+          <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            {greeting()}
+          </p>
+          <h1 style={{ color: "#fff", fontSize: 24, fontWeight: 800, margin: "0 0 6px", letterSpacing: "-0.02em" }}>
+            {userName}
+          </h1>
+          <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
+            {pendingApps > 0
+              ? `${pendingApps} application${pendingApps !== 1 ? "s" : ""} pending review.`
+              : openVacancies > 0
+              ? `${openVacancies} open vacanc${openVacancies !== 1 ? "ies" : "y"} accepting applications.`
+              : "All applications are up to date."}
+          </p>
+        </div>
+        <div style={{ position: "relative", display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {[
+            { label: "Acceptance Rate",  value: `${acceptancePct}%`, color: "#10b981" },
+            { label: "Total Applicants", value: totalApplicants,     color: "#fff"    },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{
+              background: "rgba(255,255,255,0.1)", backdropFilter: "blur(4px)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 2, padding: "10px 18px", textAlign: "center",
+            }}>
+              <p style={{ margin: "0 0 2px", fontSize: 11, color: "rgba(255,255,255,0.65)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
+              <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color, lineHeight: 1 }}>{value}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* ── Stat cards ──────────────────────────────────── */}
-      <div className="stat-cards-grid">
-        <StatCard
-          label="Total Vacancies"
-          value={totalVacancies}
-          sub={`${openVacancies} open · ${closedVacancies} closed`}
-          color="#1b3a6b"
-          icon={iconPaths.vacancy}
-        />
-        <StatCard
-          label="Open Vacancies"
-          value={openVacancies}
-          sub="Currently accepting applications"
-          color="#10b981"
-          icon={iconPaths.open}
-        />
-        <StatCard
-          label="Total Applicants"
-          value={totalApplicants}
-          sub={`${pendingApps} pending review`}
-          color="#6366f1"
-          icon={iconPaths.applicant}
-        />
-        <StatCard
-          label="Active Interns"
-          value={acceptedApps}
-          sub={`${passedApps} offer${passedApps !== 1 ? "s" : ""} awaiting response`}
-          color="#0ea5e9"
-          icon={iconPaths.accepted}
-        />
+      {/* ── Analytics toolbar — filters ───────────────────── */}
+      <div style={{
+        background: "#fff", border: "1px solid #dce6f0", borderRadius: 2,
+        padding: "14px 20px", marginBottom: 20,
+        display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+      }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.07em", flexShrink: 0 }}>
+          Filters
+        </span>
+
+        {/* Period dropdown */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <label style={{ fontSize: 11, color: "#64748b", fontWeight: 600, whiteSpace: "nowrap" }}>Period:</label>
+          <select
+            className="filter-select"
+            value={monthRange}
+            onChange={(e) => setMonthRange(Number(e.target.value))}
+            style={selectStyle}
+          >
+            <option value={3}>Last 3 months</option>
+            <option value={6}>Last 6 months</option>
+            <option value={12}>Last 12 months</option>
+          </select>
+        </div>
+
+        {/* Vacancy status dropdown */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <label style={{ fontSize: 11, color: "#64748b", fontWeight: 600, whiteSpace: "nowrap" }}>Vacancies:</label>
+          <select
+            className="filter-select"
+            value={vacancyFilter}
+            onChange={(e) => setVacancyFilter(e.target.value)}
+            style={selectStyle}
+          >
+            <option value="All">All</option>
+            <option value="Open">Open</option>
+            <option value="Closed">Closed</option>
+          </select>
+        </div>
+
+        {/* Reset button — only shown when filters are active */}
+        {(vacancyFilter !== "All" || monthRange !== 6) && (
+          <button
+            onClick={() => { setVacancyFilter("All"); setMonthRange(6); }}
+            style={{
+              marginLeft: "auto", padding: "5px 14px", borderRadius: 2,
+              border: "1px solid #fecaca", background: "#fff5f5",
+              color: "#dc2626", fontSize: 12, fontWeight: 600, cursor: "pointer",
+            }}
+          >
+            ✕ Reset
+          </button>
+        )}
       </div>
 
-      {/* ── Secondary stat row ──────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "14px", marginBottom: "24px" }}>
-        {[
-          {
-            label: "Acceptance rate",
-            value: totalApplicants > 0
-              ? `${Math.round((acceptedApps / totalApplicants) * 100)}%`
-              : "—",
-            color: "#10b981",
-          },
-          { label: "Pending review",  value: pendingApps,   color: "#f59e0b" },
-          { label: "In interview",    value: interviewApps, color: "#6d28d9" },
-          { label: "Withdrawn",       value: withdrawnApps, color: "#ef4444" },
-        ].map((c) => (
-          <div key={c.label} style={{
-            background: "white", borderRadius: "12px", padding: "16px 18px",
-            border: "1px solid #e2e8f0", borderTop: `3px solid ${c.color}`,
-          }}>
-            <p style={{ fontSize: "11.5px", color: "#94a3b8", marginBottom: "4px", fontWeight: "500" }}>{c.label}</p>
-            <p style={{ fontSize: "24px", fontWeight: "800", color: c.color, letterSpacing: "-0.5px", margin: 0 }}>{c.value}</p>
+      {/* ── Stat cards ────────────────────────────────────── */}
+      <div
+        className="dash-card"
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14, marginBottom: 28 }}
+      >
+        <StatCard label="Total Vacancies"  value={totalVacancies}  accent="#1b3a6b" sublabel={`${openVacancies} open · ${closedVacancies} closed`}
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b3a6b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d={iconPaths.vacancy}/></svg>} />
+        <StatCard label="Open Vacancies"   value={openVacancies}   accent="#10b981" sublabel="Currently accepting"
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d={iconPaths.open}/></svg>} />
+        <StatCard label="Total Applicants" value={totalApplicants} accent="#6366f1" sublabel={`${pendingApps} pending review`}
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d={iconPaths.applicant}/></svg>} />
+        <StatCard label="Active Interns"   value={acceptedApps}    accent="#0ea5e9" sublabel={`${passedApps} offer${passedApps !== 1 ? "s" : ""} awaiting response`}
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d={iconPaths.accepted}/></svg>} />
+      </div>
+
+      {/* ── Two-column: Acceptance progress + Vacancy status ─ */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20, marginBottom: 20 }}>
+
+        {/* Acceptance Progress ring */}
+        <div className="dash-card" style={{ background: "#fff", border: "1px solid #dce6f0", borderRadius: 2, padding: "20px 22px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+          <p style={{ margin: "0 0 16px", fontSize: 12, fontWeight: 700, color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+            Acceptance Progress
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <ProgressRing
+                pct={totalApplicants > 0 ? acceptedApps / totalApplicants : 0}
+                color={acceptancePct >= 50 ? "#10b981" : acceptancePct >= 25 ? "#f59e0b" : "#2563eb"}
+                size={72} stroke={6}
+              />
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: 15, fontWeight: 800, color: "#1b3a6b" }}>{acceptancePct}%</span>
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: "0 0 6px", fontSize: 13, color: "#475569" }}>
+                <strong style={{ color: "#1b3a6b" }}>{acceptedApps}</strong> of <strong style={{ color: "#1b3a6b" }}>{totalApplicants}</strong> accepted
+              </p>
+              <div style={{ height: 6, background: "#e2e8f0", borderRadius: 3, overflow: "hidden" }}>
+                <div style={{
+                  height: "100%", borderRadius: 3,
+                  background: acceptancePct >= 50 ? "#10b981" : acceptancePct >= 25 ? "#f59e0b" : "#2563eb",
+                  width: `${acceptancePct}%`, transition: "width 0.8s ease",
+                }} />
+              </div>
+              <p style={{ margin: "6px 0 0", fontSize: 11, color: "#94a3b8" }}>
+                {passedApps > 0 ? `${passedApps} offer${passedApps !== 1 ? "s" : ""} awaiting student response` : "No pending offers"}
+              </p>
+            </div>
           </div>
-        ))}
+        </div>
+
+        {/* Vacancy status donut */}
+        <div className="dash-card" style={{ background: "#fff", border: "1px solid #dce6f0", borderRadius: 2, padding: "20px 22px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)"}}>
+          <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 700, color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+            Vacancy Status
+          </p>
+          <p style={{ margin: "0 0 12px", fontSize: 11, color: "#94a3b8" }}>Open vs closed breakdown</p>
+          <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                width: "100%",
+              }}>
+            <div style={{ width: 180 }}>
+              <ResponsiveContainer width={110} height={110}>
+                <PieChart>
+                  <Pie data={vacPieData} cx="50%" cy="50%" innerRadius={30} outerRadius={50} paddingAngle={3} dataKey="value">
+                    {vacPieData.map((_, i) => <Cell key={i} fill={VAC_COLORS[i]} stroke="none" />)}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <PieLegend data={vacPieData} colors={VAC_COLORS} />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* ── Charts row ──────────────────────────────────── */}
-      <div className="charts-grid">
+      {/* ── Charts row ────────────────────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20, marginBottom: 20 }}>
 
         {/* Bar chart: monthly applications */}
-        <div className="chart-card">
-          <p className="chart-card-title">Monthly Applications</p>
-          <p className="chart-card-subtitle">Applications received and accepted over the past 6 months</p>
-          <ResponsiveContainer width="100%" height={220}>
+        <div className="dash-card" style={{ background: "#fff", border: "1px solid #dce6f0", borderRadius: 2, padding: "20px 22px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+          <p style={{ margin: "0 0 2px", fontSize: 12, fontWeight: 700, color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+            Monthly Applications
+          </p>
+          <p style={{ margin: "0 0 16px", fontSize: 11, color: "#94a3b8" }}>Applications received and accepted (last {monthRange} months)</p>
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart data={monthlyData} barGap={3} barCategoryGap="30%">
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} allowDecimals={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="applications" name="Applications" fill="#6366f1" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="accepted"     name="Accepted"     fill="#10b981" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="applications" name="Applications" fill="#6366f1" radius={[4,4,0,0]} />
+              <Bar dataKey="accepted"     name="Accepted"     fill="#10b981" radius={[4,4,0,0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Pie chart: application status */}
-        <div className="chart-card">
-          <p className="chart-card-title">Applicant Status</p>
-          <p className="chart-card-subtitle">Distribution by review status</p>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <ResponsiveContainer width={130} height={130}>
-              <PieChart>
-                <Pie data={appPieData} cx="50%" cy="50%" innerRadius={38} outerRadius={60} paddingAngle={3} dataKey="value">
-                  {appPieData.map((_, i) => (
-                    <Cell key={i} fill={APP_COLORS[i]} stroke="none" />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-            <PieLegend data={appPieData} colors={APP_COLORS} />
+        <div className="dash-card" style={{ background: "#fff", border: "1px solid #dce6f0", borderRadius: 2, padding: "20px 22px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+          <p style={{ margin: "0 0 2px", fontSize: 12, fontWeight: 700, color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+            Applicant Status
+          </p>
+          <p style={{ margin: "0 0 12px", fontSize: 11, color: "#94a3b8" }}>Distribution by review status</p>
+          <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                width: "100%",
+              }}>
+            <div style={{ width: 180 }}>
+              <ResponsiveContainer width={120} height={120}>
+                <PieChart>
+                  <Pie data={appPieData} cx="50%" cy="50%" innerRadius={34} outerRadius={56} paddingAngle={3} dataKey="value">
+                    {appPieData.map((_, i) => <Cell key={i} fill={APP_COLORS[i]} stroke="none" />)}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <PieLegend data={appPieData} colors={APP_COLORS} />   
+            </div>
           </div>
         </div>
-
       </div>
 
       {/* ── Line chart: vacancy postings ─────────────────── */}
-      <div className="chart-card" style={{ marginBottom: "24px" }}>
-        <p className="chart-card-title">Vacancy Postings Over Time</p>
-        <p className="chart-card-subtitle">Number of vacancies posted per month</p>
-        <ResponsiveContainer width="100%" height={180}>
-          <LineChart data={(() => {
-            const now    = new Date();
-            const months = Array.from({ length: 6 }, (_, i) => {
-              const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-              return { month: d.toLocaleString("en-MY", { month: "short" }), year: d.getFullYear(), mon: d.getMonth(), vacancies: 0 };
-            });
-            vacancies.forEach((v) => {
-              const d   = new Date(v.start_date);
-              const idx = months.findIndex((m) => m.year === d.getFullYear() && m.mon === d.getMonth());
-              if (idx !== -1) months[idx].vacancies++;
-            });
-            return months.map(({ month, vacancies }) => ({ month, vacancies }));
-          })()}>
+      <div className="dash-card" style={{ background: "#fff", border: "1px solid #dce6f0", borderRadius: 2, padding: "20px 22px", marginBottom: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+        <p style={{ margin: "0 0 2px", fontSize: 12, fontWeight: 700, color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+          Vacancy Postings Over Time
+        </p>
+        <p style={{ margin: "0 0 16px", fontSize: 11, color: "#94a3b8" }}>
+          Vacancies posted per month
+          {vacancyFilter !== "All" ? ` · filtered: ${vacancyFilter}` : ""}
+          {` · last ${monthRange} months`}
+        </p>
+        <ResponsiveContainer width="100%" height={160}>
+          <LineChart data={vacPostingsData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} allowDecimals={false} />
+            <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} allowDecimals={false} />
             <Tooltip content={<CustomTooltip />} />
             <Line type="monotone" dataKey="vacancies" name="Vacancies" stroke="#1b3a6b" strokeWidth={2.5}
               dot={{ r: 4, fill: "#1b3a6b", stroke: "white", strokeWidth: 2 }} activeDot={{ r: 6 }} />
           </LineChart>
         </ResponsiveContainer>
-      </div>
-
-      {/* ── Progress bars: applicant distribution ────────── */}
-      <div className="chart-card">
-        <p className="chart-card-title" style={{ marginBottom: "16px" }}>Applicant Stage Distribution</p>
-        {distRows.map(({ label, count, total, color }) => (
-          <div key={label} style={{ marginBottom: "14px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-              <span style={{ fontSize: "12.5px", color: "#475569", fontWeight: "500" }}>{label}</span>
-              <span style={{ fontSize: "12.5px", color: "#94a3b8" }}>
-                {count} <span style={{ color: "#cbd5e1" }}>/ {total}</span>
-              </span>
-            </div>
-            <div className="progress-bar-wrap">
-              <div
-                className="progress-bar-fill"
-                style={{ width: `${Math.round((count / safeTotal) * 100)}%`, background: color }}
-              />
-            </div>
-          </div>
-        ))}
       </div>
 
     </PartnerLayout>

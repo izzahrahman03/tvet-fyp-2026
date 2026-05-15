@@ -84,7 +84,7 @@ function AppliedBadge({ status }) {
       background: s.bg, color: s.color,
       fontSize: "11.5px", fontWeight: "700", letterSpacing: "0.02em",
     }}>
-      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: s.dot }} />
+      <span style={{ width: "6px", height: "6px", borderRadius: "2px", background: s.dot }} />
       {s.label}
     </span>
   );

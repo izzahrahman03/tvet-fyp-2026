@@ -19,10 +19,15 @@ exports.listUsers = async (req, res) => {
         SELECT
           u.user_id AS id, u.name, u.email, u.active_status AS status, u.created_at AS date,
           a.application_id,
-          a.status        AS application_status,
+          a.application_status,
           a.updated_at    AS application_updated_at
         FROM users u
-        LEFT JOIN applications a ON a.user_id = u.user_id
+        LEFT JOIN applications a
+          ON a.application_id = (
+            SELECT application_id FROM applications
+            WHERE user_id = u.user_id
+            ORDER BY created_at DESC LIMIT 1
+          )
         WHERE u.role = 'applicant'
       `;
       const params = [];
@@ -37,14 +42,11 @@ exports.listUsers = async (req, res) => {
     }
 
     // ── Other roles ──────────────────────────────────────────
-    if (['student', 'industry_partner', 'industry_supervisor', 'manager'].includes(role)) {
+    if (['student', 'industry_partner', 'industry_supervisor', 'manager', 'interviewer'].includes(role)) {
       let sql;
       const params = [];
 
       if (role === 'industry_partner') {
-        // users.name / users.email = contact person
-        // industry_partners.company_name = company
-        // industry_partners.contact_person_phone = phone
         sql = `
           SELECT
             u.user_id AS id,
@@ -68,7 +70,6 @@ exports.listUsers = async (req, res) => {
         sql += ' ORDER BY u.created_at DESC';
 
       } else if (role === 'industry_supervisor') {
-        // isup no longer has a `company` column — inherit from industry_partners via partner_id
         sql = `
           SELECT
             u.user_id AS id,
@@ -103,7 +104,12 @@ exports.listUsers = async (req, res) => {
             a.phone,
             i.intake_name
           FROM users u
-          LEFT JOIN students     s ON s.user_id        = u.user_id
+          LEFT JOIN students s
+            ON s.student_id = (
+              SELECT student_id FROM students
+              WHERE user_id = u.user_id
+              ORDER BY created_at DESC LIMIT 1
+            )
           LEFT JOIN applications a ON a.application_id = s.application_id
           LEFT JOIN intakes      i ON i.intake_id      = s.intake_id
           WHERE u.role = ?
@@ -133,8 +139,27 @@ exports.listUsers = async (req, res) => {
           params.push(`%${search}%`, `%${search}%`);
         }
         sql += ' ORDER BY u.created_at DESC';
-      }
-      else {
+
+      } else if (role === 'interviewer') {
+        sql = `
+          SELECT
+            u.user_id    AS id,
+            u.name,
+            u.email,
+            u.active_status AS status,
+            u.created_at    AS date,
+            m.phone
+          FROM users u
+          LEFT JOIN managers m ON m.user_id = u.user_id
+          WHERE u.role = 'interviewer'
+        `;
+        if (search) {
+          sql += ` AND (u.name LIKE ? OR u.email LIKE ?)`;
+          params.push(`%${search}%`, `%${search}%`);
+        }
+        sql += ' ORDER BY u.created_at DESC';
+
+      } else {
         sql = `SELECT user_id AS id, name, email, active_status AS status, created_at AS date FROM users WHERE role = ?`;
         params.push(role);
         if (search) {
@@ -184,20 +209,19 @@ exports.updateUser = async (req, res) => {
 
     const userFields = Object.keys(updates).filter(k => allowedUserFields.includes(k));
 
-    // Determine whether there are any role-specific table updates
     const hasPartnerUpdates    = role === 'industry_partner'    &&
       (updates.phone !== undefined || updates.company_name !== undefined ||
        updates.industry_sector !== undefined || updates.location !== undefined);
     const hasSupervisorUpdates = role === 'industry_supervisor' &&
       (updates.phone !== undefined || updates.position !== undefined || updates.partner_id !== undefined);
     const hasManagerUpdates    = role === 'manager' && updates.phone !== undefined;
+    const hasInterviewerUpdates = role === 'interviewer' && updates.phone !== undefined;
 
     if (userFields.length === 0 && !hasPartnerUpdates && !hasSupervisorUpdates && !hasManagerUpdates) {
       await conn.rollback();
       return res.status(400).json({ message: 'No valid fields to update.' });
     }
 
-    // ── Update users table ─────────────────────────────────
     if (userFields.length > 0) {
       const setClause = userFields.map(f => `${f} = ?`).join(', ');
       const values    = [...userFields.map(f => updates[f]), id];
@@ -209,7 +233,6 @@ exports.updateUser = async (req, res) => {
       }
     }
 
-    // ── Update role-specific table ─────────────────────────
     if (role === 'industry_partner') {
       const partnerFields = {};
       if (updates.phone            !== undefined) partnerFields.contact_person_phone = updates.phone;
@@ -238,7 +261,6 @@ exports.updateUser = async (req, res) => {
 
     await conn.commit();
 
-    // ── Return updated row (role-aware) ────────────────────
     let returnRow;
 
     if (role === 'industry_partner') {
@@ -281,7 +303,23 @@ exports.updateUser = async (req, res) => {
       returnRow = rows[0];
 
     } else if (role === 'manager') {
-      // Also update managers.phone if provided
+      if (updates.phone !== undefined) {
+        await conn.query(
+          `UPDATE managers SET phone = ? WHERE user_id = ?`,
+          [updates.phone || null, id]
+        );
+      }
+      const [rows] = await db.query(
+        `SELECT u.user_id AS id, u.name, u.email, u.active_status AS status,
+                u.created_at AS date, m.phone
+         FROM users u
+         LEFT JOIN managers m ON m.user_id = u.user_id
+         WHERE u.user_id = ?`,
+        [id]
+      );
+      returnRow = rows[0];
+
+    } else if (role === 'interviewer') {
       if (updates.phone !== undefined) {
         await conn.query(
           `UPDATE managers SET phone = ? WHERE user_id = ?`,
@@ -389,6 +427,11 @@ exports.importUsers = async (req, res) => {
             `INSERT INTO managers (user_id, phone) VALUES (?, ?)`,
             [userId, u.phone || null]
            );
+        } else if (role === 'interviewer') {
+          await db.query(
+            `INSERT INTO managers (user_id, phone) VALUES (?, ?)`,
+            [userId, u.phone || null]
+           );
         }
 
         sendBulkActivationEmail(u.email, u.name, tempPassword, token, role);
@@ -432,7 +475,7 @@ exports.getStats = async (req, res) => {
     });
 
     const [statusCounts] = await db.query(
-      `SELECT status, COUNT(*) AS count FROM applications GROUP BY status`
+      `SELECT application_status AS status, COUNT(*) AS count FROM applications GROUP BY application_status`
     );
 
     const applicantByStatus = {
@@ -483,7 +526,7 @@ exports.getStats = async (req, res) => {
     const [slotStats] = await db.query(
       `SELECT COUNT(*) AS total_slots,
               SUM(capacity) AS total_capacity,
-              (SELECT COUNT(*) FROM applications WHERE interview_slot_id IS NOT NULL AND status NOT IN ('draft','declined','withdraw')) AS total_booked
+              (SELECT COUNT(*) FROM applications WHERE interview_slot_id IS NOT NULL AND application_status NOT IN ('draft','declined','withdraw')) AS total_booked
        FROM interview_slots`
     );
 
@@ -523,9 +566,9 @@ exports.addUserByAdmin = async (req, res) => {
       return res.status(400).json({ message: 'Name, Email, and Role are required.' });
     }
 
-    if (!['industry_partner', 'industry_supervisor', 'manager'].includes(role)) {
+    if (!['industry_partner', 'industry_supervisor', 'manager', 'interviewer'].includes(role)) {
       await conn.rollback();
-      return res.status(400).json({ message: 'Role must be industry_partner, industry_supervisor, or manager.' });
+      return res.status(400).json({ message: 'Role must be industry_partner, industry_supervisor, manager, or interviewer.' });
     }
 
     const [existing] = await conn.query('SELECT user_id FROM users WHERE email = ?', [email]);
@@ -569,6 +612,13 @@ exports.addUserByAdmin = async (req, res) => {
       );
     }
 
+    if (role === 'interviewer') {
+      await conn.query(
+        `INSERT INTO managers (user_id, phone) VALUES (?, ?)`,
+        [userId, phone || null]
+      );
+    }
+
     await conn.commit();
     sendBulkActivationEmail(email, name, tempPassword, activationToken, role);
 
@@ -592,7 +642,7 @@ exports.addUserByAdmin = async (req, res) => {
           partner_id: partner_id || null,
           company:    '',
         }),
-        ...(role === 'manager' && {
+        ...(role === 'manager' || role === 'interviewer' && {
           phone: phone || null,
         }),
         date: new Date().toISOString(),
@@ -645,12 +695,27 @@ exports.listPartners = async (req, res) => {
 };
 
 // ══════════════════════════════════════════════════════════
-// GET /api/manager/stats
+// GET /api/admin/interviewers
 // ══════════════════════════════════════════════════════════
+exports.listInterviewers = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT u.user_id AS id, u.name, u.email
+       FROM users u
+       WHERE u.role = 'interviewer' AND u.active_status = 'active'
+       ORDER BY u.name ASC`
+    );
+    return res.json({ interviewers: rows });
+  } catch (err) {
+    console.error('listInterviewers error:', err);
+    return res.status(500).json({ message: 'Something went wrong. Please try again.' });
+  }
+};
+
 exports.getManagerStats = async (req, res) => {
   try {
     const [statusCounts] = await db.query(
-      `SELECT status, COUNT(*) AS count FROM applications GROUP BY status`
+      `SELECT application_status AS status, COUNT(*) AS count FROM applications GROUP BY application_status`
     );
 
     const applicationByStatus = {

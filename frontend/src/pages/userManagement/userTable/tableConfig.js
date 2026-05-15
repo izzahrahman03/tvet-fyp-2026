@@ -10,7 +10,7 @@ export const COLUMNS = {
   // vacancy: company_name is populated via JOIN on partner_id
   vacancy:             ["position_name", "company_name", "capacity", "start_date", "end_date", "status"],
   manager:             ["name", "email", "phone", "status", "date"],
-  application:         ["name", "email", "phone", "status", "created_at"],
+  application:         ["name", "email", "phone", "application_status", "applicant_response", "created_at", "total_score"],
 };
 
 export const COL_LABEL = {
@@ -31,18 +31,21 @@ export const COL_LABEL = {
   state:                "State",
   country:              "Country",
   status:               "Status",
+  application_status:   "Application Status",
+  applicant_response:   "Applicant Response",
   updated_at:           "Last Updated",
   industry_sector:      "Industry Sector",
   location:             "Location",
   company:              "Company",
   position:             "Position",
   date:                 "Joined",
-  created_at:          "Applied On",
+  created_at:           "Applied On",
   matric_number:        "Matric Number",
   intake_name:          "Intake",
   interview_datetime:   "Interview Date & Time",
   venue:                "Venue",
   interviewer_name:     "Interviewer",
+  total_score:          "Total Score",
   remarks:              "Remarks",
   hear_about_us:        "How They Heard About Us",
   // ── Vacancy ─────────────────────────────────────────────
@@ -52,6 +55,27 @@ export const COL_LABEL = {
   responsibilities:     "Responsibilities",
   start_date:           "Start Date",
   end_date:             "End Date",
+  // ── Internship ─────────────────────────────────────────────
+  student_name:             "Student Name",
+  student_email:            "Student Email",
+  matric_number:            "Matric Number",
+  company_name:             "Company",
+  position_name:            "Position",
+  supervisor_name:          "Supervisor",
+  total_score:              "Total Score",
+  recommend_pass:           "Recommend Pass",
+  recommend_excellence:     "Certificate of Excellence",
+  award_best_intern:        "Best Intern Award",
+  evaluated_at:             "Evaluated On",
+  intern_status:            "Intern Status",
+  intern_remarks:           "Termination Reason",
+  intern_status_updated_at: "Terminated On",
+  applied_date:             "Applied Date",
+  placement_status:  "Placement Status",
+  placed_position:   "Placed Position",
+  placed_company:    "Placed Company",
+  placed_supervisor: "Placed Supervisor",
+  total_applications: "Total Applications",
 };
 
 // ── "How did you hear about us" display labels ────────────

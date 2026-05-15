@@ -16,9 +16,10 @@ const CheckIcon = () => (
 );
 
 export default function AddUserModal({ type, onClose, onSave }) {
-  const isPartner    = type === "industry_partner";
-  const isSupervisor = type === "industry_supervisor";
-  const isManager    = type === "manager";
+  const isPartner     = type === "industry_partner";
+  const isSupervisor  = type === "industry_supervisor";
+  const isManager     = type === "manager";
+  const isInterviewer = type === "interviewer";
 
   const [form, setForm] = useState({
     name:            "",
@@ -82,6 +83,7 @@ export default function AddUserModal({ type, onClose, onSave }) {
     industry_partner:    "Industry Partner",
     industry_supervisor: "Industry Supervisor",
     manager:              "Manager",
+    interviewer:         "Interviewer",
   }[type] || "User";
 
   const partnerFields = textFields.filter(f => ["company_name", "industry_sector", "location"].includes(f.key));

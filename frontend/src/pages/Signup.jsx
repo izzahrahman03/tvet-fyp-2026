@@ -96,7 +96,7 @@ const Signup = () => {
         <div className="auth-side-content">
           <div className="auth-side-logo" onClick={() => navigate("home")}>
             <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#60A5FA" }} />
-            K-Youth Development Programme
+            Vitrox Academy
           </div>
 
           <h2 className="auth-side-title anim-fade-up">

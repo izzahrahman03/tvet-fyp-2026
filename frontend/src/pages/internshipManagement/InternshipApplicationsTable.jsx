@@ -15,6 +15,12 @@ const getToken = () => localStorage.getItem("token");
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
+const LOCKED_APP_STATUSES = ["passed", "failed", "rejected"];
+const canEdit = (row) =>
+  !LOCKED_APP_STATUSES.includes(row?.application_status?.toLowerCase()) &&
+  (!row?.internship_applicant_response || row?.internship_applicant_response === "none");
+
+
 // ── Update Status Modal ───────────────────────────────────
 function UpdateStatusModal({ row, onClose, onSave }) {
   const [status,            setStatus]            = useState("");
@@ -39,7 +45,7 @@ function UpdateStatusModal({ row, onClose, onSave }) {
       });
       onSave({
         ...row,
-        status,
+        application_status: status,
         interview_datetime: isInterview ? interviewDatetime : row.interview_datetime,
         interview_location: isInterview ? interviewLocation.trim() : row.interview_location,
       });
@@ -74,16 +80,21 @@ function UpdateStatusModal({ row, onClose, onSave }) {
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <span style={{ fontSize: "12.5px", color: "#64748b" }}>Current status:</span>
-            <StatusBadge status={row.status} />
+            <StatusBadge status={row.application_status} />
           </div>
 
           <div className="form-field">
             <label>New Status</label>
             <select className="form-input" value={status} onChange={(e) => { setStatus(e.target.value); setError(""); }}>
               <option value="" disabled>Select new status…</option>
-              <option value="interview">Interview — schedule an interview</option>
-              <option value="passed">Passed — offer the position</option>
-              <option value="failed">Failed — decline the application</option>
+              {row.application_status === "pending" && <>
+                <option value="interview">Interview — schedule an interview</option>
+                <option value="rejected">Rejected — not selected for interview</option>
+              </>}
+              {row.application_status === "interview" && <>
+                <option value="passed">Passed — offer the position</option>
+                <option value="failed">Failed — did not pass interview</option>
+              </>}
             </select>
           </div>
 
@@ -130,6 +141,7 @@ function UpdateStatusModal({ row, onClose, onSave }) {
     </div>
   );
 }
+
 
 // ── Approve Withdraw Confirm Modal ────────────────────────
 function ApproveWithdrawModal({ row, onClose, onApprove }) {
@@ -189,6 +201,7 @@ function ApproveWithdrawModal({ row, onClose, onApprove }) {
   );
 }
 
+
 // ── View Modal ────────────────────────────────────────────
 function ViewApplicationModal({ row, onClose }) {
   const handleDownload = async (type) => {
@@ -229,6 +242,7 @@ function ViewApplicationModal({ row, onClose }) {
           </button>
         </div>
         <div className="modal-form">
+
           <div style={{ paddingBottom: "8px", borderBottom: "1.5px solid #dce6f0" }}>
             <span style={{ fontSize: "10px", fontWeight: "800", color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.1em" }}>Applicant</span>
           </div>
@@ -247,7 +261,12 @@ function ViewApplicationModal({ row, onClose }) {
 
           <div className="form-field" style={{ margin: 0 }}>
             <label style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>Status</label>
-            <div style={{ marginTop: "6px" }}><StatusBadge status={row.status} /></div>
+            <div style={{ marginTop: "6px" }}>
+              <StatusBadge status={row.application_status} />
+              {row.internship_applicant_response && row.internship_applicant_response !== "none" && (
+                <span style={{ marginLeft: 8 }}><StatusBadge status={row.internship_applicant_response} /></span>
+              )}
+            </div>
           </div>
 
           <div style={{ paddingBottom: "8px", borderBottom: "1.5px solid #dce6f0", marginTop: "8px" }}>
@@ -267,6 +286,7 @@ function ViewApplicationModal({ row, onClose }) {
               </button>
             )}
           </div>
+
         </div>
         <div className="modal-footer">
           <button className="ut-btn-secondary" onClick={onClose}>Close</button>
@@ -276,28 +296,46 @@ function ViewApplicationModal({ row, onClose }) {
   );
 }
 
+
 // ── Main Table ────────────────────────────────────────────
-const COLUMNS   = ["student_name", "position_name", "status", "applied_date"];
-const COL_LABEL = { student_name: "Applicant", position_name: "Position", status: "Status", applied_date: "Applied Date" };
+const COLUMNS   = ["student_name", "position_name", "application_status", "internship_applicant_response", "applied_date"];
+const COL_LABEL = {
+  student_name:                  "Applicant",
+  position_name:                 "Position",
+  application_status:            "Status",
+  internship_applicant_response: "Response",
+  applied_date:                  "Applied Date",
+};
 
 export default function PartnerApplicationsTable() {
-  const [rows,           setRows]           = useState([]);
-  const [loading,        setLoading]        = useState(true);
-  const [search,         setSearch]         = useState("");
-  const [sortKey,        setSortKey]        = useState("applied_date");
-  const [sortDir,        setSortDir]        = useState("desc");
-  const [statusFilter,   setStatusFilter]   = useState("All");
-  const [viewRow,        setViewRow]        = useState(null);
-  const [editRow,        setEditRow]        = useState(null);
-  const [withdrawRow,    setWithdrawRow]    = useState(null);
-  const { toast, show }                     = useToast();
+  const [rows,         setRows]         = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [search,       setSearch]       = useState("");
+  const [sortKey,      setSortKey]      = useState("applied_date");
+  const [sortDir,      setSortDir]      = useState("desc");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [intakeFilter, setIntakeFilter] = useState("all");
+  const [intakes,      setIntakes]      = useState([]);
+  const [viewRow,      setViewRow]      = useState(null);
+  const [editRow,      setEditRow]      = useState(null);
+  const [withdrawRow,  setWithdrawRow]  = useState(null);
+
+  const { toast, show } = useToast();
 
   useEffect(() => {
     setLoading(true);
     fetchInternshipApplications()
-      .then(setRows)
+      .then((data) => setRows(data))
       .catch(() => show("Failed to load applications.", "error"))
       .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API}/intakes`, { headers: { Authorization: `Bearer ${getToken()}` } })
+      .then((r) => r.json())
+      .then((d) => setIntakes(d.intakes ?? []))
+      .catch(() => {});
   }, []);
 
   const handleSort = (key) => {
@@ -305,13 +343,14 @@ export default function PartnerApplicationsTable() {
     else { setSortKey(key); setSortDir("asc"); }
   };
 
-  const allStatuses = ["All", ...new Set(rows.map((r) => r.status).filter(Boolean))];
+  const allStatuses = ["All", ...new Set(rows.map((r) => r.application_status).filter(Boolean))];
 
   const filtered = rows
     .filter((r) => {
       const q = search.toLowerCase();
       return (
-        (statusFilter === "All" || r.status === statusFilter) &&
+        (statusFilter === "All" || r.application_status === statusFilter) &&
+        (intakeFilter === "all" || String(r.intake_id) === String(intakeFilter)) &&
         [r.student_name, r.student_email, r.position_name].some((v) => String(v ?? "").toLowerCase().includes(q))
       );
     })
@@ -323,29 +362,29 @@ export default function PartnerApplicationsTable() {
 
   const handleSaveStatus = (updated) => {
     setRows((p) => p.map((r) => r.id === updated.id ? updated : r));
-    show(`Status updated to "${updated.status}".`);
+    show(`Status updated to "${updated.application_status}".`);
   };
 
   const handleWithdrawApproved = (id) => {
-    setRows((p) => p.map((r) => r.id === id ? { ...r, status: "withdrawn" } : r));
+    setRows((p) => p.map((r) => r.id === id ? { ...r, internship_applicant_response: "withdrawn" } : r));
     show("Withdrawal approved.");
   };
 
   const SortIcon = ({ col }) => {
-    if (sortKey !== col) return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2"><path d="M3 6h18 M7 12h10 M10 18h4" /></svg>;
-    return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1a56db" strokeWidth="2.5"><path d={sortDir === "asc" ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} /></svg>;
+    if (sortKey !== col)
+      return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2"><path d="M3 6h18 M7 12h10 M10 18h4" /></svg>;
+    return (
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1a56db" strokeWidth="2.5">
+        <path d={sortDir === "asc" ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
+      </svg>
+    );
   };
-
-  // Statuses where the partner can still update
-  const canEdit = (status) => !["accepted", "declined", "withdrawn_requested", "withdrawn"].includes(status?.toLowerCase());
 
   return (
     <div>
-      {/* ── Toast ────────────────────────────────────────── */}
       {toast && (
         <div className={`ut-toast ${toast.kind}`}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d={toast.kind === "error" ? "M18 6L6 18M6 6l12 12" : "M20 6L9 17l-5-5"} />
           </svg>
           {toast.msg}
@@ -357,18 +396,45 @@ export default function PartnerApplicationsTable() {
       {withdrawRow && <ApproveWithdrawModal row={withdrawRow} onClose={() => setWithdrawRow(null)} onApprove={handleWithdrawApproved} />}
 
       <div className="table-wrapper">
-        <div className="table-toolbar">
-          <div className="ut-table-search-wrap">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-            </svg>
-            <input className="ut-table-search-input" placeholder="Search applicant, position…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        {/* ── Toolbar ── */}
+        <div className="table-toolbar" style={{ flexDirection: "column", alignItems: "stretch", gap: "8px" }}>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <label style={{ fontSize: "12.5px", fontWeight: "600", color: "#64748b", whiteSpace: "nowrap", width: "110px", flexShrink: 0 }}>
+              Filter by Intake
+            </label>
+            <select
+              className="ut-table-filter-select"
+              style={{ flex: 1 }}
+              value={intakeFilter}
+              onChange={(e) => setIntakeFilter(e.target.value)}
+            >
+              <option value="all">All Intakes</option>
+              {intakes.map((i) => (
+                <option key={i.intake_id} value={i.intake_id}>{i.intake_name}</option>
+              ))}
+            </select>
           </div>
-          <select className="ut-table-filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            {allStatuses.map((s) => (
-               <option key={s} value={s}>{s === "All" ? "All Statuses" : s.charAt(0).toUpperCase() + s.slice(1)}</option>
-            ))}
-          </select>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <label style={{ fontSize: "12.5px", fontWeight: "600", color: "#64748b", whiteSpace: "nowrap", width: "110px", flexShrink: 0 }}>
+              Search
+            </label>
+            <div className="ut-table-search-wrap" style={{ flex: 1 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+              </svg>
+              <input className="ut-table-search-input" placeholder="Search applicant, position…" value={search} onChange={(e) => setSearch(e.target.value)} />
+              {search && (
+                <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", lineHeight: 1, padding: 0 }}>×</button>
+              )}
+            </div>
+            <select className="ut-table-filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              {allStatuses.map((s) => (
+                <option key={s} value={s}>{s === "All" ? "All Statuses" : s.charAt(0).toUpperCase() + s.slice(1)}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <p className="table-count">{filtered.length} application{filtered.length !== 1 ? "s" : ""}</p>
@@ -380,7 +446,7 @@ export default function PartnerApplicationsTable() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th style={{ width: "48px", textAlign: "center", color: "#94a3b8", fontSize: "12px" }}>#</th>
+                  <th style={{ width: "40px", textAlign: "center", color: "#94a3b8", fontSize: "12px" }}>#</th>
                   {COLUMNS.map((col) => (
                     <th key={col} onClick={() => handleSort(col)}>
                       <span className="th-inner">{COL_LABEL[col]}<SortIcon col={col} /></span>
@@ -390,60 +456,78 @@ export default function PartnerApplicationsTable() {
                   <th>Actions</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={COLUMNS.length + 3}><div className="empty-state"><div className="empty-state-icon">📄</div><p className="empty-state-text">No applications found.</p></div></td></tr>
-                ) : filtered.map((row, idx) => (
-                  <tr key={row.id}>
-                    <td style={{ textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>{idx + 1}</td>
-
-                    {COLUMNS.map((col) => (
-                      <td key={col}>
-                        {col === "status" ? <StatusBadge status={row[col]} />
-                          : col === "student_name" ? (
-                            <div>
-                              <span className="cell-name">{row.student_name}</span>
-                              <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>{row.student_email}</p>
-                            </div>
-                          ) : col === "applied_date" ? <span className="cell-muted">{fmtDate(row[col])}</span>
-                          : <span>{row[col] ?? "—"}</span>
-                        }
-                      </td>
-                    ))}
-
-                    {/* Documents */}
-                    <td>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        {row.resume_path && <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "2px 8px", background: "#f0fdf4", color: "#15803d", borderRadius: "2px", fontSize: "11.5px", fontWeight: "600" }}>Resume</span>}
-                        {row.cover_letter_path && <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "2px 8px", background: "#f0f9ff", color: "#0369a1", borderRadius: "2px", fontSize: "11.5px", fontWeight: "600" }}>Cover Letter</span>}
-                        {!row.resume_path && !row.cover_letter_path && <span style={{ fontSize: "12px", color: "#94a3b8" }}>—</span>}
+                  <tr>
+                    <td colSpan={COLUMNS.length + 3}>
+                      <div className="empty-state">
+                        <div className="empty-state-icon">📄</div>
+                        <p className="empty-state-text">No applications found.</p>
                       </div>
                     </td>
+                  </tr>
+                ) : filtered.map((row, idx) => {
+                  const isLocked = !canEdit(row);
 
-                    {/* Actions */}
-                    <td>
-                      <div className="ut-action-btn-wrap">
-                        {/* View */}
-                        <button
-                          title="View"
-                          className="ut-action-btn ut-action-btn-detail"
-                          onClick={() => setViewRow(row)}
-                        >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                            stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                            style={{ flexShrink: 0, display: "block" }}>
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" fill="none" stroke="white" />
-                          </svg>
-                          View
-                        </button>
+                  return (
+                    <tr key={row.id}>
+                      <td style={{ textAlign: "center", color: "#94a3b8", fontSize: "13px" }}>{idx + 1}</td>
 
-                        {/* Update status — only for partner-actionable statuses */}
-                        {canEdit(row.status) && (
+                      {COLUMNS.map((col) => (
+                        <td key={col}>
+                          {col === "application_status" || col === "internship_applicant_response"
+                            ? <StatusBadge status={row[col]} />
+                            : col === "student_name" ? (
+                              <div>
+                                <span className="cell-name">{row.student_name}</span>
+                                <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>{row.student_email}</p>
+                              </div>
+                            ) : col === "applied_date"
+                            ? <span className="cell-muted">{fmtDate(row[col])}</span>
+                            : <span>{row[col] ?? "—"}</span>
+                          }
+                        </td>
+                      ))}
+
+                      {/* Documents */}
+                      <td>
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          {row.resume_path && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "2px 8px", background: "#f0fdf4", color: "#15803d", borderRadius: "2px", fontSize: "11.5px", fontWeight: "600" }}>Resume</span>
+                          )}
+                          {row.cover_letter_path && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "2px 8px", background: "#f0f9ff", color: "#0369a1", borderRadius: "2px", fontSize: "11.5px", fontWeight: "600" }}>Cover Letter</span>
+                          )}
+                          {!row.resume_path && !row.cover_letter_path && (
+                            <span style={{ fontSize: "12px", color: "#94a3b8" }}>—</span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Actions */}
+                      <td>
+                        <div className="ut-action-btn-wrap">
                           <button
-                            title="Update Status"
+                            title="View"
+                            className="ut-action-btn ut-action-btn-detail"
+                            onClick={() => setViewRow(row)}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                              stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                              style={{ flexShrink: 0, display: "block" }}>
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" fill="none" stroke="white" />
+                            </svg>
+                            View
+                          </button>
+
+                          <button
+                            title={isLocked ? "Cannot edit at this stage" : "Update Status"}
                             className="ut-action-btn ut-action-btn-edit"
-                            onClick={() => setEditRow(row)}
+                            onClick={() => !isLocked && setEditRow(row)}
+                            disabled={isLocked}
+                            style={{ opacity: isLocked ? 0.35 : 1, cursor: isLocked ? "not-allowed" : "pointer" }}
                           >
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
                               stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -453,27 +537,26 @@ export default function PartnerApplicationsTable() {
                             </svg>
                             Edit
                           </button>
-                        )}
 
-                        {/* Approve withdraw — only for withdraw_requested */}
-                        {row.status?.toLowerCase() === "withdrawn_requested" && (
-                          <button
-                            title="Approve Withdrawal"
-                            className="ut-action-btn ut-action-btn-approve"
-                            onClick={() => setWithdrawRow(row)}
-                          >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                              stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                              style={{ flexShrink: 0, display: "block" }}>
-                              <path d="M9 12l2 2 4-4 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-                            </svg>
-                            Approve
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {row.internship_applicant_response?.toLowerCase() === "withdrawn_requested" && (
+                            <button
+                              title="Approve Withdrawal"
+                              className="ut-action-btn ut-action-btn-approve"
+                              onClick={() => setWithdrawRow(row)}
+                            >
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                style={{ flexShrink: 0, display: "block" }}>
+                                <path d="M9 12l2 2 4-4 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                              </svg>
+                              Approve
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

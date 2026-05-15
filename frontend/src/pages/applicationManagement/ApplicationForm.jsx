@@ -34,13 +34,13 @@ const uid = () => `row_${++_uid}`;
 // ── Empty row factories ────────────────────────────────────
 const newEdu = () => ({ _id: uid(), institute: '', qualification: '', startDate: '', endDate: '' });
 
-// // ── IC Number auto-formatter ───────────────────────────────
-// const formatIC = (raw) => {
-//   const d = raw.replace(/\D/g, '').slice(0, 12);
-//   if (d.length <= 6)  return d;
-//   if (d.length <= 8)  return `${d.slice(0, 6)}-${d.slice(6)}`;
-//   return `${d.slice(0, 6)}-${d.slice(6, 8)}-${d.slice(8)}`;
-// };
+// ── IC Number auto-formatter ───────────────────────────────
+const formatIC = (raw) => {
+  const d = raw.replace(/\D/g, '').slice(0, 12);
+  if (d.length <= 6)  return d;
+  if (d.length <= 8)  return `${d.slice(0, 6)}-${d.slice(6)}`;
+  return `${d.slice(0, 6)}-${d.slice(6, 8)}-${d.slice(8)}`;
+};
 
 export function FormSeparator({ title }) {
   return (
@@ -92,7 +92,7 @@ function StepPersonal({ data, onChange, errors, onFieldChange }) {
           />
         </div>
 
-        {/* <div className="af-field af-col-full">
+        <div className="af-field af-col-full">
           <label className="af-label">IC Number<span className="af-required">*</span></label>
           <input
             className={`af-input ${errors.icNumber ? 'error' : ''}`}
@@ -103,7 +103,7 @@ function StepPersonal({ data, onChange, errors, onFieldChange }) {
             maxLength={14}
           />
           {errors.icNumber && <p className="af-field-error">{errors.icNumber}</p>}
-        </div> */}
+        </div>
 
         <div className="af-field">
           <label className="af-label">Date of Birth<span className="af-required">*</span></label>
@@ -223,6 +223,25 @@ function StepPersonal({ data, onChange, errors, onFieldChange }) {
           {errors.state && <p className="af-field-error">{errors.state}</p>}
         </div>
 
+        {/* ── Additional Information ── */}
+        <FormSeparator title="Additional Information" />
+
+        <div className="af-field">
+          <label className="af-label">
+            How Did You Hear About Us?<span className="af-required">*</span>
+          </label>
+          <select
+            className={`af-select ${errors.hearAboutUs ? 'error' : ''}`}
+            value={data.hearAboutUs}
+            onChange={set('hearAboutUs')}
+          >
+            {HEAR_ABOUT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          {errors.hearAboutUs && <p className="af-field-error">{errors.hearAboutUs}</p>}
+        </div>
+
       </div>
     </>
   );
@@ -237,7 +256,7 @@ function StepEducation({ education, onEduChange, errors }) {
   const delEdu = (id) => onEduChange(education.filter((r) => r._id !== id));
   const setEdu = (id, field, val) => onEduChange(education.map((r) => r._id === id ? { ...r, [field]: val } : r));
 
-  return (
+return (
     <>
       <div className="af-section">
         <div className="af-section-header">
@@ -259,21 +278,31 @@ function StepEducation({ education, onEduChange, errors }) {
                 ? <tr><td colSpan={5} className="af-empty">No education records added yet</td></tr>
                 : education.map((row) => (
                   <tr key={row._id}>
-                    <td><input className="af-table-input" value={row.institute}
-                      onChange={(e) => setEdu(row._id, 'institute', e.target.value)}
-                      placeholder="e.g. SMK Tasek Gelugor" /></td>
+                    <td><input
+                        className={`af-table-input${errors.eduRows?.[row._id]?.institute ? ' error' : ''}`}
+                        value={row.institute}
+                        onChange={(e) => setEdu(row._id, 'institute', e.target.value)}
+                        placeholder="e.g. SMK Tasek Gelugor" /></td>
                     <td>
-                      <select className="af-table-select" value={row.qualification}
+                      <select
+                        className={`af-table-select${errors.eduRows?.[row._id]?.qualification ? ' error' : ''}`}
+                        value={row.qualification}
                         onChange={(e) => setEdu(row._id, 'qualification', e.target.value)}>
                         <option value="">Select</option>
                         <option>SPM</option><option>UEC</option>
                         <option>SKM</option><option>Others</option>
                       </select>
                     </td>
-                    <td><input type="date" className="af-table-input" value={row.startDate}
-                      onChange={(e) => setEdu(row._id, 'startDate', e.target.value)} /></td>
-                    <td><input type="date" className="af-table-input" value={row.endDate}
-                      onChange={(e) => setEdu(row._id, 'endDate', e.target.value)} /></td>
+                    <td><input 
+                        type="date"
+                        className={`af-table-input${errors.eduRows?.[row._id]?.startDate ? ' error' : ''}`}
+                        value={row.startDate}
+                        onChange={(e) => setEdu(row._id, 'startDate', e.target.value)} /></td>
+                    <td><input 
+                        type="date"
+                        className={`af-table-input${errors.eduRows?.[row._id]?.endDate ? ' error' : ''}`}
+                        value={row.endDate}
+                        onChange={(e) => setEdu(row._id, 'endDate', e.target.value)} /></td>
                     <td>
                       <button className="af-row-del" onClick={() => delEdu(row._id)} type="button" title="Remove">
                         <Icon d="M18 6L6 18M6 6l12 12" size={13} />
@@ -284,8 +313,8 @@ function StepEducation({ education, onEduChange, errors }) {
               }
             </tbody>
           </table>
-          {errors.education && <p className="af-field-error">{errors.education}</p>}
         </div>
+        {errors.education && <p className="af-field-error">{errors.education}</p>}
       </div>
     </>
   );
@@ -396,19 +425,12 @@ export default function ApplicationForm() {
   const accountName = user.name || '';
   const accountEmail = user.email || '';
 
-  const [personal, setPersonal] = useState({
-    fullName: accountName, dob: '', gender: '',
-    email: accountEmail, phone: '',
+    const [personal, setPersonal] = useState({
+    fullName: accountName, icNumber: '', dob: '', gender: '',
+    race: '', maritalStatus: '', email: accountEmail, phone: '',
     fullAddress: '', postalCode: '', state: '',
     hearAboutUs: '',
   });
-
-  //   const [personal, setPersonal] = useState({
-  //   fullName: accountName, icNumber: '', dob: '', gender: '',
-  //   race: '', maritalStatus: '', email: accountEmail, phone: '',
-  //   fullAddress: '', postalCode: '', state: '',
-  //   hearAboutUs: '',
-  // });
 
   const [errors,          setErrors]         = useState({});
   const [step1Alert,      setStep1Alert]     = useState(null);
@@ -420,6 +442,7 @@ export default function ApplicationForm() {
   const [submitting,      setSubmitting]     = useState(false);
   const [saving,          setSaving]         = useState(false);
   const [submitAlert,     setSubmitAlert]    = useState(null);
+  const [agreedToTerms,   setAgreedToTerms]  = useState(false);
   const [submitted,       setSubmitted]      = useState(false);
   const [toast,           setToast]          = useState(null);
   const [loading,         setLoading]        = useState(true);
@@ -438,11 +461,9 @@ export default function ApplicationForm() {
           const a = data.application;
           setPersonal({
             fullName:      accountName,
-            // icNumber:      a.ic_number       || '',
+            icNumber:      a.ic_number       || '',
             dob:           a.date_of_birth ? a.date_of_birth.split('T')[0] : '',
             gender:        a.gender          || '',
-            // race:          a.race            || '',
-            // maritalStatus: a.marital_status  || '',
             email:         accountEmail,
             phone:         a.phone           || '',
             fullAddress:   a.full_address    || '',
@@ -500,15 +521,14 @@ export default function ApplicationForm() {
     const errs = {};
 
     const required = {
-      // icNumber:      'IC number is required.',
+      icNumber:      'IC number is required.',
       dob:           'Date of birth is required.',
       gender:        'Please select a gender.',
-      // race:          'Please select a race.',
-      // maritalStatus: 'Please select marital status.',
       phone:         'Phone number is required.',
       fullAddress:   'Full address is required.',
       postalCode:    'Postal code is required.',
       state:         'Please select a state.',
+      hearAboutUs:   'Please let us know how you heard about us.',
     };
     Object.entries(required).forEach(([k, msg]) => {
       if (!personal[k]?.trim()) errs[k] = msg;
@@ -543,18 +563,55 @@ export default function ApplicationForm() {
   };
 
   const validateStep2 = () => {
-    if (education.length === 0) {
-      setStep2Alert({ type: 'error', msg: 'Please add at least one education record.' });
-      return false;
-    }
-    return true;
-  };
+  if (education.length === 0) {
+    setStep2Alert({ type: 'error', msg: 'Please add at least one education record.' });
+    return false;
+  }
+
+  // ── Build per-row errors ──────────────────────────────
+  const rowErrors = {};
+  education.forEach((row) => {
+    const re = {};
+    if (!row.institute?.trim())     re.institute    = true;
+    if (!row.qualification?.trim()) re.qualification = true;
+    if (!row.startDate?.trim())     re.startDate    = true;
+    if (!row.endDate?.trim())       re.endDate      = true;
+    if (Object.keys(re).length)     rowErrors[row._id] = re;
+  });
+
+  if (Object.keys(rowErrors).length > 0) {
+    const badCount = Object.keys(rowErrors).length;
+
+    const missingFields = new Set();
+    Object.values(rowErrors).forEach((re) => {
+      if (re.institute)    missingFields.add('Institute Name');
+      if (re.qualification) missingFields.add('Qualification');
+      if (re.startDate)    missingFields.add('Start Date');
+      if (re.endDate)      missingFields.add('End Date');
+    });
+    const fieldList = [...missingFields].join(', ');
+
+    setErrors((prev) => ({
+      ...prev,
+      education: `${fieldList} ${missingFields.size === 1 ? 'is' : 'are'} required.`,
+      eduRows: rowErrors,
+    }));
+    setStep2Alert({
+      type: 'error',
+      msg: `${badCount} education ${badCount === 1 ? 'row is' : 'rows are'} incomplete. Please fill in the all required fields before continuing.`,
+    });
+    return false;
+  }
+
+  // Clear any leftover edu errors on success
+  setErrors((prev) => { const n = { ...prev }; delete n.education; delete n.eduRows; return n; });
+  return true;
+};
 
   // ── Navigation ───────────────────────────────────────────
   const handleNext = () => {
     if (step === 1) {
       if (!validateStep1()) {
-        setStep1Alert({ type: 'error', msg: 'Please fill in all required fields before continuing.' });
         window.scrollTo(0, 0);
         return;
       }
@@ -563,7 +620,6 @@ export default function ApplicationForm() {
 
     if (step === 2) {
       if (!validateStep2()) {
-        setStep2Alert({ type: 'error', msg: 'Please add at least one education record before continuing.' });
         window.scrollTo(0, 0);
         return;
       }
@@ -614,8 +670,8 @@ export default function ApplicationForm() {
       window.scrollTo(0, 0);
       return;
     }
-    if (!personal.hearAboutUs) {
-      setSubmitAlert({ type: 'error', msg: 'Please let us know how you heard about us.', field: 'hearAboutUs' });
+    if (!agreedToTerms) {
+      setSubmitAlert({ type: 'error', msg: 'Please agree to the terms and conditions before submitting.' });
       window.scrollTo(0, 0);
       return;
     }
@@ -728,8 +784,8 @@ export default function ApplicationForm() {
             )}
             {step === 3 && (
               <>
-                <p className="af-card-title">Interview & Additional Information</p>
-                <p className="af-card-subtitle">Select your preferred interview slot and tell us how you found us</p>
+                <p className="af-card-title">Interview Slot</p>
+                <p className="af-card-subtitle">Select your preferred interview slot</p>
               </>
             )}
           </div>
@@ -774,7 +830,7 @@ export default function ApplicationForm() {
               <StepEducation
                 education={education}
                 errors={errors}
-                onEduChange={(val) => { setEducation(val); setStep2Alert(null); }}
+                onEduChange={(val) => { setEducation(val); setStep2Alert(null); setErrors((p) => { const n = { ...p }; delete n.education; delete n.eduRows; return n; }); }}
               />
             )}
 
@@ -797,27 +853,39 @@ export default function ApplicationForm() {
                   loading={slotsLoading}
                 />
 
-                {/* ── Additional Information ── */}
-                <div style={{ marginTop: 32, paddingTop: 28, borderTop: '2px solid #edf1f7' }}>
-                  <div className="af-form-separator af-col-full" style={{ marginBottom: 20 }}>
-                    <span className="af-form-separator-label">Additional Information</span>
+                {/* ── Terms & Conditions ── */}
+                <div style={{
+                  marginTop: 32, paddingTop: 24,
+                  borderTop: '2px solid #edf1f7',
+                }}>
+                  <div className="af-form-separator af-col-full" style={{ marginBottom: 16 }}>
+                    <span className="af-form-separator-label">Declaration</span>
                     <div className="af-form-separator-line" />
                   </div>
-                  <div className="af-field" style={{ maxWidth: 480 }}>
-                    <label className="af-label">
-                      How Did You Hear About Us?<span className="af-required">*</span>
-                    </label>
-                    <select
-                      className={`af-select ${submitAlert?.field === 'hearAboutUs' ? 'error' : ''}`}
-                      value={personal.hearAboutUs}
-                      onChange={(e) => setPersonal((p) => ({ ...p, hearAboutUs: e.target.value }))}
-                    >
-                      {HEAR_ABOUT_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <label style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 12,
+                    cursor: 'pointer', fontSize: 14, color: '#1e293b', lineHeight: 1.6,
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={agreedToTerms}
+                      onChange={(e) => {
+                        setAgreedToTerms(e.target.checked);
+                        if (submitAlert?.msg?.includes('terms')) setSubmitAlert(null);
+                      }}
+                      style={{
+                        marginTop: 3, width: 16, height: 16, flexShrink: 0,
+                        accentColor: '#1b3a6b', cursor: 'pointer',
+                      }}
+                    />
+                    <span>
+                      I agree that my personal information will be collected, used and processed 
+                      for the purpose of this application in accordance with the Privacy Policy
+                    </span>
+                  </label>
+                  {submitAlert?.msg?.includes('terms')}
                 </div>
+
               </>
             )}
           </div>
@@ -854,7 +922,7 @@ export default function ApplicationForm() {
               <button className="af-btn-next" onClick={handleSubmit} disabled={submitting || saving}>
                 {submitting
                   ? <><span className="af-spinner" /> Submitting…</>
-                  : <>Submit <Icon d="M20 6L9 17l-5-5" size={14} color="white" /></>
+                  : <>Submit </>
                 }
               </button>
             )}
