@@ -1,6 +1,7 @@
 // components/internship/ApplyModal.jsx
 import { useState, useRef } from "react";
 import { applyToVacancy } from "../../pages/api/internshipApi";
+import "../../css/userManagement/userTable.css";
 
 const ALLOWED_EXTS = [".pdf", ".doc", ".docx"];
 const MAX_MB       = 5;
@@ -179,9 +180,8 @@ export default function ApplyModal({ vacancy, onClose, onSuccess }) {
         </div>
 
         <div className="modal-footer">
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
           <button
-            className="btn-primary"
+            className="ut-btn-primary"
             onClick={handleSubmit}
             disabled={submitting || !resume}
             style={{ opacity: submitting || !resume ? 0.65 : 1 }}

@@ -5,6 +5,7 @@ const ROLES = {
   PARTNER:    'industry_partner',
   SUPERVISOR: 'industry_supervisor',
   MANAGER:    'manager',
+  INTERVIEWER: 'interviewer',
 };
 
 module.exports = ROLES;

@@ -186,7 +186,6 @@ export default function AddVacancyModal({ onClose, onSave }) {
         </div>
 
         <div className="modal-footer">
-          <button className="ut-btn-secondary" onClick={onClose}>Cancel</button>
           <button
             className="ut-btn-primary"
             onClick={handleSave}

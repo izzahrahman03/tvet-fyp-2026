@@ -384,7 +384,6 @@ export default function EditModal({ row, type, onClose, onSave }) {
         </div>
 
         <div className="modal-footer">
-          <button className="ut-btn-secondary" onClick={onClose}>Cancel</button>
           <button className="ut-btn-primary" onClick={handleSave} disabled={saving || success || isLocked} style={{ opacity: (saving || success || isLocked) ? 0.7 : 1 }}>
             {saving ? "Saving..." : success ? "Saved!" : "Save Changes"}
           </button>

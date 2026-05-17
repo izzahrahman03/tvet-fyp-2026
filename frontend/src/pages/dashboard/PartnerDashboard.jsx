@@ -107,8 +107,7 @@ export default function PartnerDashboard() {
   const [error,        setError]        = useState(false);
 
   // ── Filter state ──────────────────────────────────────
-  const [vacancyFilter, setVacancyFilter] = useState("All");  // All | Open | Closed
-  const [monthRange,    setMonthRange]    = useState(6);      // 3 | 6 | 12
+  const [monthRange, setMonthRange] = useState(6); // 3 | 6 | 12
 
   useEffect(() => {
     Promise.all([fetchVacancies(), fetchInternshipApplications()])
@@ -130,20 +129,14 @@ export default function PartnerDashboard() {
   const closedVacancies = vacancies.filter((v) => v.status?.toLowerCase() === "closed").length;
   const totalApplicants = applications.length;
 
-  const pendingApps   = applications.filter((a) => ["pending", "reviewing"].includes(getStatus(a))).length;
-  const interviewApps = applications.filter((a) => ["interview", "interview_scheduled"].includes(getStatus(a))).length;
-  const passedApps    = applications.filter((a) => ["passed", "offer_sent"].includes(getStatus(a))).length;
-  const acceptedApps  = applications.filter((a) => getStudentStatus(a) === "accepted").length;
-  const failedApps    = applications.filter((a) => ["failed", "rejected", "declined", "absent"].includes(getStatus(a))).length;
-  const withdrawnApps = applications.filter((a) => ["withdrawn", "withdraw_requested"].includes(getStudentStatus(a))).length;
+  const pendingApps    = applications.filter((a) => ["pending", "reviewing"].includes(getStatus(a))).length;
+  const interviewApps  = applications.filter((a) => ["interview", "interview_scheduled"].includes(getStatus(a))).length;
+  const passedApps     = applications.filter((a) => ["passed", "offer_sent"].includes(getStatus(a))).length;
+  const acceptedApps   = applications.filter((a) => getStudentStatus(a) === "accepted").length;
+  const failedApps     = applications.filter((a) => ["failed", "rejected", "declined", "absent"].includes(getStatus(a))).length;
+  const withdrawnApps  = applications.filter((a) => ["withdrawn", "withdraw_requested"].includes(getStudentStatus(a))).length;
   const terminatedApps = applications.filter((a) => ["terminated"].includes(getStatus(a))).length;
-  const acceptancePct = totalApplicants > 0 ? Math.round((acceptedApps / totalApplicants) * 100) : 0;
-
-  // ── Filtered vacancies ─────────────────────────────────
-  const filteredVacancies = useMemo(() => {
-    if (vacancyFilter === "All") return vacancies;
-    return vacancies.filter((v) => v.status?.toLowerCase() === vacancyFilter.toLowerCase());
-  }, [vacancies, vacancyFilter]);
+  const acceptancePct  = totalApplicants > 0 ? Math.round((acceptedApps / totalApplicants) * 100) : 0;
 
   // ── Monthly bar chart data ─────────────────────────────
   const monthlyData = useMemo(() => {
@@ -186,7 +179,7 @@ export default function PartnerDashboard() {
       };
     });
 
-    filteredVacancies.forEach((v) => {
+    vacancies.forEach((v) => {
       const dateStr = v.created_at || v.start_date || v.posted_at;
       if (!dateStr) return;
       const d   = new Date(dateStr);
@@ -196,7 +189,7 @@ export default function PartnerDashboard() {
     });
 
     return months.map(({ month, vacancies }) => ({ month, vacancies }));
-  }, [filteredVacancies, monthRange]);
+  }, [vacancies, monthRange]);
 
   // ── Loading / error guards ─────────────────────────────
   if (loading) {
@@ -230,12 +223,12 @@ export default function PartnerDashboard() {
   const VAC_COLORS = ["#10b981", "#ef4444"];
 
   const appPieData = [
-    { name: "Pending",   value: pendingApps   },
-    { name: "Interview", value: interviewApps },
-    { name: "Passed",    value: passedApps    },
-    { name: "Accepted",  value: acceptedApps  },
-    { name: "Failed",    value: failedApps    },
-    { name: "Withdrawn", value: withdrawnApps },
+    { name: "Pending",    value: pendingApps    },
+    { name: "Interview",  value: interviewApps  },
+    { name: "Passed",     value: passedApps     },
+    { name: "Accepted",   value: acceptedApps   },
+    { name: "Failed",     value: failedApps     },
+    { name: "Withdrawn",  value: withdrawnApps  },
     { name: "Terminated", value: terminatedApps },
   ];
   const APP_COLORS = ["#f59e0b", "#6d28d9", "#0ea5e9", "#10b981", "#ef4444", "#ff7434", "#f71d00"];
@@ -316,7 +309,7 @@ export default function PartnerDashboard() {
         </div>
       </div>
 
-      {/* ── Analytics toolbar — filters ───────────────────── */}
+      {/* ── Analytics toolbar — period filter only ────────── */}
       <div style={{
         background: "#fff", border: "1px solid #dce6f0", borderRadius: 2,
         padding: "14px 20px", marginBottom: 20,
@@ -342,25 +335,10 @@ export default function PartnerDashboard() {
           </select>
         </div>
 
-        {/* Vacancy status dropdown */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <label style={{ fontSize: 11, color: "#64748b", fontWeight: 600, whiteSpace: "nowrap" }}>Vacancies:</label>
-          <select
-            className="filter-select"
-            value={vacancyFilter}
-            onChange={(e) => setVacancyFilter(e.target.value)}
-            style={selectStyle}
-          >
-            <option value="All">All</option>
-            <option value="Open">Open</option>
-            <option value="Closed">Closed</option>
-          </select>
-        </div>
-
-        {/* Reset button — only shown when filters are active */}
-        {(vacancyFilter !== "All" || monthRange !== 6) && (
+        {/* Reset button — only shown when period filter is active */}
+        {monthRange !== 6 && (
           <button
-            onClick={() => { setVacancyFilter("All"); setMonthRange(6); }}
+            onClick={() => setMonthRange(6)}
             style={{
               marginLeft: "auto", padding: "5px 14px", borderRadius: 2,
               border: "1px solid #fecaca", background: "#fff5f5",
@@ -425,18 +403,12 @@ export default function PartnerDashboard() {
         </div>
 
         {/* Vacancy status donut */}
-        <div className="dash-card" style={{ background: "#fff", border: "1px solid #dce6f0", borderRadius: 2, padding: "20px 22px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)"}}>
+        <div className="dash-card" style={{ background: "#fff", border: "1px solid #dce6f0", borderRadius: 2, padding: "20px 22px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
           <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 700, color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.07em" }}>
             Vacancy Status
           </p>
           <p style={{ margin: "0 0 12px", fontSize: 11, color: "#94a3b8" }}>Open vs closed breakdown</p>
-          <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                width: "100%",
-              }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%" }}>
             <div style={{ width: 180 }}>
               <ResponsiveContainer width={110} height={110}>
                 <PieChart>
@@ -481,13 +453,7 @@ export default function PartnerDashboard() {
             Applicant Status
           </p>
           <p style={{ margin: "0 0 12px", fontSize: 11, color: "#94a3b8" }}>Distribution by review status</p>
-          <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                width: "100%",
-              }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%" }}>
             <div style={{ width: 180 }}>
               <ResponsiveContainer width={120} height={120}>
                 <PieChart>
@@ -498,8 +464,8 @@ export default function PartnerDashboard() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-             <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                <PieLegend data={appPieData} colors={APP_COLORS} />   
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <PieLegend data={appPieData} colors={APP_COLORS} />
             </div>
           </div>
         </div>
@@ -511,9 +477,7 @@ export default function PartnerDashboard() {
           Vacancy Postings Over Time
         </p>
         <p style={{ margin: "0 0 16px", fontSize: 11, color: "#94a3b8" }}>
-          Vacancies posted per month
-          {vacancyFilter !== "All" ? ` · filtered: ${vacancyFilter}` : ""}
-          {` · last ${monthRange} months`}
+          Vacancies posted per month · last {monthRange} months
         </p>
         <ResponsiveContainer width="100%" height={160}>
           <LineChart data={vacPostingsData}>

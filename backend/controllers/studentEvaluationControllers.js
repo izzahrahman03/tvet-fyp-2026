@@ -13,7 +13,6 @@ async function getStudentId(userId) {
   return rows[0].student_id;
 }
 
-
 // ══════════════════════════════════════════════════════════
 // GET MY EVALUATION   GET /api/student/my-evaluation
 // Returns the evaluation only once submission_confirmed = 1.
@@ -34,10 +33,10 @@ exports.getMyEvaluation = async (req, res) => {
          COALESCE(ip.company_name, pu.name) AS company_name,
          ip.industry_sector,
          ip.location,
-         sup_u.name      AS supervisor_name,
-         sup.position    AS supervisor_position,
-         sup_u.email     AS supervisor_email,
-         sup.phone       AS supervisor_phone
+         sup_u.name   AS supervisor_name,
+         sup.position AS supervisor_position,
+         sup_u.email  AS supervisor_email,
+         sup.phone    AS supervisor_phone
        FROM internship_applications ia
        JOIN vacancies           v   ON v.vacancy_id   = ia.vacancy_id
        JOIN industry_partners   ip  ON ip.partner_id  = ia.partner_id
@@ -57,9 +56,19 @@ exports.getMyEvaluation = async (req, res) => {
 
     const application = appRows[0];
 
-    // Fetch evaluation — only expose if supervisor has confirmed submission
+    // Fetch evaluation — only expose if supervisor has confirmed submission.
+    // Individual criterion grades and scores are intentionally excluded;
+    // only the final grade, recommendations, comments, and metadata are returned.
     const [evRows] = await db.query(
-      `SELECT * FROM internship_evaluations
+      `SELECT
+         submission_confirmed,
+         total_score,
+         comments,
+         recommend_pass,
+         recommend_excellence,
+         award_best_intern,
+         updated_at
+       FROM internship_evaluations
        WHERE internship_application_id = ?`,
       [application.application_id]
     );

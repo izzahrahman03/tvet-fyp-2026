@@ -137,7 +137,7 @@ const ActivationPage = () => {
                 className="act-inner-input"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors(prev => ({ ...prev, email: "" })); }}
-                placeholder="your@email.com"
+                placeholder="Please enter your email address"
                 autoComplete="email"
                 autoFocus
               />

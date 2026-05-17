@@ -124,7 +124,7 @@ function OfferCard({ onAccept, onDecline, loading }) {
   return (
     <div style={{ marginTop: "16px", padding: "16px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "2px" }}>
       <p style={{ fontSize: "14px", fontWeight: "600", color: "#166534", margin: "0 0 4px" }}>
-        🎉 Congratulations! You have been approved.
+         Congratulations! You have been approved.
       </p>
       <p style={{ fontSize: "13px", color: "#15803d", margin: "0 0 14px" }}>
         Please confirm your decision below. Accepting will upgrade your account to Student.
@@ -293,8 +293,8 @@ export default function ApplicantDashboard() {
     if (!application && windowOpen === false) return "Applications are not currently open.";
     if (!application) return "You have not submitted an application yet.";
     if (isDraft) return "You have a draft application. Complete and submit it when you are ready.";
-    if (showOfferCard) return "🎉 You passed! Please respond to your internship offer.";
-    if (s === "accepted") return "Your internship offer has been accepted. Welcome aboard!";
+    if (showOfferCard) return "You passed! Please respond to your application offer.";
+    if (s === "accepted") return "Your application offer has been accepted. Welcome aboard!";
     if (s === "interview") return "Your interview has been scheduled. Check the details below.";
     return `Application is ${s}. Track your progress below.`;
   };

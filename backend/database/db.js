@@ -2,7 +2,7 @@ const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const db = mysql.createPool({
+const pool = mysql.createPool({
   host:     process.env.DB_HOST     || 'localhost',
   user:     process.env.DB_USER     || 'root',
   password: process.env.DB_PASSWORD || '',
@@ -13,7 +13,7 @@ const db = mysql.createPool({
   charset:            'utf8mb4',
 });
 
-db.getConnection()
+pool.getConnection()
   .then(conn => {
     console.log('Connected to the MySQL database');
     conn.release();
@@ -22,4 +22,4 @@ db.getConnection()
     console.error('Error connecting to the database:', err);
   });
 
-module.exports = db;
+module.exports = pool;

@@ -4,13 +4,24 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --coverage",
-    "test:watch": "jest --watch"
+    "test": "jest --runInBand",
+    "test:report": "jest --runInBand"
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": [
-      "**/tests/**/*.test.js"
+    "testTimeout": 10000,
+    "reporters": [
+      "default",
+      [
+        "jest-html-reporters",
+        {
+          "publicPath": "./test-report",
+          "filename": "report.html",
+          "openReport": true,
+          "pageTitle": "TVET Programme Management System — Test Report",
+          "expand": true
+        }
+      ]
     ]
   },
   "keywords": [],
@@ -37,7 +48,11 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
-    "jest": "^30.3.0",
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.5",
+    "babel-jest": "^30.4.1",
+    "jest": "^30.4.2",
+    "jest-html-reporters": "^3.1.7",
     "supertest": "^7.2.2"
   }
 }

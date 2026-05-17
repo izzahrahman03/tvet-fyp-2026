@@ -132,7 +132,6 @@ function UpdateStatusModal({ row, onClose, onSave }) {
         </div>
 
         <div className="modal-footer">
-          <button className="ut-btn-secondary" onClick={onClose}>Cancel</button>
           <button className="ut-btn-primary" onClick={handleSave} disabled={saving || !status} style={{ opacity: saving || !status ? 0.65 : 1 }}>
             {saving ? "Saving…" : "Update Status"}
           </button>
@@ -183,7 +182,6 @@ function ApproveWithdrawModal({ row, onClose, onApprove }) {
           </p>
         </div>
         <div className="modal-footer">
-          <button className="ut-btn-secondary" onClick={onClose}>Cancel</button>
           <button
             onClick={handleApprove}
             disabled={saving}

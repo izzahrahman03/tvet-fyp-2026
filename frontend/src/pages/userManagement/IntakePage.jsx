@@ -310,7 +310,6 @@ function IntakeModal({ initial, onClose, onSave }) {
         </div>
 
         <div className="modal-footer">
-          <button className="ut-btn-secondary" onClick={onClose}>Cancel</button>
           <button className="ut-btn-primary" onClick={handleSubmit} disabled={saving || success}
             style={{ opacity: saving || success ? 0.7 : 1 }}>
             {saving ? "Saving…" : success ? "Saved!" : isEdit ? "Save Changes" : "Create Intake"}

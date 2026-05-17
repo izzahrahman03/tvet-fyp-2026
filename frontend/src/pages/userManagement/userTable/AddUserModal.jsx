@@ -172,7 +172,6 @@ export default function AddUserModal({ type, onClose, onSave }) {
         </div>
 
         <div className="modal-footer">
-          <button className="ut-btn-secondary" onClick={onClose}>Cancel</button>
           <button className="ut-btn-primary" onClick={handleSave} disabled={saving || success} style={{ opacity: (saving || success) ? 0.7 : 1 }}>
             {saving ? "Saving…" : success ? "Saved!" : "Add User"}
           </button>
