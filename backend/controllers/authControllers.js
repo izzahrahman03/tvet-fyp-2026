@@ -36,7 +36,7 @@ exports.signup = async (req, res) => {
       [name, email, hashedPassword, 'applicant', 'active']
     );
 
-    res.json({ message: 'User registered successfully' });
+    return res.status(201)({ message: 'User registered successfully' });
   } catch (err) {
     console.error('Signup error:', err);
     // FIX: was leaking raw MySQL error e.g. "Duplicate entry '...' for key 'users.email'"
