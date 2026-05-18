@@ -197,9 +197,6 @@ function ReviewModal({ row, onClose, onProcessed }) {
         </div>
 
         <div className="modal-footer" style={{ flexShrink: 0, borderTop: "1.5px solid #e2e8f0" }}>
-          <button className="ut-btn-secondary" onClick={onClose}>
-            {isPending ? "Cancel" : "Close"}
-          </button>
           {isPending && (
             <button
               className="ut-btn-primary"

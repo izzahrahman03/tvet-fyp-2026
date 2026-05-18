@@ -511,6 +511,7 @@ exports.updateInternStatus = async (req, res) => {
  
     const VALID_STATUSES = ['active', 'inactive', 'terminated'];
     const TRANSITIONS    = {
+      null:     ['active',   'inactive', 'terminated'],
       active:   ['inactive', 'terminated'],
       inactive: ['active',   'terminated'],
     };
@@ -552,7 +553,7 @@ exports.updateInternStatus = async (req, res) => {
     if (intern.response !== 'accepted')
       return res.status(400).json({ message: 'Only accepted interns can have their status updated.' });
  
-    const current = intern.current_intern_status?.toLowerCase();
+    const current = intern.current_intern_status?.toLowerCase() ?? null;
  
     if (current === 'terminated')
       return res.status(400).json({ message: 'Terminated intern status cannot be changed.' });

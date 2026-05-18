@@ -461,7 +461,7 @@ export default function PartnerInternsTable() {
       const chosen = supervisors.find((s) => String(s.supervisor_id) === String(bulkSupervisorId));
       setRows((prev) =>
         prev.map((r) =>
-          selectedIds.has(r.id) && r.intern_status?.toLowerCase() !== "active"
+          selectedIds.has(r.id) && r.intern_status?.toLowerCase() === "active"
             ? {
                 ...r,
                 supervisor_id:       bulkSupervisorId,
