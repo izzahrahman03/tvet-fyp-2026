@@ -36,13 +36,13 @@ exports.signup = async (req, res) => {
       [name, email, hashedPassword, 'applicant', 'active']
     );
 
-    return res.status(201).json({ message: 'User registered successfully' });
+    res.json({ message: 'User registered successfully' });
   } catch (err) {
     console.error('Signup error:', err);
     // FIX: was leaking raw MySQL error e.g. "Duplicate entry '...' for key 'users.email'"
     if (err.code === 'ER_DUP_ENTRY')
       return res.status(409).json({ message: 'An account with this email already exists.' });
-    return res.status(500).json({ message: 'Something went wrong. Please try again.' });
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
   }
 };
 

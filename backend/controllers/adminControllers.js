@@ -622,7 +622,7 @@ exports.addUserByAdmin = async (req, res) => {
     await conn.commit();
     sendBulkActivationEmail(email, name, tempPassword, activationToken, role);
 
-    res.json({
+    return res.status(201).json({
       message: 'User added successfully! An activation email has been sent.',
       user: {
         id:                  userId,
