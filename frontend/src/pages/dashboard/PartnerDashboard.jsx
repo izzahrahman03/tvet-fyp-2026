@@ -9,6 +9,17 @@ import {
 import { fetchVacancies }              from "../api/vacancyApi";
 import { fetchInternshipApplications } from "../api/internshipApplicationApi";
 
+const API      = process.env.REACT_APP_API_URL;
+const getToken = () => localStorage.getItem("token");
+
+const apiFetch = (path) =>
+  fetch(`${API}${path}`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  }).then((r) => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  });
+
 // ── Custom tooltip ─────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -105,16 +116,33 @@ export default function PartnerDashboard() {
   const [applications, setApplications] = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState(false);
-
-  // ── Filter state ──────────────────────────────────────
-  const [monthRange, setMonthRange] = useState(6); // 3 | 6 | 12
+  const [filters,  setFilters]  = useState({ intake: "" });
+  const [intakes,  setIntakes]  = useState([]);
+  const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
-    Promise.all([fetchVacancies(), fetchInternshipApplications()])
-      .then(([vacs, apps]) => { setVacancies(vacs); setApplications(apps); })
+    setFetching(true);
+    const params = new URLSearchParams();
+    if (filters.intake) params.set("intake", filters.intake);
+
+    Promise.all([
+      fetchVacancies(filters.intake),
+      fetchInternshipApplications(filters.intake),
+      apiFetch("/intakes"),
+    ])
+      .then(([vacs, apps, intakeData]) => {
+        setVacancies(vacs);
+        setApplications(apps);
+        setIntakes(intakeData.intakes ?? []);
+      })
       .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => { setLoading(false); setFetching(false); });
+  }, [filters.intake]);
+
+  const setFilter  = (key, val) => setFilters((f) => ({ ...f, [key]: val }));
+  const clearAll   = ()         => setFilters({ intake: "" });
+  const hasFilters = !!filters.intake;
+  const intakeName = intakes.find(i => String(i.intake_id) === String(filters.intake))?.intake_name ?? "";
 
   // ── Normalised status helpers ──────────────────────────
   const getStatus = (app) =>
@@ -141,8 +169,8 @@ export default function PartnerDashboard() {
   // ── Monthly bar chart data ─────────────────────────────
   const monthlyData = useMemo(() => {
     const now = new Date();
-    const months = Array.from({ length: monthRange }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (monthRange - 1 - i), 1);
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (6 - 1 - i), 1);
       return {
         month: d.toLocaleString("en-MY", { month: "short" }),
         year:  d.getFullYear(),
@@ -164,13 +192,13 @@ export default function PartnerDashboard() {
     });
 
     return months.map(({ month, applications, accepted }) => ({ month, applications, accepted }));
-  }, [applications, monthRange]);
+  }, [applications]);
 
   // ── Vacancy postings line chart ────────────────────────
   const vacPostingsData = useMemo(() => {
     const now = new Date();
-    const months = Array.from({ length: monthRange }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (monthRange - 1 - i), 1);
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (6 - 1 - i), 1);
       return {
         month: d.toLocaleString("en-MY", { month: "short" }),
         year:  d.getFullYear(),
@@ -189,7 +217,7 @@ export default function PartnerDashboard() {
     });
 
     return months.map(({ month, vacancies }) => ({ month, vacancies }));
-  }, [vacancies, monthRange]);
+  }, [vacancies]);
 
   // ── Loading / error guards ─────────────────────────────
   if (loading) {
@@ -309,7 +337,7 @@ export default function PartnerDashboard() {
         </div>
       </div>
 
-      {/* ── Analytics toolbar — period filter only ────────── */}
+      {/* ── Filter bar ─────────────────────────────── */}
       <div style={{
         background: "#fff", border: "1px solid #dce6f0", borderRadius: 2,
         padding: "14px 20px", marginBottom: 20,
@@ -320,25 +348,32 @@ export default function PartnerDashboard() {
           Filters
         </span>
 
-        {/* Period dropdown */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <label style={{ fontSize: 11, color: "#64748b", fontWeight: 600, whiteSpace: "nowrap" }}>Period:</label>
+          <label style={{ fontSize: 11, color: "#64748b", fontWeight: 600, whiteSpace: "nowrap" }}>Intake:</label>
           <select
             className="filter-select"
-            value={monthRange}
-            onChange={(e) => setMonthRange(Number(e.target.value))}
-            style={selectStyle}
+            value={filters.intake}
+            onChange={(e) => setFilter("intake", e.target.value)}
+            style={{
+              ...selectStyle,
+              borderColor: filters.intake ? "#2563eb" : "#dce6f0",
+              color: filters.intake ? "#2563eb" : "#1b3a6b",
+            }}
           >
-            <option value={3}>Last 3 months</option>
-            <option value={6}>Last 6 months</option>
-            <option value={12}>Last 12 months</option>
+            <option value="">All Intakes</option>
+            {intakes.map((i) => (
+              <option key={i.intake_id} value={i.intake_id}>{i.intake_name}</option>
+            ))}
           </select>
         </div>
 
-        {/* Reset button — only shown when period filter is active */}
-        {monthRange !== 6 && (
+        {fetching && (
+          <span style={{ fontSize: 12, color: "#64748b", fontStyle: "italic" }}>Updating…</span>
+        )}
+
+        {hasFilters && (
           <button
-            onClick={() => setMonthRange(6)}
+            onClick={clearAll}
             style={{
               marginLeft: "auto", padding: "5px 14px", borderRadius: 2,
               border: "1px solid #fecaca", background: "#fff5f5",
@@ -349,6 +384,17 @@ export default function PartnerDashboard() {
           </button>
         )}
       </div>
+
+      {/* Filter scope note */}
+      {hasFilters && (
+        <div style={{
+          background: "#fffbeb", border: "1px solid #fde68a",
+          borderRadius: 2, padding: "8px 14px", marginBottom: 20,
+          fontSize: 12, color: "#92400e",
+        }}>
+          <strong>Note:</strong> Intake filter applies to vacancy and application data shown below.
+        </div>
+      )}
 
       {/* ── Stat cards ────────────────────────────────────── */}
       <div
@@ -434,7 +480,7 @@ export default function PartnerDashboard() {
           <p style={{ margin: "0 0 2px", fontSize: 12, fontWeight: 700, color: "#1b3a6b", textTransform: "uppercase", letterSpacing: "0.07em" }}>
             Monthly Applications
           </p>
-          <p style={{ margin: "0 0 16px", fontSize: 11, color: "#94a3b8" }}>Applications received and accepted (last {monthRange} months)</p>
+          <p style={{ margin: "0 0 16px", fontSize: 11, color: "#94a3b8" }}>Applications received and accepted (last 6 months)</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={monthlyData} barGap={3} barCategoryGap="30%">
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -477,7 +523,7 @@ export default function PartnerDashboard() {
           Vacancy Postings Over Time
         </p>
         <p style={{ margin: "0 0 16px", fontSize: 11, color: "#94a3b8" }}>
-          Vacancies posted per month · last {monthRange} months
+          Applications received and accepted (last 6 months)
         </p>
         <ResponsiveContainer width="100%" height={160}>
           <LineChart data={vacPostingsData}>

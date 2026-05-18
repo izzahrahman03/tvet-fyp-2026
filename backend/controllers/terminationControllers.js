@@ -299,9 +299,11 @@ exports.processTermination = async (req, res) => {
     if (decision === 'approved') {
       await conn.query(
         `UPDATE internship_applications
-         SET internship_application_status = 'terminated'
-         WHERE internship_application_id = ?`,
-        [t.internship_application_id]
+        SET intern_status            = 'terminated',
+            intern_remarks           = ?,
+            intern_status_updated_at = NOW()
+        WHERE internship_application_id = ?`,
+        [t.details?.trim() || t.reason?.trim() || null, t.internship_application_id]
       );
     }
 
