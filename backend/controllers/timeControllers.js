@@ -349,14 +349,8 @@ exports.clockOut = async (req, res) => {
     );
     if (!rows.length)
       return res.status(404).json({ message: 'Attendance record not found.' });
-    if (rows[0].clock_out)
-      return res.status(400).json({ message: 'You have already clocked out for this record.' });
     if (clock_out <= rows[0].clock_in)
       return res.status(400).json({ message: 'Clock-out time must be after clock-in time.' });
-
-    // If the record was already verified, reset to pending so the supervisor
-    // can re-verify with the updated clock-out time.
-    const wasVerified = rows[0].status !== 'pending';
 
     await db.query(
       `UPDATE attendance_records
@@ -368,9 +362,7 @@ exports.clockOut = async (req, res) => {
       [clock_out, remarks?.trim() || '', id]
     );
     return res.json({
-      message: wasVerified
-        ? 'Clocked out successfully. Your attendance has been reset to pending for re-verification.'
-        : 'Clocked out successfully.',
+      message: 'Clocked out successfully.',
     });
   } catch (err) { return handleErr(err, res); }
 };
@@ -421,8 +413,8 @@ exports.verifyAttendance = async (req, res) => {
       [id, supervisorId]
     );
     if (!rows.length) return res.status(404).json({ message: 'Attendance record not found.' });
-    if (rows[0].status !== 'pending')
-      return res.status(400).json({ message: 'Only pending records can be verified.' });
+
+    // ← no status guard here anymore
 
     await db.query(
       'UPDATE attendance_records SET status = ?, updated_at = NOW() WHERE attendance_id = ?',
